@@ -1,0 +1,31 @@
+This RPI code consists of 2 parts:
+1. Ntuplizer: make .raw(and injection) file into root file
+2. Analysis : use root file to do analysis / produce some plots, etc
+
+
+The usage for Ntuplizer:
+
+1. cd Ntuplizer
+2. make
+3. ls rawdata/targetfile.raw > runinfo.log
+4. ./Ntuplizer
+Output root file will be inside "root_out"
+(Then one should move the root file to ../Analysis/root_data)
+
+The Analysis part usage:
+1. cd Analysis
+2. make
+3. ls root_data/targetfile.root
+4. ./makePlots
+5. It will show a 1D histogram for time sample0 for chip 0 ch 20.
+6. Then I fill some TH2Poly by a single event TS0.
+7. The 3rd plot will be the pulse shape of certain event.
+
+The main structure of root data:
+1. I save a "hitcollection" in each event, which is defined in hit_hits_class.h
+2. I also provide a pedestal calculation function ( makePlots::P_and_N ),
+   which user can choose to output the calculation result or not.
+3. One can also read pedestal back from other RUNs by pedestal function.
+   (makePlots::read_P_and_N)
+Please make use of them, I wrote the usage in makePlots.h 
+
