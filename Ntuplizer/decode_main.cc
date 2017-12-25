@@ -35,7 +35,7 @@ int dac = 0;
 int evt_counter;
 int rollpos;
 uint32_t global_TS[4];
-int insert_ch = -1;
+
 
 int decode_raw();
 int format_channels();
@@ -84,10 +84,7 @@ int main(){
     else{
       cout << "injection file: " << fileinj_t << endl;
       string dum_line;
-      for(int i = 0 ; i < 5; ++i) {
-	if(i == 1) fileinj >> insert_ch;
-	getline(fileinj,dum_line);//remove header
-      }
+      for(int i = 0 ; i < 5; ++i) getline(fileinj,dum_line);//remove header
     }
     
     if (file.is_open()){
@@ -290,7 +287,6 @@ hitcollection Fill_ntuple(){
   
   static hit H;
   bool CCorNC;
-  int  chtype;
   double posx,posy;
   int TOTS,TOTF,TOAR,TOAF;
   int SCA_hg[NSCA],SCA_lg[NSCA];  
@@ -312,7 +308,7 @@ hitcollection Fill_ntuple(){
        int readposch = chip*2+ch/2;
       posx = chmap.CH_x[readposch];
       posy = chmap.CH_y[readposch];
-      chtype=chmap.CH_type[readposch];
+
 
       //This 2 channel has no position on the board!
       if ( chip == 2 && ch == 60 ) {
@@ -323,7 +319,7 @@ hitcollection Fill_ntuple(){
 	posx = -100;
 	posy = -100;}
       
-      H.Fill_hit(CCorNC,chtype,chip,ch,posx,posy,TOTS,TOTF,TOAR,TOAF,SCA_hg,SCA_lg);
+      H.Fill_hit(CCorNC,chip,ch,posx,posy,TOTS,TOTF,TOAR,TOAF,SCA_hg,SCA_lg);
       tmp_hits.Hits.push_back(H);
       hit_counter++;
     }
@@ -331,9 +327,8 @@ hitcollection Fill_ntuple(){
   
   tmp_hits.evt_num = evt_counter;
   tmp_hits.hit_num = hit_counter;
-  tmp_hits.inj_ch  = insert_ch;
   tmp_hits.inj_dac = dac;
-
+    
   for(int i = 0 ; i < 4 ; ++i)
     tmp_hits.global_ts[i] = (int) global_TS[i];
   for(int i = 0 ; i < NSCA; ++i){

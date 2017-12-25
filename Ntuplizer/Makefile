@@ -1,5 +1,5 @@
 CXXFLAGS=-g -m64 -O2 -Wall
-ROOTFLAGS=$(shell root-config --libs --cflags --glibs)
+ROOTFLAGS=$(shell root-config --libs --cflags --glibs) -lMathMore
 SHAREFLAGS=-fPIC -c
 
 Ntuplizer:  CHMapping.o  main.o  hit_hits_class.so
@@ -20,5 +20,5 @@ hit_hits_class.so: hit_hits_class.cxx
 	g++ $(CXXFLAGS) $(ROOTFLAGS) $(SHAREFLAGS) -o  $@ hit_hits_class.cxx
 
 clean:
-	rm -f obj_file/*.o  obj_file/*.so  obj_file/*.cxx *.pcm
-	rm -f Ntuplizer
+	rm  obj_file/*.o  obj_file/*.so  obj_file/*.cxx *.pcm
+	rm Ntuplizer

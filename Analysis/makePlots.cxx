@@ -6,6 +6,9 @@
 #include "TApplication.h"
 #include "TCanvas.h"
 #include "TGraph.h"
+#include "TMultiGraph.h"
+#include "TLegend.h"
+#include "TStyle.h"
 
 ClassImp(hit)
 ClassImp(hitcollection)
@@ -13,13 +16,13 @@ ClassImp(hitcollection)
 makePlots::makePlots(TChain* inchain):fChain(inchain)
 {
   HITS = new hitcollection;
-  app = new TApplication("app",0,0);  
   readmap();
   cout << "Constructor of makePlot ... \n\n" << endl;
 }
 //Destructor
 makePlots::~makePlots()
 {
+  delete HITS;
   cout << "\n\n";
   cout << "Destructor of makePlot ... " << endl;
 }
@@ -34,10 +37,12 @@ void makePlots::Loop(){
   //P_and_N(0,1);
   //read_P_and_N("ped_result/RUN_101117_0925");
 
+  app = new TApplication("app",0,0);
   TCanvas *c1 = new TCanvas;
   char plot_title[50];
   
   int nevents = fChain->GetEntries();
+  /*
   //============== Example for filling chip 0 ch 20 SCA0 to hist ==============
 
   TH1F *h = new TH1F("h","",100,0,500); //("title","",slice,star,end) 
@@ -85,9 +90,7 @@ void makePlots::Loop(){
 	if(TS[sca] == 0 ){
 	  int forCH = H.chip*32+H.ch/2;
 	  float X = CHmap[forCH].first;
-	  float Y = CHmap[forCH].second;
-	  int type= H.chtype;
-	  cout << "type = " << type;
+	  float Y = CHmap[forCH].second;	  
 	  poly->Fill(X,Y,H.SCA_hg[sca]);}}
     }
     poly->Draw("colztext");
@@ -130,8 +133,108 @@ void makePlots::Loop(){
 	//c1->SaveAs(plot_title);} // remove the comment to save plots
       getchar();
     }
-  }
+  }    
+  */
+  
+  TGraph *gr;
+  float dac[nevents];
+  float ADC[nevents];
+  
+  for(int ev = 0; ev < nevents ; ++ev){
+    fChain -> GetEntry(ev);
+    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
+    int nhits = HITS->hit_num;
+    dac[ev] = HITS-> inj_dac;
     
+    for(int hit = 0; hit < nhits ; ++hit){
+      H = HITS->Hits.at(hit);
+      if(H.ch != 30) continue;
+      for(int sca = 0;sca < NSCA; ++sca){
+	if(TS[sca] == 4)
+	  ADC[ev] = H.SCA_hg[sca];}}}
+      
+      gr = new TGraph(nevents, dac,ADC );
+      //gr->SetMarkerColor(H.chip+2);
+      gr->SetMarkerStyle(22);
+      gr->SetMarkerSize(1.2);
+      gr->Draw("AP");
+      //sprintf(plot_title,"HG_evt %d chip %d",ev,H.chip);
+      gr->SetTitle(plot_title);
+      gr->GetXaxis()->SetTitle("dac");
+      gr->GetYaxis()->SetTitle("HGTS4");
+
+      c1->Update();
+      getchar();
+      c1->SaveAs("goodHG.png");
+  
+}
+
+void makePlots::Global_TS_study(){
+
+  Init();
+  root_logon();
+  gROOT->Reset();
+  gROOT->SetStyle("ATLAS");
+  gROOT->ForceStyle();
+
+  int nevents = fChain->GetEntries();
+
+  app = new TApplication("app",0,0);
+  TCanvas *c1 = new TCanvas;
+  TLegend *leg = new TLegend(0.67,0.4,0.87,0.6);
+  leg->SetBorderSize(0);
+  char lab[20];
+  TGraph *gr;
+  TGraph *fake_gr;
+  
+  auto mgr = new TMultiGraph();
+  float to_draw_ev[nevents];
+  float to_draw   [nevents];
+
+  for(int i = 0; i < NCHIP; ++i){
+    for(int ev = 0; ev < nevents ; ++ev){
+      fChain -> GetEntry(ev);
+      to_draw   [ev] = HITS   -> global_ts[i];
+      to_draw_ev[ev] = HITS   -> evt_num;
+    }
+    
+    gr = new TGraph(nevents, to_draw_ev, to_draw );
+
+    gr->SetMarkerStyle(20);
+    gr->SetMarkerColor(i+2);
+    gr->SetMarkerSize(0.2);
+    mgr->Add(gr);
+    mgr->Draw("ap");
+    sprintf(lab,"chip%d",i);
+    fake_gr = new TGraph(nevents, to_draw_ev, to_draw);
+    fake_gr->SetMarkerStyle(20);
+    fake_gr->SetMarkerColor(i+2);
+    fake_gr->SetMarkerSize(1.2);
+    leg->AddEntry(fake_gr,lab,"P");
+
+  }
+  ifstream runN("input.txt");
+  string Fname;
+  string real_Fname;
+  runN >> Fname;
+  int start = Fname.find_last_of("/");
+  int end   = Fname.find(".root");
+  real_Fname = Fname.substr(start+1,end-start-1);
+  
+  char plot_title[50];
+  sprintf(plot_title,"%s",real_Fname.c_str());
+
+  mgr->Draw("AP");
+  mgr->SetTitle(plot_title);
+  mgr->GetXaxis()->SetTitle("evt");
+  mgr->GetYaxis()->SetTitle("GL_TS");
+  mgr->SetMaximum(10000);
+  
+  leg->Draw("same");
+  c1->Update();
+  sprintf(plot_title,"%s.png",real_Fname.c_str());
+  c1->SaveAs(plot_title) ;
+  
 }
 
 void makePlots::P_and_N(int option,bool output){
@@ -341,5 +444,85 @@ void makePlots::InitTH2Poly(TH2Poly& poly)
     poly.AddBin(CellXYsize, HexX, HexY);
   }
   file.close();
+
+}
+
+void makePlots::root_logon(){
+
+cout << endl << "Welcome to the ATLAS rootlogon.C" << endl;
+//
+// based on a style file from BaBar
+//
+
+//..BABAR style from RooLogon.C in workdir
+TStyle *atlasStyle= new TStyle("ATLAS","Atlas style");
+
+// use plain black on white colors
+ Int_t icol=0;
+atlasStyle->SetFrameBorderMode(icol);
+atlasStyle->SetCanvasBorderMode(icol);
+atlasStyle->SetPadBorderMode(icol);
+atlasStyle->SetPadColor(icol);
+atlasStyle->SetCanvasColor(icol);
+atlasStyle->SetStatColor(icol);
+//atlasStyle->SetFillColor(icol);
+
+// set the paper & margin sizes
+atlasStyle->SetPaperSize(20,26);
+atlasStyle->SetPadTopMargin(0.1);
+//atlasStyle->SetPadRightMargin(0.05);
+atlasStyle->SetPadRightMargin(0.12);
+atlasStyle->SetPadBottomMargin(0.16);
+atlasStyle->SetPadLeftMargin(0.12);
+
+// use large fonts
+//Int_t font=72;
+Int_t font=32;
+Double_t tsize=0.05;
+atlasStyle->SetTextFont(font);
+
+
+atlasStyle->SetTextSize(tsize);
+atlasStyle->SetLabelFont(font,"x");
+atlasStyle->SetTitleFont(font,"x");
+atlasStyle->SetLabelFont(font,"y");
+atlasStyle->SetTitleFont(font,"y");
+atlasStyle->SetLabelFont(font,"z");
+atlasStyle->SetTitleFont(font,"z");
+
+atlasStyle->SetLabelSize(tsize,"x");
+atlasStyle->SetTitleSize(tsize,"x");
+atlasStyle->SetLabelSize(tsize,"y");
+atlasStyle->SetTitleSize(tsize,"y");
+atlasStyle->SetLabelSize(tsize,"z");
+atlasStyle->SetTitleSize(tsize,"z");
+
+
+//use bold lines and markers
+atlasStyle->SetMarkerStyle(20);
+atlasStyle->SetMarkerSize(1.2);
+atlasStyle->SetHistLineWidth(2.);
+atlasStyle->SetLineStyleString(2,"[12 12]"); // postscript dashes
+
+//get rid of X error bars and y error bar caps
+//atlasStyle->SetErrorX(0.001);
+
+//do not display any of the standard histogram decorations
+//atlasStyle->SetOptTitle(0);
+//atlasStyle->SetOptStat(1111);
+atlasStyle->SetOptStat(0);
+//atlasStyle->SetOptFit(1111);
+atlasStyle->SetOptFit(0);
+
+// put tick marks on top and RHS of plots
+atlasStyle->SetPadTickX(1);
+atlasStyle->SetPadTickY(1);
+
+gROOT->SetStyle("Plain");
+
+//gStyle->SetPadTickX(1);
+//gStyle->SetPadTickY(1);
+
+
 
 }

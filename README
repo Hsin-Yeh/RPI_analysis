@@ -7,7 +7,7 @@ The usage for Ntuplizer:
 
 1. cd Ntuplizer
 2. make
-3. ls rawdata/targetfile.raw > runinfo.log
+3. ls rawdata/targetfile.raw.txt > runinfo.log
 4. ./Ntuplizer
 Output root file will be inside "root_out"
 (Then one should move the root file to ../Analysis/root_data)
@@ -19,7 +19,7 @@ The Analysis part usage:
 4. ./makePlots
 5. It will show a 1D histogram for time sample0 for chip 0 ch 20.
 6. Then I fill some TH2Poly by a single event TS0.
-7. The 3rd plot will be the pulse shape of certain event.
+
 
 The main structure of root data:
 1. I save a "hitcollection" in each event, which is defined in hit_hits_class.h

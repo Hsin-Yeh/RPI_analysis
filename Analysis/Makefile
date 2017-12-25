@@ -1,5 +1,5 @@
 CXXFLAGS=-g -m64 -O2 -Wall
-ROOTFLAGS=$(shell root-config --libs --cflags --glibs)
+ROOTFLAGS=$(shell root-config --libs --cflags --glibs) -lMathMore
 #SHAREFLAGS=-fPIC -c
 
 makePlots: main.o hit_hits_class.so makePlots.o
@@ -13,4 +13,4 @@ makePlots.o:makePlots.cxx makePlots.h hit_hits_class.h
 	g++ -c $(CXXFLAGS) $(ROOTFLAGS) makePlots.cxx -o $@
 
 clean:
-	rm -f makePlots obj_file/*.o
+	rm makePlots obj_file/*.o

@@ -27,6 +27,7 @@ class makePlots{
 
   void Loop();
   string         input_RUN;
+  void Global_TS_study();
   
  private:
 
@@ -37,10 +38,12 @@ class makePlots{
   // option 1 is an informal way that can deal with signal runs,
   // similar method is applied in test beam framework.
   
+  
   void read_P_and_N(string ped_file);
   void readmap();
   void InitTH2Poly(TH2Poly& poly); //Give frame to TH2Poly
-
+  void root_logon();  
+  
   TApplication *app;
   TTree          *fChain;
   hitcollection  *HITS;

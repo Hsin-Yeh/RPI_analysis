@@ -87,7 +87,7 @@ namespace ROOT {
       ::hitcollection *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TInstrumentedIsAProxy< ::hitcollection >(0);
       static ::ROOT::TGenericClassInfo 
-         instance("hitcollection", ::hitcollection::Class_Version(), "hit_hits_class.h", 39,
+         instance("hitcollection", ::hitcollection::Class_Version(), "hit_hits_class.h", 37,
                   typeid(::hitcollection), ::ROOT::Internal::DefineBehavior(ptr, ptr),
                   &::hitcollection::Dictionary, isa_proxy, 4,
                   sizeof(::hitcollection) );
@@ -314,7 +314,7 @@ namespace {
     };
     static const char* includePaths[] = {
 "/usr/local/include/root",
-"/home/playgame555/Desktop/2017TB/raspberry/work/RPI_analysis/Ntuplizer/",
+"/home/playgame555/my_RPI_ana/Ntuplizer/",
 0
     };
     static const char* fwdDeclCode = R"DICTFWDDCLS(
