@@ -13,4 +13,4 @@ makePlots.o:makePlots.cxx makePlots.h hit_hits_class.h
 	g++ -c $(CXXFLAGS) $(ROOTFLAGS) makePlots.cxx -o $@
 
 clean:
-	rm makePlots obj_file/*.o
+	rm -f makePlots obj_file/*.o
