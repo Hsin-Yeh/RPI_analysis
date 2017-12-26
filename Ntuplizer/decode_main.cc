@@ -27,6 +27,7 @@ const int  EXPECTED_TS  = 13;
 using namespace std;
 
 unsigned char raw[RAWSIZE];
+unsigned char config[48];
 unsigned int ev[4][1924];
 int dati[4][128][totSCA];
 int dati_ordered[4][128][totSCA];
@@ -38,7 +39,7 @@ uint32_t global_TS[4];
 int insert_ch = -1;
 
 int raw_type(const char* filename);
-int decode_raw();
+int decode_raw(int rawtype);
 int format_channels();
 int roll_position(); //Output is the location of TS 0
 void globalTS();
@@ -74,29 +75,43 @@ int main(){
     
     cout << "input file: " << fileName << endl;
     int rawT = raw_type(fileName);
-    getchar();
+    if(rawT == 3) continue;
 
-    // Check if injection file exist
-    char fileinj_t[150];
+    ifstream fileinj;
+    if(rawT == 0){
+      // Check if injection file exist
+      char fileinj_t[150];
  
-    string purefname = logcontent.substr(0,end);
-    sprintf(fileinj_t,"%s_Inj.txt",purefname.c_str());
-    ifstream fileinj( fileinj_t );
-    if( !fileinj.is_open() ){
-      cout << "Did not find injection file " << fileinj_t
-	   << ".\n Take this run as pedestal.(Inj_dac = 0)" << endl;
-      dac = 0;}
-    else{
-      cout << "injection file: " << fileinj_t << endl;
-      string dum_line;
-      for(int i = 0 ; i < 5; ++i) {
-	if(i == 1) fileinj >> insert_ch;
-	getline(fileinj,dum_line);//remove header
+      string purefname = logcontent.substr(0,end);
+      sprintf(fileinj_t,"%s_Inj.txt",purefname.c_str());
+      fileinj.open( fileinj_t );
+      if( !fileinj.is_open() ){
+	cout << "Did not find injection file " << fileinj_t
+	     << ".\n Take this run as pedestal.(Inj_dac = 0)" << endl;
+	dac = 0;}
+      else{
+	cout << "injection file: " << fileinj_t << endl;
+	string dum_line;
+	for(int i = 0 ; i < 5; ++i) {
+	  if(i == 1) fileinj >> insert_ch;
+	  getline(fileinj,dum_line);//remove header
+	}
       }
     }
-    
+
+
     if (file.is_open()){
-      //init();
+      int evtsize;
+      switch(rawT){
+      case 0: evtsize = 30787;
+      case 1: evtsize = 30786;
+      case 2: evtsize = 15394;
+      }
+      //Remove chip config
+      if(rawT == 1 || rawT == 2){
+	for(int i = 0 ; i < 48 ; ++i)
+	  file >> config[i];}
+      //Loop event till the end of run
       while(true){
 	if(evt_counter % 100 == 0)
 	  cout << "processing event " << evt_counter << "..." << endl;
@@ -105,16 +120,30 @@ int main(){
 	if( file.eof() ) break;
 	else{
 	  testeof = raw[0];
-	  for(int i = 1 ; i < RAWSIZE; ++i)
+	  for(int i = 1 ; i < evtsize; ++i)
 	    file >> raw[i];
-	  decode_raw();
+	  decode_raw(rawT);
 	  format_channels();
 	  rollpos = roll_position();
 	  globalTS();
 	  hits = Fill_ntuple();
-	  if( fileinj.is_open() ){
-	    int ev_dum;
+	  int ev_dum;
+	  if( rawT == 0 && fileinj.is_open() ){
 	    fileinj >> ev_dum >> dac;}
+	  if( rawT == 1 || rawT == 2){
+	    if( (int)raw[evtsize-2] == 0xab && (int) raw[evtsize-1] == 0xcd){
+	      //This is a magic number for no charge injection
+	      dac = 0;}
+	    else{
+	      cout << (int)(raw[evtsize-2] & 0xff) << " , "
+		   << (int)(raw[evtsize-1] & 0xff) << endl;
+	      //1000 1111 , 1000 0000
+	      dac = (int)( (raw[evtsize-1] << 8) | raw[evtsize-2] );
+	      dac &= 0x3FF;
+	      cout << "evt = " << evt_counter <<  ", dac = " << dac << endl;
+	      getchar();
+	    }
+	  } 
 	  t->Fill();
 	  evt_counter++;
 	}
@@ -134,6 +163,7 @@ int main(){
     t->Write();
     f->Close();
     delete t;
+    
   }
   return(0);
 }
@@ -154,26 +184,42 @@ int raw_type(const char* filename){
     return 3;}
 }
 
-int decode_raw(){
+int decode_raw(int rawtype){
     int i, j, k;
-    unsigned char x;
-	unsigned int t;
-	unsigned int bith, bit11, bit10, bit9, bit8, bit7, bit6, bit5, bit4, bit3, bit2, bit1, bit0;
-	for( i = 0; i < 1924; i = i+1){
-		for (k = 0; k < 4; k = k + 1){
-			ev[k][i] = 0;
-		}
-   	}
+    unsigned char x,y;
+    unsigned int t;
+    unsigned int bith, bit11, bit10, bit9, bit8, bit7, bit6, bit5, bit4, bit3, bit2, bit1, bit0;
     for( i = 0; i < 1924; i = i+1){
-        for (j=0; j < 16; j = j+1){
-            x = raw[1 + i*16 + j];
-            x = x & 15;
-            for (k = 0; k < 4; k = k + 1){
-            	ev[k][i] = ev[k][i] | (unsigned int) (((x >> (3 - k) ) & 1) << (15 - j));
-            }
-        }
+      for (k = 0; k < 4; k = k + 1){
+	ev[k][i] = 0;
+      }
     }
-    
+    if(rawtype == 0 || rawtype == 1){
+      int offset;
+      if( rawtype == 0 ) offset = 1;
+      else offset = 0;
+      for( i = 0; i < 1924; i = i+1){
+        for (j=0; j < 16; j = j+1){
+	  x = raw[offset + i*16 + j];
+	  x = x & 15;
+	  for (k = 0; k < 4; k = k + 1){
+	    ev[k][i] = ev[k][i] | (unsigned int) (((x >> (3 - k) ) & 1) << (15 - j));
+	  }
+        }
+      }
+    }
+    if(rawtype == 2){
+      for( i = 0; i < 1924; i = i+1){
+        for (j=0; j < 8; j = j+1){
+	  x = raw[i*8 + j];
+	  y = (x >> 4) & 0xf;
+	  x = x & 0xf;
+	  for (k = 0; k < 4; k = k + 1){
+	    ev[k][i] = ev[k][i] | (((x >> (3 - k) ) & 1) << (14 - j*2));
+	    ev[k][i] = ev[k][i] | (((y >> (3 - k) ) & 1) << (15 - j*2));}
+	}
+      }
+    }
     /*****************************************************/
     /*    Gray to binary conversion                      */
     /*****************************************************/
