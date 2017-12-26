@@ -1,0 +1,10 @@
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
+!Module_1_RUN_181217_0911*
+!Module_1_RUN_201217_0904.raw
+!Module_1_RUN_201217_0910*
+!Module_1_RUN_201217_0913*
+!Module1_25-12-2017_7-22.raw
+!Module1_25-12-2017_8-17.raw

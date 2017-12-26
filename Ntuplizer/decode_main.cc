@@ -37,6 +37,7 @@ int rollpos;
 uint32_t global_TS[4];
 int insert_ch = -1;
 
+int raw_type(const char* filename);
 int decode_raw();
 int format_channels();
 int roll_position(); //Output is the location of TS 0
@@ -63,17 +64,21 @@ int main(){
     char fileName[150];
     sprintf(fileName,"%s",logcontent.c_str());
     ifstream file(fileName);
-    cout << "input file: " << fileName << endl;
 
-    // Check if injection file exist
-    char fileinj_t[150];
     int end = logcontent.find(".raw");
     if( end < 2 ){
       cout << endl;
       cout << "please only feed .raw data!\n" << fileName << " is not legal!\n";
       cout << endl;
-      continue;}
+      continue;}    
+    
+    cout << "input file: " << fileName << endl;
+    int rawT = raw_type(fileName);
+    getchar();
 
+    // Check if injection file exist
+    char fileinj_t[150];
+ 
     string purefname = logcontent.substr(0,end);
     sprintf(fileinj_t,"%s_Inj.txt",purefname.c_str());
     ifstream fileinj( fileinj_t );
@@ -131,6 +136,22 @@ int main(){
     delete t;
   }
   return(0);
+}
+
+int raw_type(const char* filename){
+  ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
+  if((int)in.tellg() % 30787 == 0){
+    cout << "data format of " << filename << ": old" << endl;
+      return 0;}
+  if( ((int)in.tellg()-48) % 30786 == 0){
+    cout << "data format of " << filename << ": new" << endl;
+    return 1;}
+  if( ((int)in.tellg()-48) % 15394 == 0){
+    cout << "data format of " << filename << ": new compressed" << endl;
+    return 2;}
+  else{ cout << "unrecognized data size! Rawdata may not be saved correctedly!"
+	     << endl;
+    return 3;}
 }
 
 int decode_raw(){
