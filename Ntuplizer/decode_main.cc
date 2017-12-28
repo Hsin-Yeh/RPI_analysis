@@ -103,9 +103,9 @@ int main(){
     if (file.is_open()){
       int evtsize;
       switch(rawT){
-      case 0: evtsize = 30787;
-      case 1: evtsize = 30786;
-      case 2: evtsize = 15394;
+      case 0: evtsize = 30787; break;
+      case 1: evtsize = 30786; break;
+      case 2: evtsize = 15394; break;
       }
       //Remove chip config
       if(rawT == 1 || rawT == 2){
@@ -135,9 +135,22 @@ int main(){
 	      //This is a magic number for no charge injection
 	      dac = 0;}
 	    else{
-	      cout << (int)(raw[evtsize-2] & 0xff) << " , "
-		   << (int)(raw[evtsize-1] & 0xff) << endl;
-	      //1000 1111 , 1000 0000
+	      unsigned int dac1 = 0;
+	      unsigned int dac2 = 0;
+	      for(int bit = 0; bit < 8 ; ++bit){
+		cout <<  ((int)(raw[evtsize-2] >> bit) & 1) << endl;
+			       //dac2 |= (int)(((raw[evtsize-1] >> bit) & 1) << bit);
+			       }
+	      unsigned char a = 0;
+	      unsigned char b = 0xff;
+	      cout << "a is " << hex << a <<"; b is " << hex << b << endl;
+	      getchar();
+	      cout << dac1 << " , "
+		   << dac2 << endl;
+	      // 30832 : 0000 0000 , 0000 0000 -> 30786
+	      // 61618 : 0000 0000 , 0000 0100 -> 30786
+	      // 92404 : 0000 0000 , 0000 1000 -> 30786
+	      // 123190: 0000 0000 , 0000 1100
 	      dac = (int)( (raw[evtsize-1] << 8) | raw[evtsize-2] );
 	      dac &= 0x3FF;
 	      cout << "evt = " << evt_counter <<  ", dac = " << dac << endl;

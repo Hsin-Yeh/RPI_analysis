@@ -86,8 +86,6 @@ void makePlots::Loop(){
 	  int forCH = H.chip*32+H.ch/2;
 	  float X = CHmap[forCH].first;
 	  float Y = CHmap[forCH].second;
-	  int type= H.chtype;
-	  cout << "type = " << type;
 	  poly->Fill(X,Y,H.SCA_hg[sca]);}}
     }
     poly->Draw("colztext");

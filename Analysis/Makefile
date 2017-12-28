@@ -2,7 +2,7 @@ CXXFLAGS=-g -m64 -O2 -Wall
 ROOTFLAGS=$(shell root-config --libs --cflags --glibs)
 #SHAREFLAGS=-fPIC -c
 
-makePlots: main.o hit_hits_class.so makePlots.o
+makePlots: main.o hit_hits_classdict.so makePlots.o
 	g++ $^ -o makePlots $(CXXFLAGS) $(ROOTFLAGS)
 	mv *.o obj_file
 
