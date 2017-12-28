@@ -11,10 +11,10 @@ ifneq ($(strip $(pcm_exist)), )  #ROOT6 has different output from rootcint(.pcm)
 	mv *.o  *.so  *.cxx obj_file
 else                             #Bofore ROOT6 version
 	cp *.so ../Analysis
-	mv *.o  *.so  *.cxx obj_file
+	mv *.o  *.so *.cxx obj_file
 endif
 
-Ntuplizer:  CHMapping.o  main.o  hit_hits_classdict.so
+Ntuplizer:  CHMapping.o  main.o  hit_hits_class.so
 	g++ $^ -o Ntuplizer $(CXXFLAGS) $(ROOTFLAGS)
 
 CHMapping.o: CHMapping.cc CHMapping.h
@@ -26,7 +26,7 @@ main.o: decode_main.cc CHMapping.h hit_hits_class.h
 hit_hits_classdict.cxx: hit_hits_class.cc hit_hits_class.h linkdef.h
 	rootcint -f  $@ -c hit_hits_class.cc hit_hits_class.h linkdef.h
 
-hit_hits_classdict.so: hit_hits_classdict.cxx
+hit_hits_class.so: hit_hits_classdict.cxx
 	g++ $(CXXFLAGS) $(ROOTFLAGS) $(SHAREFLAGS) -o  $@ hit_hits_classdict.cxx
 
 clean:
