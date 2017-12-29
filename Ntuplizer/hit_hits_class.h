@@ -10,10 +10,12 @@ const int NSCA  = 13;
 class hit : public TObject {
  public:
   
-  void Fill_hit(bool _CCorNC,int _chip,int _ch,double _posx,double _posy,int _TOTS,int _TOTF,int _TOAR,int _TOAF,int _SCA_hg[13],int _SCA_lg[13]);
+  void Fill_hit(bool _CCorNC,int _chtype,int _chip,int _ch,double _posx,double _posy,int _TOTS,int _TOTF,int _TOAR,int _TOAF,int _SCA_hg[13],int _SCA_lg[13]);
 
   //data member ** A Hit stores all information in a single "pad" of the event
   bool CCorNC;  // Connected ch or non-connected ch (true for CC)
+  int chtype;   // Cell type: 0 = Full cell , 2 = half cell,
+                //            3 = Mouse bite(half), 4 = outer calib (Full Cell)
   int chip;     // Chip number for the pad. From 0 to 3
   int ch;       // Ch number for the pad. From 0 to 63
   int formatCH; // Will be calculate by (chip * 32 + ch/2 ) for CC, -1 for NC
@@ -41,6 +43,7 @@ public:
   std::vector< hit > Hits; // Vector of hits in that event
   int evt_num;             // Event number for the event
   int hit_num;             // number of hits inside the Hits vector
+  int inj_ch;              // The charge insertion channel, -1 if not inserting
   int inj_dac;             // DAC ctrl in the acquisition for the event, will be
                            // 0 if it's a pedestal run. -1 for fixed pulse ins
 

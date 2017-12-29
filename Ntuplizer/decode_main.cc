@@ -10,6 +10,7 @@
 #include "TROOT.h"
 #include "TTree.h"
 #include "TFile.h"
+#include <cstdint>
 
 #include "hit_hits_class.h"
 ClassImp(hit);
@@ -27,6 +28,7 @@ const int  EXPECTED_TS  = 13;
 using namespace std;
 
 unsigned char raw[RAWSIZE];
+unsigned char config[48];
 unsigned int ev[4][1924];
 int dati[4][128][totSCA];
 int dati_ordered[4][128][totSCA];
@@ -35,9 +37,10 @@ int dac = 0;
 int evt_counter;
 int rollpos;
 uint32_t global_TS[4];
+int insert_ch = -1;
 
-
-int decode_raw();
+int raw_type(const char* filename);
+int decode_raw(int rawtype);
 int format_channels();
 int roll_position(); //Output is the location of TS 0
 void globalTS();
@@ -63,50 +66,92 @@ int main(){
     char fileName[150];
     sprintf(fileName,"%s",logcontent.c_str());
     ifstream file(fileName);
-    cout << "input file: " << fileName << endl;
 
-    // Check if injection file exist
-    char fileinj_t[150];
     int end = logcontent.find(".raw");
     if( end < 2 ){
       cout << endl;
       cout << "please only feed .raw data!\n" << fileName << " is not legal!\n";
       cout << endl;
-      continue;}
-
-    string purefname = logcontent.substr(0,end);
-    sprintf(fileinj_t,"%s_Inj.txt",purefname.c_str());
-    ifstream fileinj( fileinj_t );
-    if( !fileinj.is_open() ){
-      cout << "Did not find injection file " << fileinj_t
-	   << ".\n Take this run as pedestal.(Inj_dac = 0)" << endl;
-      dac = 0;}
-    else{
-      cout << "injection file: " << fileinj_t << endl;
-      string dum_line;
-      for(int i = 0 ; i < 5; ++i) getline(fileinj,dum_line);//remove header
-    }
+      continue;}    
     
+    cout << "input file: " << fileName << endl;
+    int rawT = raw_type(fileName);
+    if(rawT == 3) continue;
+
+    ifstream fileinj;
+    if(rawT == 0){
+      // Check if injection file exist
+      char fileinj_t[150];
+ 
+      string purefname = logcontent.substr(0,end);
+      sprintf(fileinj_t,"%s_Inj.txt",purefname.c_str());
+      fileinj.open( fileinj_t );
+      if( !fileinj.is_open() ){
+	cout << "Did not find injection file " << fileinj_t
+	     << ".\n Take this run as pedestal.(Inj_dac = 0)" << endl;
+	dac = 0;}
+      else{
+	cout << "injection file: " << fileinj_t << endl;
+	string dum_line;
+	for(int i = 0 ; i < 5; ++i) {
+	  if(i == 1) fileinj >> insert_ch;
+	  getline(fileinj,dum_line);//remove header
+	}
+      }
+    }
+
+
     if (file.is_open()){
-      //init();
+      int evtsize;
+      switch(rawT){
+      case 0: evtsize = 30787; break;
+      case 1: evtsize = 30786; break;
+      case 2: evtsize = 15394; break;
+      default:evtsize = 30787; break;
+      }
+      //Remove chip config
+      if(rawT == 1 || rawT == 2){
+	for(int i = 0 ; i < 48 ; ++i){
+	  file >> config[i];
+	}
+      }
+      //Loop event till the end of run
       while(true){
 	if(evt_counter % 100 == 0)
 	  cout << "processing event " << evt_counter << "..." << endl;
-	unsigned char testeof;
-	file >> testeof;
+	uint8_t testeof[2] = {0,0};
+	file.read( reinterpret_cast<char*>(testeof), 2 );
 	if( file.eof() ) break;
 	else{
-	  testeof = raw[0];
-	  for(int i = 1 ; i < RAWSIZE; ++i)
-	    file >> raw[i];
-	  decode_raw();
+	  raw[0] = testeof[0];
+	  raw[1] = testeof[1];
+	  if(rawT != 0){
+	    uint8_t x[2] = {0,0};
+	    for(int i = 1 ; i < evtsize/2; ++i){
+	      file.read( reinterpret_cast<char*>(x), 2 );
+	      raw[2*i]   = x[0];
+	      raw[2*i+1] = x[1];	  }}
+	  else{
+	    for(int i = 2; i < evtsize; ++i)
+	      file >> raw[i];}
+	  decode_raw(rawT);
 	  format_channels();
 	  rollpos = roll_position();
 	  globalTS();
 	  hits = Fill_ntuple();
-	  if( fileinj.is_open() ){
-	    int ev_dum;
+	  int ev_dum;
+	  if( rawT == 0 && fileinj.is_open() ){
 	    fileinj >> ev_dum >> dac;}
+	  if( rawT == 1 || rawT == 2){
+
+	    if( (int)raw[evtsize-2] == 0xab && (int) raw[evtsize-1] == 0xcd){
+	      //This is a magic number for no charge injection
+	      dac = 0;}
+	    else{
+	      dac = (unsigned int)((raw[evtsize-1] << 8) | raw[evtsize-2]);
+	      //cout << "evt = " << evt_counter <<  ", dac = " << dac << endl;
+	    }
+	  } 
 	  t->Fill();
 	  evt_counter++;
 	}
@@ -126,30 +171,63 @@ int main(){
     t->Write();
     f->Close();
     delete t;
+    
   }
   return(0);
 }
 
-int decode_raw(){
+int raw_type(const char* filename){
+  ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
+  if((int)in.tellg() % 30787 == 0){
+    cout << "data format of " << filename << ": old" << endl;
+      return 0;}
+  if( ((int)in.tellg()-48) % 30786 == 0){
+    cout << "data format of " << filename << ": new" << endl;
+    return 1;}
+  if( ((int)in.tellg()-48) % 15394 == 0){
+    cout << "data format of " << filename << ": new compressed" << endl;
+    return 2;}
+  else{ cout << "unrecognized data size! Rawdata may not be saved correctedly!"
+	     << endl;
+    return 3;}
+}
+
+int decode_raw(int rawtype){
     int i, j, k;
-    unsigned char x;
-	unsigned int t;
-	unsigned int bith, bit11, bit10, bit9, bit8, bit7, bit6, bit5, bit4, bit3, bit2, bit1, bit0;
-	for( i = 0; i < 1924; i = i+1){
-		for (k = 0; k < 4; k = k + 1){
-			ev[k][i] = 0;
-		}
-   	}
+    unsigned char x,y;
+    unsigned int t;
+    unsigned int bith, bit11, bit10, bit9, bit8, bit7, bit6, bit5, bit4, bit3, bit2, bit1, bit0;
     for( i = 0; i < 1924; i = i+1){
-        for (j=0; j < 16; j = j+1){
-            x = raw[1 + i*16 + j];
-            x = x & 15;
-            for (k = 0; k < 4; k = k + 1){
-            	ev[k][i] = ev[k][i] | (unsigned int) (((x >> (3 - k) ) & 1) << (15 - j));
-            }
-        }
+      for (k = 0; k < 4; k = k + 1){
+	ev[k][i] = 0;
+      }
     }
-    
+    if(rawtype == 0 || rawtype == 1){
+      int offset;
+      if( rawtype == 0 ) offset = 1;
+      else offset = 0;
+      for( i = 0; i < 1924; i = i+1){
+        for (j=0; j < 16; j = j+1){
+	  x = raw[offset + i*16 + j];
+	  x = x & 15;
+	  for (k = 0; k < 4; k = k + 1){
+	    ev[k][i] = ev[k][i] | (unsigned int) (((x >> (3 - k) ) & 1) << (15 - j));
+	  }
+        }
+      }
+    }
+    if(rawtype == 2){
+      for( i = 0; i < 1924; i = i+1){
+        for (j=0; j < 8; j = j+1){
+	  x = raw[i*8 + j];
+	  y = (x >> 4) & 0xf;
+	  x = x & 0xf;
+	  for (k = 0; k < 4; k = k + 1){
+	    ev[k][i] = ev[k][i] | (((x >> (3 - k) ) & 1) << (14 - j*2));
+	    ev[k][i] = ev[k][i] | (((y >> (3 - k) ) & 1) << (15 - j*2));}
+	}
+      }
+    }
     /*****************************************************/
     /*    Gray to binary conversion                      */
     /*****************************************************/
@@ -287,6 +365,7 @@ hitcollection Fill_ntuple(){
   
   static hit H;
   bool CCorNC;
+  int  chtype;
   double posx,posy;
   int TOTS,TOTF,TOAR,TOAF;
   int SCA_hg[NSCA],SCA_lg[NSCA];  
@@ -308,7 +387,7 @@ hitcollection Fill_ntuple(){
        int readposch = chip*2+ch/2;
       posx = chmap.CH_x[readposch];
       posy = chmap.CH_y[readposch];
-
+      chtype=chmap.CH_type[readposch];
 
       //This 2 channel has no position on the board!
       if ( chip == 2 && ch == 60 ) {
@@ -319,7 +398,7 @@ hitcollection Fill_ntuple(){
 	posx = -100;
 	posy = -100;}
       
-      H.Fill_hit(CCorNC,chip,ch,posx,posy,TOTS,TOTF,TOAR,TOAF,SCA_hg,SCA_lg);
+      H.Fill_hit(CCorNC,chtype,chip,ch,posx,posy,TOTS,TOTF,TOAR,TOAF,SCA_hg,SCA_lg);
       tmp_hits.Hits.push_back(H);
       hit_counter++;
     }
@@ -327,8 +406,9 @@ hitcollection Fill_ntuple(){
   
   tmp_hits.evt_num = evt_counter;
   tmp_hits.hit_num = hit_counter;
+  tmp_hits.inj_ch  = insert_ch;
   tmp_hits.inj_dac = dac;
-    
+
   for(int i = 0 ; i < 4 ; ++i)
     tmp_hits.global_ts[i] = (int) global_TS[i];
   for(int i = 0 ; i < NSCA; ++i){
