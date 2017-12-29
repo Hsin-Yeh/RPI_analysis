@@ -1,5 +1,5 @@
 CXXFLAGS=-g -m64 -O2 -Wall
-ROOTFLAGS=$(shell root-config --libs --cflags --glibs) -lMathMore
+ROOTFLAGS=$(shell root-config --libs --cflags --glibs)
 #SHAREFLAGS=-fPIC -c
 
 makePlots: main.o hit_hits_class.so makePlots.o
