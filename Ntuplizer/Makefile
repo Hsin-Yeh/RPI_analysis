@@ -1,4 +1,4 @@
-CXXFLAGS=-g -m64 -O2 -Wall
+CXXFLAGS=-g -std=c++11 -m64 -O2 -Wall
 ROOTFLAGS=$(shell root-config --libs --cflags --glibs)
 SHAREFLAGS=-fPIC -c
 

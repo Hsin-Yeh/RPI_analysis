@@ -10,6 +10,7 @@
 #include "TROOT.h"
 #include "TTree.h"
 #include "TFile.h"
+#include <cstdint>
 
 #include "hit_hits_class.h"
 ClassImp(hit);
@@ -106,22 +107,33 @@ int main(){
       case 0: evtsize = 30787; break;
       case 1: evtsize = 30786; break;
       case 2: evtsize = 15394; break;
+      default:evtsize = 30787; break;
       }
       //Remove chip config
       if(rawT == 1 || rawT == 2){
-	for(int i = 0 ; i < 48 ; ++i)
-	  file >> config[i];}
+	for(int i = 0 ; i < 48 ; ++i){
+	  file >> config[i];
+	}
+      }
       //Loop event till the end of run
       while(true){
 	if(evt_counter % 100 == 0)
 	  cout << "processing event " << evt_counter << "..." << endl;
-	unsigned char testeof;
-	file >> testeof;
+	uint8_t testeof[2] = {0,0};
+	file.read( reinterpret_cast<char*>(testeof), 2 );
 	if( file.eof() ) break;
 	else{
-	  testeof = raw[0];
-	  for(int i = 1 ; i < evtsize; ++i)
-	    file >> raw[i];
+	  raw[0] = testeof[0];
+	  raw[1] = testeof[1];
+	  if(rawT != 0){
+	    uint8_t x[2] = {0,0};
+	    for(int i = 1 ; i < evtsize/2; ++i){
+	      file.read( reinterpret_cast<char*>(x), 2 );
+	      raw[2*i]   = x[0];
+	      raw[2*i+1] = x[1];	  }}
+	  else{
+	    for(int i = 2; i < evtsize; ++i)
+	      file >> raw[i];}
 	  decode_raw(rawT);
 	  format_channels();
 	  rollpos = roll_position();
@@ -131,30 +143,13 @@ int main(){
 	  if( rawT == 0 && fileinj.is_open() ){
 	    fileinj >> ev_dum >> dac;}
 	  if( rawT == 1 || rawT == 2){
+
 	    if( (int)raw[evtsize-2] == 0xab && (int) raw[evtsize-1] == 0xcd){
 	      //This is a magic number for no charge injection
 	      dac = 0;}
 	    else{
-	      unsigned int dac1 = 0;
-	      unsigned int dac2 = 0;
-	      for(int bit = 0; bit < 8 ; ++bit){
-		cout <<  ((int)(raw[evtsize-2] >> bit) & 1) << endl;
-			       //dac2 |= (int)(((raw[evtsize-1] >> bit) & 1) << bit);
-			       }
-	      unsigned char a = 0;
-	      unsigned char b = 0xff;
-	      cout << "a is " << hex << a <<"; b is " << hex << b << endl;
-	      getchar();
-	      cout << dac1 << " , "
-		   << dac2 << endl;
-	      // 30832 : 0000 0000 , 0000 0000 -> 30786
-	      // 61618 : 0000 0000 , 0000 0100 -> 30786
-	      // 92404 : 0000 0000 , 0000 1000 -> 30786
-	      // 123190: 0000 0000 , 0000 1100
-	      dac = (int)( (raw[evtsize-1] << 8) | raw[evtsize-2] );
-	      dac &= 0x3FF;
-	      cout << "evt = " << evt_counter <<  ", dac = " << dac << endl;
-	      getchar();
+	      dac = (unsigned int)((raw[evtsize-1] << 8) | raw[evtsize-2]);
+	      //cout << "evt = " << evt_counter <<  ", dac = " << dac << endl;
 	    }
 	  } 
 	  t->Fill();
