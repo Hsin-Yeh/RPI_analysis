@@ -22,7 +22,7 @@ makePlots::makePlots(TChain* inchain):fChain(inchain)
 //Destructor
 makePlots::~makePlots()
 {
-  delete HITS;
+  //delete HITS;
   cout << "\n\n";
   cout << "Destructor of makePlot ... " << endl;
 }
@@ -103,13 +103,14 @@ void makePlots::Loop(){
   //============== End of the example to use TH2Poly to draw plot ==============
 
   
-   
+  */
   // An example shows how to check the ADC vs TS for certain channel(injected)
   // Remove this comment to run
-  TGraph *gr;
+
+  TGraph *gr; 
   for(int ev = 0; ev < nevents ; ++ev){
-    if(ev % 50 != 0) continue;
-    if(ev < 200) continue;
+    //if(ev % 50 != 0) continue;
+    //if(ev < 200) continue;
     fChain -> GetEntry(ev);
     for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
     int nhits = HITS->hit_num;
@@ -132,10 +133,10 @@ void makePlots::Loop(){
 	//sprintf(plot_title,"%s.png",plot_title);
 	//c1->SaveAs(plot_title);} // remove the comment to save plots
       getchar();
+      cout << "?!!" << endl;
     }
-  }    
-  */
-  
+  }      
+  /*  
   TGraph *gr;
   float dac[nevents];
   float ADC[nevents];
@@ -166,7 +167,7 @@ void makePlots::Loop(){
       c1->Update();
       getchar();
       c1->SaveAs("goodHG.png");
-  
+  */
 }
 
 void makePlots::Global_TS_study(){
@@ -187,7 +188,7 @@ void makePlots::Global_TS_study(){
   TGraph *gr;
   TGraph *fake_gr;
   
-  auto mgr = new TMultiGraph();
+  TMultiGraph *mgr = new TMultiGraph();
   float to_draw_ev[nevents];
   float to_draw   [nevents];
 
@@ -409,7 +410,8 @@ void makePlots::readmap(){
     if( file.eof() ) break;
     file >> chip >> ch >> posx >> posy >> type;
     formatCH = chip*32+ch/2;
-    CHmap[formatCH] = make_pair(posx,posy);}
+    CHmap[formatCH] = make_pair(posx,posy);
+  }
   file.close();
   //Since there is no such pad, assign a unreasonable value
   CHmap[2*32+60/2] = make_pair(1000.,1000.);
