@@ -9,6 +9,9 @@
 #include "TMultiGraph.h"
 #include "TLegend.h"
 #include "TStyle.h"
+#include "TFile.h"
+#include <sstream>
+
 
 ClassImp(hit)
 ClassImp(hitcollection)
@@ -106,19 +109,23 @@ void makePlots::Loop(){
   */
   // An example shows how to check the ADC vs TS for certain channel(injected)
   // Remove this comment to run
-
+  /*
   TGraph *gr; 
   for(int ev = 0; ev < nevents ; ++ev){
-    //if(ev % 50 != 0) continue;
+    //if(ev % 5 != 0) continue;
     //if(ev < 200) continue;
     fChain -> GetEntry(ev);
     for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
     int nhits = HITS->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){
       H = HITS->Hits.at(hit);
-      if(H.ch != 30) continue;
-
-      gr = new TGraph(13, TS,H.SCA_lg );
+      if(H.chip != 0) continue;      
+      if(H.ch != 30 ) continue;
+      bool skip_flag = true;
+      for(int i = 0 ; i < 12 ; ++i){
+	if(H.SCA_hg[i] > 300) skip_flag = false;}
+      if(skip_flag) continue;
+      gr = new TGraph(13, TS,H.SCA_hg );
       gr->SetMarkerColor(H.chip+2);
       gr->SetMarkerStyle(22);
       gr->SetMarkerSize(1.2);
@@ -133,14 +140,29 @@ void makePlots::Loop(){
 	//sprintf(plot_title,"%s.png",plot_title);
 	//c1->SaveAs(plot_title);} // remove the comment to save plots
       getchar();
-      cout << "?!!" << endl;
     }
   }      
-  /*  
+  */
+    
   TGraph *gr;
   float dac[nevents];
   float ADC[nevents];
-  
+
+  for(int ev = 0; ev < nevents ; ++ev){
+    fChain -> GetEntry(ev);
+    int nhits = HITS->hit_num;
+    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
+
+    for(int hit = 0; hit < nhits ; ++hit){
+      H = HITS->Hits.at(hit);
+      for(int i = 0 ; i < NSCA ; ++i){
+	if( H.SCA_hg[i] > 500 ) {
+	  cout << "evt " << ev <<": "<< H.chip << " , "
+	       << H.ch << " , " << TS[i]<< endl;}
+
+      }}}
+  //getchar();
+    
   for(int ev = 0; ev < nevents ; ++ev){
     fChain -> GetEntry(ev);
     for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
@@ -149,10 +171,14 @@ void makePlots::Loop(){
     
     for(int hit = 0; hit < nhits ; ++hit){
       H = HITS->Hits.at(hit);
-      if(H.ch != 30) continue;
+      if(H.chip != 0) continue;
+      if(H.ch != 20) continue;
       for(int sca = 0;sca < NSCA; ++sca){
-	if(TS[sca] == 4)
-	  ADC[ev] = H.SCA_hg[sca];}}}
+	if(TS[sca] == 2)
+	  ADC[ev] = H.SCA_hg[sca];}
+      //ADC[ev] = H.TOTS;
+    }
+  }
       
       gr = new TGraph(nevents, dac,ADC );
       //gr->SetMarkerColor(H.chip+2);
@@ -167,8 +193,166 @@ void makePlots::Loop(){
       c1->Update();
       getchar();
       c1->SaveAs("goodHG.png");
-  */
+  
 }
+vector<int> makePlots::read_yaml(string title){
+
+  vector<int> inj_CH;
+  
+  char Title[100];
+  sprintf(Title,"../CERN_BD/yaml/%s.yaml",title.c_str());
+  
+  ifstream file(Title);
+  string line;
+  int c = 0;
+  while(true){
+    getline(file,line);
+    if( file.eof() ) break;
+    if(c == 2){
+      string CHs;
+      int start = line.find("[");
+      int end   = line.find("]");
+      CHs = line.substr(start+1,end-start-1);
+      stringstream ss(CHs);
+      string CH_str;
+      int CH_int;
+      while(getline(ss,CH_str,',')){
+	CH_int = atoi(CH_str.c_str());
+	inj_CH.push_back(CH_int);
+      }
+    }
+    c++;
+  }
+  file.close();
+  return inj_CH;
+}
+
+void makePlots::calib(){
+
+  Init();
+
+  string runtitle;
+  int start = input_RUN.find_last_of("/");
+  int end   = input_RUN.find(".root");
+  runtitle = input_RUN.substr(start+1,end-start-1);
+  vector<int> inj_CH;
+  inj_CH = read_yaml(runtitle);
+  
+  app = new TApplication("app",0,0);
+  TCanvas *c1 = new TCanvas;
+  int nevents = fChain->GetEntries();
+
+  cout << "inj number: "<< inj_CH.size() << endl;
+  for(int inC = 0; inC < (int)inj_CH.size() ; ++inC){
+    cout << "CH " << inj_CH.at(inC) << endl;
+    int inj_ch = inj_CH.at(inC);
+
+    char plot_title[150];  
+    sprintf(plot_title,"calib_result/root/%dCH_Id%d.root", (int)inj_CH.size(),inj_ch);
+
+    TFile *outr = new TFile(plot_title,"recreate");
+    
+    TGraph *gr;
+    float dac[nevents];
+    float HG[4][nevents];
+    float LG[4][nevents];
+    float TOT[4][nevents];
+    
+    for(int ev = 0; ev < nevents ; ++ev){
+      fChain -> GetEntry(ev);
+      for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
+      int nhits = HITS->hit_num;
+      dac[ev] = HITS-> inj_dac;
+    
+      for(int hit = 0; hit < nhits ; ++hit){
+	H = HITS->Hits.at(hit);
+	if(H.ch != inj_ch) continue;
+	for(int sca = 0;sca < NSCA; ++sca){
+	  if(TS[sca] == 5){
+	    HG[H.chip][ev] = H.SCA_hg[sca];
+	    LG[H.chip][ev] = H.SCA_lg[sca];
+	  }
+	}
+	TOT[H.chip][ev] = H.TOTS;
+      }
+    }
+
+  
+    TMultiGraph *mgr = new TMultiGraph();
+  
+    char GR_save[100];
+    
+    for(int ski = 0; ski < 4 ; ++ski){
+      gr = new TGraph(nevents, dac,HG[ski] );
+      gr->SetMarkerStyle(20);
+      gr->SetMarkerSize(0.4);
+      gr->SetMarkerColor(ski+1);
+      gr->Draw("AP");
+      gr->GetXaxis()->SetTitle("dac");
+      gr->GetYaxis()->SetTitle("HGTS5");
+      mgr->Add(gr);
+
+      sprintf(plot_title,"%s_%dCH_Id%d_HG%d", runtitle.c_str(),(int)inj_CH.size(),inj_ch,ski);
+      gr->SetTitle(plot_title);
+      
+      sprintf(GR_save,"HGchip%d",ski);
+      gr->Write(GR_save);
+    }
+
+  
+    for(int ski = 0; ski < 4 ; ++ski){
+      gr = new TGraph(nevents, dac,LG[ski] );
+      gr->SetMarkerStyle(22);
+      gr->SetMarkerSize(0.4);
+      gr->SetMarkerColor(ski+1);
+      gr->Draw("AP");
+      gr->SetTitle(plot_title);
+      gr->GetXaxis()->SetTitle("dac");
+      gr->GetYaxis()->SetTitle("LGTS5");
+      mgr->Add(gr);
+
+      sprintf(plot_title,"%s_%dCH_Id%d_LG%d", runtitle.c_str(),(int)inj_CH.size(),inj_ch,ski);
+      gr->SetTitle(plot_title);
+
+      
+      sprintf(GR_save,"LGchip%d",ski);
+      gr->Write(GR_save);
+    }
+
+    for(int ski = 0; ski < 4 ; ++ski){
+      gr = new TGraph(nevents, dac,TOT[ski] );
+      gr->SetMarkerStyle(21);
+      gr->SetMarkerSize(0.4);
+      gr->SetMarkerColor(ski+1);
+      gr->Draw("AP");
+      gr->SetTitle(plot_title);
+      gr->GetXaxis()->SetTitle("dac");
+      gr->GetYaxis()->SetTitle("TOT");
+      mgr->Add(gr);
+
+      sprintf(plot_title,"%s_%dCH_Id%d_TOT%d", runtitle.c_str(),(int)inj_CH.size(),inj_ch,ski);
+      gr->SetTitle(plot_title);
+
+      
+      sprintf(GR_save,"TOTchip%d",ski);
+      gr->Write(GR_save);
+
+    }
+
+    mgr->Draw("ap");
+    mgr->GetXaxis()->SetTitle("dac");
+    mgr->GetYaxis()->SetTitle("HGLGTS5 + TOT");
+  
+    c1->Update();
+    //getchar();
+
+    //sprintf(plot_title,"%s_calib_CH%d.png", runtitle.c_str(),inj_ch);
+    sprintf(plot_title,"calib_result/Plots/%dCH_Id%d.png", (int)inj_CH.size(),inj_ch);
+    c1->SaveAs(plot_title);
+    outr->Close();
+  }  
+}
+
 
 void makePlots::Global_TS_study(){
 

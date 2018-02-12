@@ -377,12 +377,11 @@ hitcollection Fill_ntuple(){
 	//HG SCA
 	SCA_hg[sca] = dati_ordered[chip][ch][sca];
 	//LG SCA
-	SCA_lg[sca] = dati_ordered[chip][ch+64][sca];}
-
+	SCA_lg[sca] = dati_ordered[chip][ch+64][sca];	}
       TOAR = dati_ordered[chip][ch][13];
-      TOTS = dati_ordered[chip][ch][13];
-      TOAF = dati_ordered[chip][ch][14];
-      TOTF = dati_ordered[chip][ch][14];
+      TOTS = dati_ordered[chip][ch][14];
+      TOAF = dati_ordered[chip][ch+64][13];
+      TOTF = dati_ordered[chip][ch+64][14];
       CCorNC = (ch %2 == 0) ? true : false;
        int readposch = chip*2+ch/2;
       posx = chmap.CH_x[readposch];

@@ -16,7 +16,8 @@ int main(){
   makePlots M(chain);
   M.input_RUN = filename;
   //M.Global_TS_study();
-  M.Loop();
+  //M.Loop();
+  M.calib();
   
   return(0);
 }

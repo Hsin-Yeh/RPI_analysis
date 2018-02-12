@@ -26,6 +26,7 @@ class makePlots{
   ~makePlots();
 
   void Loop();
+  void calib();
   string         input_RUN;
   void Global_TS_study();
   
@@ -41,6 +42,7 @@ class makePlots{
   
   void read_P_and_N(string ped_file);
   void readmap();
+  vector<int> read_yaml(string title);
   void InitTH2Poly(TH2Poly& poly); //Give frame to TH2Poly
   void root_logon();  
   
