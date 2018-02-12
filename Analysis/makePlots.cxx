@@ -167,6 +167,7 @@ void makePlots::Loop(){
     fChain -> GetEntry(ev);
     for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
     int nhits = HITS->hit_num;
+    
     dac[ev] = HITS-> inj_dac;
     
     for(int hit = 0; hit < nhits ; ++hit){
@@ -246,9 +247,8 @@ void makePlots::calib(){
   for(int inC = 0; inC < (int)inj_CH.size() ; ++inC){
     cout << "CH " << inj_CH.at(inC) << endl;
     int inj_ch = inj_CH.at(inC);
-
     char plot_title[150];  
-    sprintf(plot_title,"calib_result/root/%dCH_Id%d.root", (int)inj_CH.size(),inj_ch);
+    sprintf(plot_title,"calib_result/root/%dCH_Id%d_%s.root", (int)inj_CH.size(),inj_ch,runtitle.c_str());
 
     TFile *outr = new TFile(plot_title,"recreate");
     
@@ -262,6 +262,7 @@ void makePlots::calib(){
       fChain -> GetEntry(ev);
       for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
       int nhits = HITS->hit_num;
+      if(HITS-> inj_dac > 10000) continue;
       dac[ev] = HITS-> inj_dac;
     
       for(int hit = 0; hit < nhits ; ++hit){
@@ -347,7 +348,7 @@ void makePlots::calib(){
     //getchar();
 
     //sprintf(plot_title,"%s_calib_CH%d.png", runtitle.c_str(),inj_ch);
-    sprintf(plot_title,"calib_result/Plots/%dCH_Id%d.png", (int)inj_CH.size(),inj_ch);
+    sprintf(plot_title,"calib_result/Plots/%dCH_Id%d_%s.png", (int)inj_CH.size(),inj_ch,runtitle.c_str());
     c1->SaveAs(plot_title);
     outr->Close();
   }  

@@ -3,7 +3,7 @@
 # So this is a bypass way for dealing with different data sheet without
 # merge them.
 # please do "make" before run it
-FILES="root_data/*.root"
+FILES="root_data/CERN_BD/*.root"
 for f in $FILES
 do
     echo "Processing file $f ... "

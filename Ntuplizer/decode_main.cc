@@ -111,8 +111,11 @@ int main(){
       }
       //Remove chip config
       if(rawT == 1 || rawT == 2){
-	for(int i = 0 ; i < 48 ; ++i){
-	  file >> config[i];
+	uint8_t header[2] = {0,0};
+	for(int i = 0 ; i < 24 ; ++i){
+	  file.read( reinterpret_cast<char*>(header), 2 );
+	  header[0] =  config[2*i];
+	  header[1] =  config[2*i+1];
 	}
       }
       //Loop event till the end of run
