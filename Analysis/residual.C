@@ -69,7 +69,7 @@ void residual(){
 	  gr->SetMarkerSize(0.8);
 	  gr->SetMarkerColor(num);
 	  mgr_h->Add(gr,"P");
-	  sprintf(desc,"(inj%d-inj1)/inj1 + (%.2f)",chs[num],0.25*(num-2));
+	  sprintf(desc,"(inj%d-inj1)/inj1 - (%.2f)",chs[num],0.25*(num-2));
 	  leg->AddEntry(gr,desc,"P");
 
 	  /*

@@ -17,7 +17,7 @@ int main(){
   M.input_RUN = filename;
   //M.Global_TS_study();
   //M.Loop();
-  M.calib();
+  M.calib_ntuple();
   
   return(0);
 }

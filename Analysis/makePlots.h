@@ -27,6 +27,7 @@ class makePlots{
 
   void Loop();
   void calib();
+  void calib_ntuple();
   string         input_RUN;
   void Global_TS_study();
   

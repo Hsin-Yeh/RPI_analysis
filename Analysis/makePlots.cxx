@@ -10,6 +10,7 @@
 #include "TLegend.h"
 #include "TStyle.h"
 #include "TFile.h"
+#include "TTree.h"
 #include <sstream>
 
 
@@ -228,6 +229,73 @@ vector<int> makePlots::read_yaml(string title){
   return inj_CH;
 }
 
+void makePlots::calib_ntuple(){
+
+  Init();
+
+  string runtitle;
+  int start = input_RUN.find_last_of("/");
+  int end   = input_RUN.find(".root");
+  runtitle = input_RUN.substr(start+1,end-start-1);
+  vector<int> inj_CH;
+  inj_CH = read_yaml(runtitle);
+  
+  app = new TApplication("app",0,0);
+  
+  int nevents = fChain->GetEntries();
+
+  cout << "inj number: "<< inj_CH.size() << endl;
+  for(int inC = 0; inC < (int)inj_CH.size() ; ++inC){
+    cout << "CH " << inj_CH.at(inC) << endl;
+    int inj_ch = inj_CH.at(inC);
+
+    int chs = (int)inj_CH.size();
+    if(chs == 7 or chs == 9) chs -= 1;
+
+    char plot_title[150];  
+    sprintf(plot_title,"calib_result/root/Ntuple/Ntuple_CH%d_inj%d.root",inj_ch,chs);
+    TFile *outr = new TFile(plot_title,"recreate");
+    
+    float dac;
+    float HG[4],LG[4],TOT[4];
+    char br_title[50];
+    TTree *tt;
+    tt = new TTree("tree","tree");
+    tt->Branch("dac",&dac,"dac/F");
+
+    sprintf(br_title,"HG");
+    tt->Branch(br_title,HG,"HG[4]/F");
+    sprintf(br_title,"LG");
+    tt->Branch(br_title,LG,"LG[4]/F");
+    sprintf(br_title,"TOT");
+    tt->Branch(br_title,TOT,"TOT[4]/F");
+    
+    for(int ev = 0; ev < nevents ; ++ev){
+      fChain -> GetEntry(ev);
+      for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
+      int nhits = HITS->hit_num;
+      if(HITS-> inj_dac > 10000) continue;
+      dac = HITS-> inj_dac;
+    
+      for(int hit = 0; hit < nhits ; ++hit){
+	H = HITS->Hits.at(hit);
+	if(H.ch != inj_ch) continue;
+	for(int sca = 0;sca < NSCA; ++sca){
+	  if(TS[sca] == 5){
+	    HG[H.chip] = H.SCA_hg[sca];
+	    LG[H.chip] = H.SCA_lg[sca];
+	    //	    cout << HG[H.chip] << endl;
+	  }
+	}
+	TOT[H.chip] = H.TOTS;
+      }
+      tt->Fill();
+    }
+    outr->Write();
+    outr->Close();
+  }  
+}
+
 void makePlots::calib(){
 
   Init();
@@ -280,8 +348,9 @@ void makePlots::calib(){
 
   
     TMultiGraph *mgr = new TMultiGraph();
-  
-    char GR_save[100];
+    TLegend *leg = new TLegend(0.7,0.3,0.87,0.47);
+    
+    char GR_save[100],leg_desc[100];
     
     for(int ski = 0; ski < 4 ; ++ski){
       gr = new TGraph(nevents, dac,HG[ski] );
@@ -292,7 +361,8 @@ void makePlots::calib(){
       gr->GetXaxis()->SetTitle("dac");
       gr->GetYaxis()->SetTitle("HGTS5");
       mgr->Add(gr);
-
+      sprintf(leg_desc,"CHIP%d",ski);
+      leg->AddEntry(gr,leg_desc,"P");
       sprintf(plot_title,"%s_%dCH_Id%d_HG%d", runtitle.c_str(),(int)inj_CH.size(),inj_ch,ski);
       gr->SetTitle(plot_title);
       
@@ -343,7 +413,9 @@ void makePlots::calib(){
     mgr->Draw("ap");
     mgr->GetXaxis()->SetTitle("dac");
     mgr->GetYaxis()->SetTitle("HGLGTS5 + TOT");
-  
+    leg->SetBorderSize(0);
+    leg->Draw("same");
+    
     c1->Update();
     //getchar();
 
@@ -415,7 +487,7 @@ void makePlots::Global_TS_study(){
   mgr->GetXaxis()->SetTitle("evt");
   mgr->GetYaxis()->SetTitle("GL_TS");
   mgr->SetMaximum(10000);
-  
+
   leg->Draw("same");
   c1->Update();
   sprintf(plot_title,"%s.png",real_Fname.c_str());
