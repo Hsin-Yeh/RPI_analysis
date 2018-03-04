@@ -135,7 +135,10 @@ int main(){
 	      a = ( lowB >> ( 7 - bit )) & 1;}
 	    if(ch_flag && guess_CH < 64) {
 	      if(a == 1){
-		cout << "guess_CH = " << ( 63 - guess_CH ) << ", value = " << a << endl;}
+		cout << "guess_CH = " << ( 63 - guess_CH ) << ", value = " << a << endl;
+		// put this into inj_CH vector
+		// check Inj_setting?
+	      }
 	      guess_CH++;	      
 	    }
 	    bitC++;
