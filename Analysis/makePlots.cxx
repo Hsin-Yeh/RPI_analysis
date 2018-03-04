@@ -6,6 +6,9 @@
 #include "TApplication.h"
 #include "TCanvas.h"
 #include "TGraph.h"
+#include "TLegend.h"
+#include "TMultiGraph.h"
+
 
 ClassImp(hit)
 ClassImp(hitcollection)
@@ -131,6 +134,137 @@ void makePlots::Loop(){
   }
     
 }
+
+void makePlots::calib(){
+
+  Init();
+
+  string runtitle;
+  int start = input_RUN.find_last_of("/");
+  int end   = input_RUN.find(".root");
+  runtitle = input_RUN.substr(start+1,end-start-1);
+  vector<int> inj_CH;
+  inj_CH.push_back(34);
+  
+  app = new TApplication("app",0,0);
+  TCanvas *c1 = new TCanvas;
+  int nevents = fChain->GetEntries();
+
+  cout << "inj number: "<< inj_CH.size() << endl;
+  for(int inC = 0; inC < (int)inj_CH.size() ; ++inC){
+    cout << "CH " << inj_CH.at(inC) << endl;
+    int inj_ch = inj_CH.at(inC);
+    char plot_title[150];  
+    sprintf(plot_title,"calib_result/root/%dCH_Id%d_%s.root", (int)inj_CH.size(),inj_ch,runtitle.c_str());
+
+    //TFile *outr = new TFile(plot_title,"recreate");
+    
+    TGraph *gr;
+    float dac[nevents];
+    float HG[4][nevents];
+    float LG[4][nevents];
+    float TOT[4][nevents];
+    
+    for(int ev = 0; ev < nevents ; ++ev){
+      fChain -> GetEntry(ev);
+      for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
+      int nhits = HITS->hit_num;
+      if(HITS-> inj_dac > 10000) continue;
+      dac[ev] = HITS-> inj_dac;
+    
+      for(int hit = 0; hit < nhits ; ++hit){
+	H = HITS->Hits.at(hit);
+	if(H.ch != inj_ch) continue;
+	for(int sca = 0;sca < NSCA; ++sca){
+	  if(TS[sca] == 5){
+	    HG[H.chip][ev] = H.SCA_hg[sca];
+	    LG[H.chip][ev] = H.SCA_lg[sca];
+	  }
+	}
+	TOT[H.chip][ev] = H.TOTS;
+      }
+    }
+
+  
+    TMultiGraph *mgr = new TMultiGraph();
+    TLegend *leg = new TLegend(0.7,0.3,0.87,0.47);
+    
+    char GR_save[100],leg_desc[100];
+    
+    for(int ski = 0; ski < 4 ; ++ski){
+      gr = new TGraph(nevents, dac,HG[ski] );
+      gr->SetMarkerStyle(20);
+      gr->SetMarkerSize(0.4);
+      gr->SetMarkerColor(ski+1);
+      gr->Draw("AP");
+      gr->GetXaxis()->SetTitle("dac");
+      gr->GetYaxis()->SetTitle("HGTS5");
+      mgr->Add(gr);
+      sprintf(leg_desc,"CHIP%d",ski);
+      leg->AddEntry(gr,leg_desc,"P");
+      sprintf(plot_title,"%s_%dCH_Id%d_HG%d", runtitle.c_str(),(int)inj_CH.size(),inj_ch,ski);
+      gr->SetTitle(plot_title);
+      
+      sprintf(GR_save,"HGchip%d",ski);
+      //gr->Write(GR_save);
+    }
+
+  
+    for(int ski = 0; ski < 4 ; ++ski){
+      gr = new TGraph(nevents, dac,LG[ski] );
+      gr->SetMarkerStyle(22);
+      gr->SetMarkerSize(0.4);
+      gr->SetMarkerColor(ski+1);
+      gr->Draw("AP");
+      gr->SetTitle(plot_title);
+      gr->GetXaxis()->SetTitle("dac");
+      gr->GetYaxis()->SetTitle("LGTS5");
+      mgr->Add(gr);
+
+      sprintf(plot_title,"%s_%dCH_Id%d_LG%d", runtitle.c_str(),(int)inj_CH.size(),inj_ch,ski);
+      gr->SetTitle(plot_title);
+
+      
+      sprintf(GR_save,"LGchip%d",ski);
+      //gr->Write(GR_save);
+    }
+
+    for(int ski = 0; ski < 4 ; ++ski){
+      gr = new TGraph(nevents, dac,TOT[ski] );
+      gr->SetMarkerStyle(21);
+      gr->SetMarkerSize(0.4);
+      gr->SetMarkerColor(ski+1);
+      gr->Draw("AP");
+      gr->SetTitle(plot_title);
+      gr->GetXaxis()->SetTitle("dac");
+      gr->GetYaxis()->SetTitle("TOT");
+      mgr->Add(gr);
+
+      sprintf(plot_title,"%s_%dCH_Id%d_TOT%d", runtitle.c_str(),(int)inj_CH.size(),inj_ch,ski);
+      gr->SetTitle(plot_title);
+
+      
+      sprintf(GR_save,"TOTchip%d",ski);
+      //gr->Write(GR_save);
+
+    }
+
+    mgr->Draw("ap");
+    mgr->GetXaxis()->SetTitle("dac");
+    mgr->GetYaxis()->SetTitle("HGLGTS5 + TOT");
+    leg->SetBorderSize(0);
+    leg->Draw("same");
+    
+    c1->Update();
+    getchar();
+
+    //sprintf(plot_title,"%s_calib_CH%d.png", runtitle.c_str(),inj_ch);
+    sprintf(plot_title,"calib_result/Plots/%dCH_Id%d_%s.png", (int)inj_CH.size(),inj_ch,runtitle.c_str());
+    //c1->SaveAs(plot_title);
+    //outr->Close();
+  }  
+}
+
 
 void makePlots::P_and_N(int option,bool output){
 

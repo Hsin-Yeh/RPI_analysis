@@ -26,6 +26,7 @@ class makePlots{
   ~makePlots();
 
   void Loop();
+  void calib();
   string         input_RUN;
   
  private:

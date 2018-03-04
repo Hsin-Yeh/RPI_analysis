@@ -6,11 +6,13 @@
 #include <iomanip>
 #include <stdint.h>
 #include "CHMapping.h"
+#include <bitset> // for cout config bits
 //For Ntuplizer
 #include "TROOT.h"
 #include "TTree.h"
 #include "TFile.h"
 #include <cstdint>
+
 
 #include "hit_hits_class.h"
 ClassImp(hit);
@@ -114,9 +116,36 @@ int main(){
 	uint8_t header[2] = {0,0};
 	for(int i = 0 ; i < 24 ; ++i){
 	  file.read( reinterpret_cast<char*>(header), 2 );
-	  header[0] =  config[2*i];
-	  header[1] =  config[2*i+1];
+	  config[2*i]   = header[0];
+	  config[2*i+1] = header[1];
+	  }
+	unsigned char lowB,highB;
+	int bitC = 0;
+	int guess_CH = 0;
+	bool ch_flag = false;
+	for(int Q = 0; Q < 48 ; ++Q){
+	  lowB  = config[Q];
+	  highB = (lowB >> 4) & 0xf;
+	  lowB  = lowB & 0xf;
+	  for(int bit = 0; bit < 8 ; ++bit){
+	    int a;
+	    if( bit < 4 ){
+	      a = ( highB >> ( 3 - bit )) & 1;}
+	    else{
+	      a = ( lowB >> ( 7 - bit )) & 1;}
+	    if(ch_flag && guess_CH < 64) {
+	      if(a == 1){
+		cout << "guess_CH = " << ( 63 - guess_CH ) << ", value = " << a << endl;}
+	      guess_CH++;	      
+	    }
+	    bitC++;
+	    if(bitC == 83 || bitC == 147){
+	      cout << "______________" << endl;
+	      ch_flag = true;}
 	}
+	  //	  cout << "\t";
+	}
+	  getchar();	
       }
       //Loop event till the end of run
       while(true){
