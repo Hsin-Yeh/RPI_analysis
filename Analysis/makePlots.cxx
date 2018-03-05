@@ -140,22 +140,29 @@ void makePlots::calib(){
 
   Init();
 
+  fChain->GetEntry(0);
+  vector<int > vec_inj_ch;
+  vec_inj_ch.assign(HITS->inj_ch.begin(),HITS->inj_ch.begin()+HITS->inj_ch.size());
+  if((int)vec_inj_ch.size() == 0){
+    cout << "This run has no injection channel! skip it!" << endl;
+    return;}
+  
+  cout << "number of injection channel: "<< vec_inj_ch.size() << endl;
+
   string runtitle;
   int start = input_RUN.find_last_of("/");
   int end   = input_RUN.find(".root");
   runtitle = input_RUN.substr(start+1,end-start-1);
   
   
-  app = new TApplication("app",0,0);
   TCanvas *c1 = new TCanvas;
   int nevents = fChain->GetEntries();
-
-  cout << "inj number: "<< HITS->inj_ch.size() << endl;
-  for(int inC = 0; inC < (int)HITS->inj_ch.size() ; ++inC){
-    cout << "CH " << HITS->inj_ch.at(inC) << endl;
-    int tmp_inj_ch = HITS->inj_ch.at(inC);
+  
+  for(int inC = 0; inC < (int)vec_inj_ch.size() ; ++inC){
+    cout << "CH " << vec_inj_ch.at(inC) << endl;
+    int tmp_inj_ch = vec_inj_ch.at(inC);
     char plot_title[150];  
-    sprintf(plot_title,"calib_result/root/%dCH_Id%d_%s.root", (int)HITS->inj_ch.size(),tmp_inj_ch,runtitle.c_str());
+    sprintf(plot_title,"calib_result/root/%dCH_Id%d_%s.root", (int)vec_inj_ch.size(),tmp_inj_ch,runtitle.c_str());
 
     TFile *outr = new TFile(plot_title,"recreate");
     
@@ -202,7 +209,7 @@ void makePlots::calib(){
       mgr->Add(gr);
       sprintf(leg_desc,"CHIP%d",ski);
       leg->AddEntry(gr,leg_desc,"P");
-      sprintf(plot_title,"%s_%dCH_Id%d_HG%d", runtitle.c_str(),(int)HITS->inj_ch.size(),tmp_inj_ch,ski);
+      sprintf(plot_title,"%s_%dCH_Id%d_HG%d", runtitle.c_str(),(int)vec_inj_ch.size(),tmp_inj_ch,ski);
       gr->SetTitle(plot_title);
       
       sprintf(GR_save,"HGchip%d",ski);
@@ -221,7 +228,7 @@ void makePlots::calib(){
       gr->GetYaxis()->SetTitle("LGTS5");
       mgr->Add(gr);
 
-      sprintf(plot_title,"%s_%dCH_Id%d_LG%d", runtitle.c_str(),(int)HITS->inj_ch.size(),tmp_inj_ch,ski);
+      sprintf(plot_title,"%s_%dCH_Id%d_LG%d", runtitle.c_str(),(int)vec_inj_ch.size(),tmp_inj_ch,ski);
       gr->SetTitle(plot_title);
 
       
@@ -240,7 +247,7 @@ void makePlots::calib(){
       gr->GetYaxis()->SetTitle("TOT");
       mgr->Add(gr);
 
-      sprintf(plot_title,"%s_%dCH_Id%d_TOT%d", runtitle.c_str(),(int)HITS->inj_ch.size(),tmp_inj_ch,ski);
+      sprintf(plot_title,"%s_%dCH_Id%d_TOT%d", runtitle.c_str(),(int)vec_inj_ch.size(),tmp_inj_ch,ski);
       gr->SetTitle(plot_title);
 
       
@@ -258,7 +265,7 @@ void makePlots::calib(){
     c1->Update();
     //getchar();
 
-    sprintf(plot_title,"calib_result/Plots/%dCH_Id%d_%s.png", (int)HITS->inj_ch.size(),tmp_inj_ch,runtitle.c_str());
+    sprintf(plot_title,"calib_result/Plots/%dCH_Id%d_%s.png", (int)vec_inj_ch.size(),tmp_inj_ch,runtitle.c_str());
     c1->SaveAs(plot_title);
     outr->Close();
   }  
