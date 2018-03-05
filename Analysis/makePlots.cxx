@@ -157,7 +157,7 @@ void makePlots::calib(){
     char plot_title[150];  
     sprintf(plot_title,"calib_result/root/%dCH_Id%d_%s.root", (int)inj_CH.size(),inj_ch,runtitle.c_str());
 
-    //TFile *outr = new TFile(plot_title,"recreate");
+    TFile *outr = new TFile(plot_title,"recreate");
     
     TGraph *gr;
     float dac[nevents];
@@ -206,7 +206,7 @@ void makePlots::calib(){
       gr->SetTitle(plot_title);
       
       sprintf(GR_save,"HGchip%d",ski);
-      //gr->Write(GR_save);
+      gr->Write(GR_save);
     }
 
   
@@ -226,7 +226,7 @@ void makePlots::calib(){
 
       
       sprintf(GR_save,"LGchip%d",ski);
-      //gr->Write(GR_save);
+      gr->Write(GR_save);
     }
 
     for(int ski = 0; ski < 4 ; ++ski){
@@ -245,7 +245,7 @@ void makePlots::calib(){
 
       
       sprintf(GR_save,"TOTchip%d",ski);
-      //gr->Write(GR_save);
+      gr->Write(GR_save);
 
     }
 
@@ -256,12 +256,11 @@ void makePlots::calib(){
     leg->Draw("same");
     
     c1->Update();
-    getchar();
+    //getchar();
 
-    //sprintf(plot_title,"%s_calib_CH%d.png", runtitle.c_str(),inj_ch);
     sprintf(plot_title,"calib_result/Plots/%dCH_Id%d_%s.png", (int)inj_CH.size(),inj_ch,runtitle.c_str());
-    //c1->SaveAs(plot_title);
-    //outr->Close();
+    c1->SaveAs(plot_title);
+    outr->Close();
   }  
 }
 
