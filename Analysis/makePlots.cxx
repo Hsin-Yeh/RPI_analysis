@@ -3,6 +3,7 @@
 #include <fstream>
 #include <math.h>
 #include <iomanip>
+#include "TFile.h"
 #include "TApplication.h"
 #include "TCanvas.h"
 #include "TGraph.h"
@@ -143,19 +144,18 @@ void makePlots::calib(){
   int start = input_RUN.find_last_of("/");
   int end   = input_RUN.find(".root");
   runtitle = input_RUN.substr(start+1,end-start-1);
-  vector<int> inj_CH;
-  inj_CH.push_back(34);
+  
   
   app = new TApplication("app",0,0);
   TCanvas *c1 = new TCanvas;
   int nevents = fChain->GetEntries();
 
-  cout << "inj number: "<< inj_CH.size() << endl;
-  for(int inC = 0; inC < (int)inj_CH.size() ; ++inC){
-    cout << "CH " << inj_CH.at(inC) << endl;
-    int inj_ch = inj_CH.at(inC);
+  cout << "inj number: "<< HITS->inj_ch.size() << endl;
+  for(int inC = 0; inC < (int)HITS->inj_ch.size() ; ++inC){
+    cout << "CH " << HITS->inj_ch.at(inC) << endl;
+    int tmp_inj_ch = HITS->inj_ch.at(inC);
     char plot_title[150];  
-    sprintf(plot_title,"calib_result/root/%dCH_Id%d_%s.root", (int)inj_CH.size(),inj_ch,runtitle.c_str());
+    sprintf(plot_title,"calib_result/root/%dCH_Id%d_%s.root", (int)HITS->inj_ch.size(),tmp_inj_ch,runtitle.c_str());
 
     TFile *outr = new TFile(plot_title,"recreate");
     
@@ -174,7 +174,7 @@ void makePlots::calib(){
     
       for(int hit = 0; hit < nhits ; ++hit){
 	H = HITS->Hits.at(hit);
-	if(H.ch != inj_ch) continue;
+	if(H.ch != tmp_inj_ch) continue;
 	for(int sca = 0;sca < NSCA; ++sca){
 	  if(TS[sca] == 5){
 	    HG[H.chip][ev] = H.SCA_hg[sca];
@@ -202,7 +202,7 @@ void makePlots::calib(){
       mgr->Add(gr);
       sprintf(leg_desc,"CHIP%d",ski);
       leg->AddEntry(gr,leg_desc,"P");
-      sprintf(plot_title,"%s_%dCH_Id%d_HG%d", runtitle.c_str(),(int)inj_CH.size(),inj_ch,ski);
+      sprintf(plot_title,"%s_%dCH_Id%d_HG%d", runtitle.c_str(),(int)HITS->inj_ch.size(),tmp_inj_ch,ski);
       gr->SetTitle(plot_title);
       
       sprintf(GR_save,"HGchip%d",ski);
@@ -221,7 +221,7 @@ void makePlots::calib(){
       gr->GetYaxis()->SetTitle("LGTS5");
       mgr->Add(gr);
 
-      sprintf(plot_title,"%s_%dCH_Id%d_LG%d", runtitle.c_str(),(int)inj_CH.size(),inj_ch,ski);
+      sprintf(plot_title,"%s_%dCH_Id%d_LG%d", runtitle.c_str(),(int)HITS->inj_ch.size(),tmp_inj_ch,ski);
       gr->SetTitle(plot_title);
 
       
@@ -240,7 +240,7 @@ void makePlots::calib(){
       gr->GetYaxis()->SetTitle("TOT");
       mgr->Add(gr);
 
-      sprintf(plot_title,"%s_%dCH_Id%d_TOT%d", runtitle.c_str(),(int)inj_CH.size(),inj_ch,ski);
+      sprintf(plot_title,"%s_%dCH_Id%d_TOT%d", runtitle.c_str(),(int)HITS->inj_ch.size(),tmp_inj_ch,ski);
       gr->SetTitle(plot_title);
 
       
@@ -258,7 +258,7 @@ void makePlots::calib(){
     c1->Update();
     //getchar();
 
-    sprintf(plot_title,"calib_result/Plots/%dCH_Id%d_%s.png", (int)inj_CH.size(),inj_ch,runtitle.c_str());
+    sprintf(plot_title,"calib_result/Plots/%dCH_Id%d_%s.png", (int)HITS->inj_ch.size(),tmp_inj_ch,runtitle.c_str());
     c1->SaveAs(plot_title);
     outr->Close();
   }  
