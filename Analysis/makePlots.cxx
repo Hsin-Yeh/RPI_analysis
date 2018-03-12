@@ -136,8 +136,9 @@ void makePlots::Loop(){
 	    h_TOTF->Fill(H.TOTF);
 	    h_TOAR->Fill(H.TOAR);
 	    h_TOAF->Fill(H.TOAF);
-	    cout << H.TOTS <<" " << H.TOTF << endl <<
-	      H.TOAR <<" " <<  H.TOAF << endl;
+	    
+	    //cout << H.TOTS <<" " << H.TOTF << endl <<
+	    //  H.TOAR <<" " <<  H.TOAF << endl;
 			      
 	  }
 	}
