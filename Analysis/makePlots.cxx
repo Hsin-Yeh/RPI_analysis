@@ -1,15 +1,15 @@
 #include "makePlots.h"
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <math.h>
-#include <iomanip>
-#include "TFile.h"
 #include "TApplication.h"
 #include "TCanvas.h"
 #include "TGraph.h"
-#include "TLegend.h"
 #include "TMultiGraph.h"
-
+#include "TLegend.h"
+#include "TSystem.h"
+#include "TImage.h"
 
 ClassImp(hit)
 ClassImp(hitcollection)
@@ -17,13 +17,13 @@ ClassImp(hitcollection)
 makePlots::makePlots(TChain* inchain):fChain(inchain)
 {
   HITS = new hitcollection;
-  app = new TApplication("app",0,0);  
   readmap();
   cout << "Constructor of makePlot ... \n\n" << endl;
 }
 //Destructor
 makePlots::~makePlots()
 {
+  delete HITS;
   cout << "\n\n";
   cout << "Destructor of makePlot ... " << endl;
 }
@@ -35,44 +35,217 @@ void makePlots::Init(){
 void makePlots::Loop(){
 
   Init();
-  //P_and_N(0,1);
-  //read_P_and_N("ped_result/RUN_101117_0925");
-
-  TCanvas *c1 = new TCanvas;
-  char plot_title[50];
+  //P_and_N(1,1);
+  read_P_and_N("ped_result/RUN_131217_1008");
   
+  /*  for(int chip = 0; chip < NCHIP; chip++){
+      for(int ch = 0; ch < 64; ch++){
+      for(int sca = 0; sca < NSCA ; ++sca){
+      cout << avg_HG[chip][ch][sca] << endl;}}}
+  */
+  //  avg_HG[chip][ch][sca]
+
+  app = new TApplication("app",0,0);
+  TCanvas *c1 = new TCanvas;
+
+  char plot_title[50];
   int nevents = fChain->GetEntries();
+  int injevents_perdac = 1;
+  int injevents = nevents/injevents_perdac;
   //============== Example for filling chip 0 ch 20 SCA0 to hist ==============
 
-  TH1F *h = new TH1F("h","",100,0,500); //("title","",slice,star,end) 
+  TH1F *h = new TH1F("h","",500,-500,500); //("title","",slice,star,end)
+  TH1D *h_TOTS = new TH1D("h_TOTS","",100,5,500);
+  TH1D *h_TOTF = new TH1D("h_TOTF","",100,1000,3000);
+  TH1D *h_TOAR = new TH1D("h_TOAR","",100,1000,3000);
+  TH1D *h_TOAF = new TH1D("h_TOAF","",100,1000,3000);
+  
+  int ADC_H[injevents], ADC_L[injevents], dac_ctrl[injevents];
+  int ADC_event[nevents], ADC[injevents_perdac], n[injevents_perdac];
+  
+  int dac = -1; int test =0;
+  char leg[50];
+  TMultiGraph* mg = new TMultiGraph();
+  TGraph **g = new TGraph*[13];
+  TLegend *legend = new TLegend(0.8,0.8,1.,1.);
+  legend->SetNColumns(2);
+  TImage *img = TImage::Create();
 
+
+  //===========================================================================
+  
+  //for(int ts = 0; ts < 7; ts++){
+  int ts = 4;
+  //
+  //initialize the parameters
+  //
+  dac = -1;
+
+  for (int i=0; i<injevents; i++){
+    ADC_H[i] = 0;
+    ADC_L[i] = 0;
+    ADC_event[i] = 0;
+    dac_ctrl[i] = i;
+  }
+  for(int i=0; i<injevents_perdac; i++){
+    ADC[i] = 0;
+    n[i] = i+1;
+  }
+
+  //
+  //Loop over the events
+  //
   for(int ev = 0; ev < nevents ; ++ev){  
-    fChain -> GetEntry(ev); // Get HITcollection from root file event
-    
-    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];
+    fChain -> GetEntry(ev); //== Get HITcollection from root file event 
+
+    // Update the dac number and show plots for every event at the dac number 
+    if(ev%injevents_perdac == 0){
+      dac++; 
+      sprintf(plot_title,"DAC:%d",dac_ctrl[dac]);
+      TGraph *g = new TGraph(injevents_perdac,n,ADC);
+      g->SetTitle(plot_title);
+      //g->Draw("A*");
+      //c1->Update();
+      //gPad->WaitPrimitive();
+      delete g;
+      test=0;
+    }
+      
+    for(int i = 0 ; i < NSCA ; ++i){
+      TS[i] = HITS->rollposition[i];
+    }
     
     int nhits = HITS->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){
       H = HITS->Hits.at(hit);
       if(!H.CCorNC) continue; // remove unconnected channel
-      if(H.chip == 0 && H.ch == 20){
+      if( H.chip == 3 && H.ch == 40){
 	for(int sca = 0; sca < NSCA; ++sca){
-	  if(TS[sca] == 0 ){ h->Fill(H.SCA_hg[sca]); }
+	  if( TS[sca] == ts ){
+	    H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
+	    H.SCA_lg[sca] -= avg_LG[H.chip][H.ch][sca];
+	    ADC_H[dac]+=H.SCA_hg[sca];
+	    ADC_L[dac]+=H.SCA_lg[sca];
+	    h->Fill(H.SCA_hg[sca]);
+	    ADC_event[ev] = H.SCA_hg[sca];
+	    ADC[test] = H.SCA_hg[sca];
+	    
+	    h->Fill(H.SCA_hg[sca]);
+	    
+	    h_TOTS->Fill(H.TOTS);
+	    h_TOTF->Fill(H.TOTF);
+	    h_TOAR->Fill(H.TOAR);
+	    h_TOAF->Fill(H.TOAF);
+	    cout << H.TOTS <<" " << H.TOTF << endl <<
+	      H.TOAR <<" " <<  H.TOAF << endl;
+			      
+	  }
 	}
       }
     }
+    test++;
+    
+    
   }
-  sprintf(plot_title,"HG_TS0");
-  h->Draw();
-  h->SetTitle(plot_title);
-  c1->Update();
-  getchar();
-  //=================== End of example for filling hist =======================
 
   
-  //========== Here shows the example how to use TH2Poly to draw plot =========
-  for(int ev = 0; ev < nevents ; ++ev){
-    if(ev % 100 != 0) continue;
+  for(int i=0; i<injevents; i++){
+    ADC_H[i] /= injevents_perdac;
+    ADC_L[i] /= injevents_perdac;
+  }
+
+    // Draw Plots //
+    
+    //g[ts] = new TGraph(injevents,dac_ctrl,ADC_H);
+    TGraph* gh = new TGraph(injevents,dac_ctrl,ADC_H);
+    TGraph* gl = new TGraph(injevents,dac_ctrl,ADC_L);
+    //  gh->GetYaxis()->SetRangeUser(0,200);
+    //gl->GetXaxis()->SetRangeUser(xmin,xmax);
+
+    // Draw Plots for each SCA 
+    /*
+      sprintf(plot_title,"High Gain");  
+      g[ts]->SetTitle(plot_title);
+      g[ts]->GetXaxis()->SetTitle("DAC");
+      g[ts]->GetYaxis()->SetTitle("ADC");
+      int style = 22+ts; int color = ts+1;
+      if(color%10==0)color++;
+      g[ts]->SetMarkerColor(color);
+      g[ts]->SetMarkerStyle(style);
+      //g[ts]->Draw("AP");
+      //c1->Update();
+      //gPad->WaitPrimitive();
+      */
+    h_TOTS->Draw();
+    c1->Update();
+    gPad->WaitPrimitive();
+
+    
+    h_TOTF->Draw();
+    c1->Update();
+    gPad->WaitPrimitive();
+    
+    h_TOAR->Draw();
+    c1->Update();
+    gPad->WaitPrimitive();
+    
+    h_TOAF->Draw();
+    c1->Update();
+    gPad->WaitPrimitive();
+    h->Draw();
+    c1->Update();
+    gPad->WaitPrimitive();
+
+    sprintf(plot_title,"High Gain");
+    gh->SetTitle(plot_title);
+    gh->GetXaxis()->SetTitle("Event");
+    gh->GetYaxis()->SetTitle("ADC");
+    gh->SetMarkerStyle(24);
+    gh->Draw("AP");
+    c1->Update();
+    gPad->WaitPrimitive();
+    
+    sprintf(plot_title,"Low Gain");
+    gl->SetTitle(plot_title);
+    gl->GetXaxis()->SetTitle("Event");
+    gl->GetYaxis()->SetTitle("ADC");
+    gl->SetMarkerStyle(24);
+    gl->Draw("AP");
+    c1->Update();
+    gPad->WaitPrimitive();
+
+    /*
+      mg->Add(g[ts]);
+      sprintf(leg,"%dTS",ts);
+      legend->AddEntry(g[ts],leg, "P");
+    
+      // h->Draw();
+      //c1->Update();
+      //gPad->WaitPrimitive();
+      //}
+      }
+      //mg->SetTitle("High Gain");
+
+
+      mg->Draw("AP");
+      mg->GetXaxis()->SetTitle("DAC");
+      mg->GetYaxis()->SetTitle("ADC");
+      gPad->Modified();
+      legend->Draw();
+      c1->Update();
+      //img->FromPad(c1);
+      //img->WriteImage("MultiGraph0-6.png");
+      gPad->WaitPrimitive();
+    */
+    
+  
+    
+    //=================== End of example for filling hist =======================
+
+  
+    //========== Here shows the example how to use TH2Poly to draw plot =========
+    /*  for(int ev = 0; ev < nevents ; ++ev){
+    //if(ev % 10 != 0) continue;
 
     fChain -> GetEntry(ev); // Get HITcollection from root file event
     TH2Poly *poly = new TH2Poly;
@@ -81,228 +254,96 @@ void makePlots::Loop(){
     for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];
     
     int nhits = HITS->hit_num;
+    //    cout << nhits << endl;
     for(int hit = 0; hit < nhits ; ++hit){
-      H = HITS->Hits.at(hit);
-      if(!H.CCorNC) continue; // remove unconnected channel
+    H = HITS->Hits.at(hit);
+    if(!H.CCorNC) continue; // remove unconnected channel
       
-      for(int sca = 0; sca < NSCA; ++sca){
-	if(TS[sca] == 0 ){
-	  int forCH = H.chip*32+H.ch/2;
-	  float X = CHmap[forCH].first;
-	  float Y = CHmap[forCH].second;
-	  poly->Fill(X,Y,H.SCA_hg[sca]);}}
+    for(int sca = 0; sca < NSCA; ++sca){
+    if(TS[sca] == 4 ){
+    int forCH = H.chip*32+H.ch/2;
+    float X = CHmap[forCH].first;
+    float Y = CHmap[forCH].second;	  
+    poly->Fill(X,Y,H.SCA_hg[sca]);}}
+     
     }
     poly->Draw("colztext");
+
     sprintf(plot_title,"HG_TS0_evt%d",ev);
     poly->SetTitle(plot_title);
     c1->Update();
-    getchar();
+    gPad->WaitPrimitive();
     delete poly;
-  }
-  //============== End of the example to use TH2Poly to draw plot ==============
+    }*/
+    //============== End of the example to use TH2Poly to draw plot ==============
 
-  
    
-  // An example shows how to check the ADC vs TS for certain channel(injected)
-  // Remove this comment to run
-  TGraph *gr;
-  for(int ev = 0; ev < nevents ; ++ev){
-    if(ev % 50 != 0) continue;
-    if(ev < 200) continue;
-    fChain -> GetEntry(ev);
-    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
-    int nhits = HITS->hit_num;
-    for(int hit = 0; hit < nhits ; ++hit){
-      H = HITS->Hits.at(hit);
-      if(H.ch != 30) continue;
+   
+    // An example shows how to check the ADC vs TS for certain channel(injected)
+    // Remove this comment to run
 
-      gr = new TGraph(13, TS,H.SCA_lg );
-      gr->SetMarkerColor(H.chip+2);
-      gr->SetMarkerStyle(22);
-      gr->SetMarkerSize(1.2);
-      gr->Draw("AP");
-      sprintf(plot_title,"HG_evt %d chip %d",ev,H.chip);
-      gr->SetTitle(plot_title);
-      gr->GetXaxis()->SetTitle("TS");
-      gr->GetYaxis()->SetTitle("ADC");
-
-      c1->Update();
-      //if(ev == 400){
-	//sprintf(plot_title,"%s.png",plot_title);
-	//c1->SaveAs(plot_title);} // remove the comment to save plots
-      getchar();
-    }
-  }
-    
-}
-
-void makePlots::calib(){
-
-  Init();
-
-  fChain->GetEntry(0);
-  vector<int > vec_inj_ch;
-  vec_inj_ch.assign(HITS->inj_ch.begin(),HITS->inj_ch.begin()+HITS->inj_ch.size());
-  if((int)vec_inj_ch.size() == 0){
-    cout << "This run has no injection channel! skip it!" << endl;
-    return;}
   
-  cout << "number of injection channel: "<< vec_inj_ch.size() << endl;
-
-  string runtitle;
-  int start = input_RUN.find_last_of("/");
-  int end   = input_RUN.find(".root");
-  runtitle = input_RUN.substr(start+1,end-start-1);
-  
-  
-  TCanvas *c1 = new TCanvas;
-  int nevents = fChain->GetEntries();
-  
-  for(int inC = 0; inC < (int)vec_inj_ch.size() ; ++inC){
-    cout << "CH " << vec_inj_ch.at(inC) << endl;
-    int tmp_inj_ch = vec_inj_ch.at(inC);
-    char plot_title[150];  
-    sprintf(plot_title,"calib_result/root/%dCH_Id%d_%s.root", (int)vec_inj_ch.size(),tmp_inj_ch,runtitle.c_str());
-
-    TFile *outr = new TFile(plot_title,"recreate");
-    
     TGraph *gr;
-    float dac[nevents];
-    float HG[4][nevents];
-    float LG[4][nevents];
-    float TOT[4][nevents];
-    
     for(int ev = 0; ev < nevents ; ++ev){
+      if(ev % 35 != 0) continue;
       fChain -> GetEntry(ev);
       for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
       int nhits = HITS->hit_num;
-      if(HITS-> inj_dac > 10000) continue;
-      dac[ev] = HITS-> inj_dac;
-    
       for(int hit = 0; hit < nhits ; ++hit){
 	H = HITS->Hits.at(hit);
-	if(H.ch != tmp_inj_ch) continue;
-	for(int sca = 0;sca < NSCA; ++sca){
-	  if(TS[sca] == 5){
-	    HG[H.chip][ev] = H.SCA_hg[sca];
-	    LG[H.chip][ev] = H.SCA_lg[sca];
-	  }
-	}
-	TOT[H.chip][ev] = H.TOTS;
+	if(H.ch != 40) continue;
+
+	gr = new TGraph(13, TS,H.SCA_lg );
+	gr->SetMarkerColor(H.chip+2);
+	gr->SetMarkerStyle(22);
+	gr->SetMarkerSize(1.2);
+	gr->Draw("AP");
+	sprintf(plot_title,"HG_evt %d chip %d",ev,H.chip);
+	gr->SetTitle(plot_title);
+	gr->GetXaxis()->SetTitle("TS");
+	gr->GetYaxis()->SetTitle("ADC");
+
+	c1->Update();
+	//if(ev == 400){
+	//sprintf(plot_title,"%s.png",plot_title);
+	//c1->SaveAs(plot_title);} // remove the comment to save plots
+	gPad->WaitPrimitive();
       }
     }
-
   
-    TMultiGraph *mgr = new TMultiGraph();
-    TLegend *leg = new TLegend(0.7,0.3,0.87,0.47);
-    
-    char GR_save[100],leg_desc[100];
-    
-    for(int ski = 0; ski < 4 ; ++ski){
-      gr = new TGraph(nevents, dac,HG[ski] );
-      gr->SetMarkerStyle(20);
-      gr->SetMarkerSize(0.4);
-      gr->SetMarkerColor(ski+1);
-      gr->Draw("AP");
-      gr->GetXaxis()->SetTitle("dac");
-      gr->GetYaxis()->SetTitle("HGTS5");
-      mgr->Add(gr);
-      sprintf(leg_desc,"CHIP%d",ski);
-      leg->AddEntry(gr,leg_desc,"P");
-      sprintf(plot_title,"%s_%dCH_Id%d_HG%d", runtitle.c_str(),(int)vec_inj_ch.size(),tmp_inj_ch,ski);
-      gr->SetTitle(plot_title);
-      
-      sprintf(GR_save,"HGchip%d",ski);
-      gr->Write(GR_save);
-    }
-
-  
-    for(int ski = 0; ski < 4 ; ++ski){
-      gr = new TGraph(nevents, dac,LG[ski] );
-      gr->SetMarkerStyle(22);
-      gr->SetMarkerSize(0.4);
-      gr->SetMarkerColor(ski+1);
-      gr->Draw("AP");
-      gr->SetTitle(plot_title);
-      gr->GetXaxis()->SetTitle("dac");
-      gr->GetYaxis()->SetTitle("LGTS5");
-      mgr->Add(gr);
-
-      sprintf(plot_title,"%s_%dCH_Id%d_LG%d", runtitle.c_str(),(int)vec_inj_ch.size(),tmp_inj_ch,ski);
-      gr->SetTitle(plot_title);
-
-      
-      sprintf(GR_save,"LGchip%d",ski);
-      gr->Write(GR_save);
-    }
-
-    for(int ski = 0; ski < 4 ; ++ski){
-      gr = new TGraph(nevents, dac,TOT[ski] );
-      gr->SetMarkerStyle(21);
-      gr->SetMarkerSize(0.4);
-      gr->SetMarkerColor(ski+1);
-      gr->Draw("AP");
-      gr->SetTitle(plot_title);
-      gr->GetXaxis()->SetTitle("dac");
-      gr->GetYaxis()->SetTitle("TOT");
-      mgr->Add(gr);
-
-      sprintf(plot_title,"%s_%dCH_Id%d_TOT%d", runtitle.c_str(),(int)vec_inj_ch.size(),tmp_inj_ch,ski);
-      gr->SetTitle(plot_title);
-
-      
-      sprintf(GR_save,"TOTchip%d",ski);
-      gr->Write(GR_save);
-
-    }
-
-    mgr->Draw("ap");
-    mgr->GetXaxis()->SetTitle("dac");
-    mgr->GetYaxis()->SetTitle("HGLGTS5 + TOT");
-    leg->SetBorderSize(0);
-    leg->Draw("same");
-    
-    c1->Update();
-    //getchar();
-
-    sprintf(plot_title,"calib_result/Plots/%dCH_Id%d_%s.png", (int)vec_inj_ch.size(),tmp_inj_ch,runtitle.c_str());
-    c1->SaveAs(plot_title);
-    outr->Close();
-  }  
 }
 
+  void makePlots::P_and_N(int option,bool output){
 
-void makePlots::P_and_N(int option,bool output){
-
-  int skip_TS;
+    int skip_TS;
   
-  int mem_of_SCA[NSCA][NCH][NSCA];
-  int sumHG     [NCHIP][NCH][NSCA];
-  int sumLG     [NCHIP][NCH][NSCA];
-  double sumsqHG   [NCHIP][NCH][NSCA];
-  double sumsqLG   [NCHIP][NCH][NSCA];  
+    int mem_of_SCA[NSCA][NCH][NSCA];
+    int sumHG     [NCHIP][NCH][NSCA];
+    int sumLG     [NCHIP][NCH][NSCA];
+    double sumsqHG   [NCHIP][NCH][NSCA];
+    double sumsqLG   [NCHIP][NCH][NSCA];  
 
-  for(int i = 0; i < NCHIP; ++i){    
-    for(int j = 0; j < NCH; ++j){
-      for(int k = 0; k < NSCA; ++k){
-	sumHG     [i][j][k] = 0;
-	sumsqHG   [i][j][k] = 0;
-	sumLG     [i][j][k] = 0;
-	sumsqLG   [i][j][k] = 0;
-	mem_of_SCA[i][j][k] = 0;}}}
+    for(int i = 0; i < NCHIP; ++i){    
+      for(int j = 0; j < NCH; ++j){
+	for(int k = 0; k < NSCA; ++k){
+	  sumHG     [i][j][k] = 0;
+	  sumsqHG   [i][j][k] = 0;
+	  sumLG     [i][j][k] = 0;
+	  sumsqLG   [i][j][k] = 0;
+	  mem_of_SCA[i][j][k] = 0;}}}
   
-  if(option == 0){
-    cout << "calculate pedestal and noise based on TS 0 ~ 8" << endl;
-    skip_TS = 9;  }
+    if(option == 0){
+      cout << "calculate pedestal and noise based on TS 0 ~ 8" << endl;
+      skip_TS = 9;  }
   
-  else if(option == 1){
-    cout << "calculate pedestal and noise based on TS 0 and 1"
-	 << "(The test beam method)" << endl;
-    skip_TS = 2;  }
+    else if(option == 1){
+      cout << "calculate pedestal and noise based on TS 0 and 1"
+	   << "(The test beam method)" << endl;
+      skip_TS = 2;  }
 
-  else{
-    cout << "invalid option for pedestal noise calculation!" << endl;
-    return;}
+    else{
+      cout << "invalid option for pedestal noise calculation!" << endl;
+      return;}
   
     int nevents = fChain->GetEntries();
     for(int ev = 0; ev < nevents ; ++ev){
@@ -336,51 +377,51 @@ void makePlots::P_and_N(int option,bool output){
 	  sigma_LG[i][j][k] -= avg_LG  [i][j][k]*avg_LG  [i][j][k];
 	  sigma_LG[i][j][k] = sqrt(sigma_LG[i][j][k]); }}}
   
-  if(output == true){
-    string filename;
-    filename = input_RUN;
-    int start = filename.find_last_of("/");
-    int end   = filename.find(".root");
-    string outf = filename.substr(start+1,end-start-1);
-    char outtitleH[100];
-    char outtitleL[100];
-    sprintf(outtitleH,"ped_result/%s_HG.txt",outf.c_str());
-    ofstream fileHG(outtitleH);
-    sprintf(outtitleL,"ped_result/%s_LG.txt",outf.c_str());
-    ofstream fileLG(outtitleL);
-    fileHG << "CHIP\tCH\t";
-    fileLG << "CHIP\tCH\t";
-    for(int i = 0; i < NSCA; ++i){
-      fileHG << "SCA " << i << " ";
-      fileLG << "SCA " << i << " ";}
-    fileHG << "\n";
-    fileLG << "\n";
-    for(int i = 0; i < NCHIP; ++i){    
-      for(int j = 0; j < NCH; ++j){
-	fileHG << i << "\t" << j << "\t";
-	fileLG << i << "\t" << j << "\t";
-	for(int k = 0; k < NSCA; ++k){
-	  fileHG << fixed << setprecision(2) << avg_HG[i][j][k] << " ";
-	  fileLG << fixed << setprecision(2) << avg_LG[i][j][k] << " ";}
-	fileHG << "\n";
-	fileLG << "\n";
-	fileHG << i << "\t" << j << "\t";
-	fileLG << i << "\t" << j << "\t";
+    if(output == true){
+      string filename;
+      filename = input_RUN;
+      int start = filename.find_last_of("/");
+      int end   = filename.find(".root");
+      string outf = filename.substr(start+1,end-start-1);
+      char outtitleH[100];
+      char outtitleL[100];
+      sprintf(outtitleH,"ped_result/%s_HG.txt",outf.c_str());
+      ofstream fileHG(outtitleH);
+      sprintf(outtitleL,"ped_result/%s_LG.txt",outf.c_str());
+      ofstream fileLG(outtitleL);
+      fileHG << "CHIP\tCH\t";
+      fileLG << "CHIP\tCH\t";
+      for(int i = 0; i < NSCA; ++i){
+	fileHG << "SCA " << i << " ";
+	fileLG << "SCA " << i << " ";}
+      fileHG << "\n";
+      fileLG << "\n";
+      for(int i = 0; i < NCHIP; ++i){    
+	for(int j = 0; j < NCH; ++j){
+	  fileHG << i << "\t" << j << "\t";
+	  fileLG << i << "\t" << j << "\t";
+	  for(int k = 0; k < NSCA; ++k){
+	    fileHG << fixed << setprecision(2) << avg_HG[i][j][k] << " ";
+	    fileLG << fixed << setprecision(2) << avg_LG[i][j][k] << " ";}
+	  fileHG << "\n";
+	  fileLG << "\n";
+	  fileHG << i << "\t" << j << "\t";
+	  fileLG << i << "\t" << j << "\t";
 
-	for(int k = 0; k < NSCA; ++k){
-	  fileHG << fixed << setprecision(2) << sigma_HG[i][j][k] << " ";
-	  fileLG << fixed << setprecision(2) << sigma_LG[i][j][k] << " ";}
-	fileHG << "\n";
-	fileLG << "\n";      
+	  for(int k = 0; k < NSCA; ++k){
+	    fileHG << fixed << setprecision(2) << sigma_HG[i][j][k] << " ";
+	    fileLG << fixed << setprecision(2) << sigma_LG[i][j][k] << " ";}
+	  fileHG << "\n";
+	  fileLG << "\n";      
+	}
       }
+      fileHG.close();
+      fileLG.close();
+      cout << "output mode is selected output file will be:" << endl;
+      cout << "1. " << outtitleH << "\n" << "2. " << outtitleL << endl;
     }
-    fileHG.close();
-    fileLG.close();
-    cout << "output mode is selected, output file will be:" << endl;
-    cout << "1. " << outtitleH << "\n" << "2. " << outtitleL << endl;
-  }
   
-}
+  }
 
 void makePlots::read_P_and_N(string ped_file){
   

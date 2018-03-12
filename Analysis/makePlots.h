@@ -26,10 +26,6 @@ class makePlots{
   ~makePlots();
 
   void Loop();
-  void calib();  // This draws the calibration curve of HG,LG,TOT of the
-                 // injection channel(s). Output a root file for the curves and
-                 // plots for the injection channels.
-  
   string         input_RUN;
   
  private:
