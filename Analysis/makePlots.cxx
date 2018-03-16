@@ -131,6 +131,8 @@ void makePlots::Loop(){
 	//sprintf(plot_title,"%s.png",plot_title);
 	//c1->SaveAs(plot_title);} // remove the comment to save plots
       getchar();
+      getchar();
+      
     }
   }
     
