@@ -6,7 +6,7 @@ all: Ntuplizer COPY
 
 COPY:
 	$(eval pcm_exist=$(wildcard *.pcm))
-ifneq ($(strip $(pcm_exist)), )  #ROOT6 has different output from rootcint(.pcm)
+ifeq ($(strip $(pcm_exist)), )  #ROOT6 has different output from rootcint(.pcm)
 	cp *.so *.pcm ../Analysis
 	mv *.o  *.so  *.cxx obj_file
 else                             #Bofore ROOT6 version
