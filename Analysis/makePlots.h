@@ -26,16 +26,20 @@ class makePlots{
   ~makePlots();
 
   void Loop();
+  virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
   string         input_RUN;
   
  private:
 
   void Init();
+  void TwoDPoly();
+  void Crosstalk(Int_t ch);
   void P_and_N(int option,bool output);
   // P_and_N function:
   // option 0 can be used for pedestal run.
   // option 1 is an informal way that can deal with signal runs,
   // similar method is applied in test beam framework.
+
   
   void read_P_and_N(string ped_file);
   void readmap();
@@ -50,6 +54,7 @@ class makePlots{
   float sigma_HG[NCHIP][NCH][NSCA];
   float avg_LG  [NCHIP][NCH][NSCA];
   float sigma_LG[NCHIP][NCH][NSCA];
+  int cross_ch[6];
 
   // map < key = chip*32+ch/2 , pair <x, y> > 
   map<int,pair < double,double > > CHmap;
