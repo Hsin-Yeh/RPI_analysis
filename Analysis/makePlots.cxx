@@ -13,7 +13,7 @@
 
 ClassImp(hit)
 ClassImp(hitcollection)
-//Constructor
+//Constructo
 makePlots::makePlots(TChain* inchain):fChain(inchain)
 {
   HITS = new hitcollection;
@@ -35,8 +35,8 @@ void makePlots::Init(){
 void makePlots::Loop(){
 
   Init();
-  //  P_and_N(0,1);
-  read_P_and_N("ped_result/Module_1_RUN_300318_0527");
+  //P_and_N(0,1);
+  //read_P_and_N("ped_result/Module_1_RUN_300318_0527");
 
   /*
   int BeforeHG[4][64][NSCA], BeforeLG[4][64][NSCA];
@@ -98,7 +98,7 @@ void makePlots::Loop(){
   int injevents_perdac = 1;
   int injevents = nevents/injevents_perdac;
 
-  TH1F *h = new TH1F("h","",500,-500,500); //("title","",slice,star,end)
+  TH1D *h = new TH1D("h","",100,150,250); //("title","",slice,star,end)
   TH1D *h_TOTS = new TH1D("h_TOTS","",100,5,500);
   TH1D *h_TOTF = new TH1D("h_TOTF","",100,1000,3000);
   TH1D *h_TOAR = new TH1D("h_TOAR","",100,1000,3000);
@@ -170,8 +170,9 @@ void makePlots::Loop(){
       
 	  for(int sca = 0; sca < NSCA; ++sca){
 	    if( TS[sca] == ts ){	    
-	      H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
-	      H.SCA_lg[sca] -= avg_LG[H.chip][H.ch][sca];
+	      //H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
+	      //H.SCA_lg[sca] -= avg_LG[H.chip][H.ch][sca];
+
 	
 	      NoisyChannel_ADC_H[dac] = H.SCA_hg[sca];
 	    }
@@ -182,11 +183,14 @@ void makePlots::Loop(){
       for (int j=0; j<6; j++){
 	
 	  
-	if(H.formatCH == cross_ch[j] ){
+	//	if(H.formatCH == cross_ch[j] ){
+	if(H.formatCH == 42){
 	  for(int sca = 0; sca < NSCA; ++sca){
 	    if( TS[sca] == ts ){	    
-	      H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
-	      H.SCA_lg[sca] -= avg_LG[H.chip][H.ch][sca];
+	      //H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
+	      //H.SCA_lg[sca] -= avg_LG[H.chip][H.ch][sca];
+	      h->Fill(H.SCA_hg[sca]);
+	      cout << H.SCA_hg[sca] << endl;
 	      //	  if(Cut(H.SCA_hg[sca], sigma_HG[H.chip][H.ch][sca])==1){
 	      //ADC_H[dac]+=H.SCA_hg[sca];
 	      // }
@@ -236,6 +240,11 @@ void makePlots::Loop(){
     TGraph** gcross_l = new TGraph*[cross_num];
     TGraph** gcross_TOTS = new TGraph*[cross_num];
     TGraph* gnoisy_h = new TGraph(injevents,dac_ctrl,NoisyChannel_ADC_H);
+    
+    
+    h->Draw();
+    c1->Update();
+    gPad->WaitPrimitive();
     
     
     
@@ -357,9 +366,9 @@ void makePlots::Loop(){
 	c1->Update();
 	gPad->WaitPrimitive();
 	img->FromPad(c1);
-	sprintf(img_title,"plots/crosstalk/InsertChannel=122_%s.png",plot_title);
-	img->WriteImage(img_title);
-	c1->SaveAs("c1.pdf");
+	sprintf(img_title,"plots/crosstalk/InsertChannel=123_%s.pdf",plot_title);
+	//	img->WriteImage(img_title);
+	c1->SaveAs(img_title);
 
 	sprintf(plot_title,"TOTS_%d",cross_ch[j]);
 	gcross_TOTS[j]->SetTitle(plot_title);
@@ -371,7 +380,7 @@ void makePlots::Loop(){
 	gPad->WaitPrimitive();
 	img->FromPad(c1);
 	sprintf(img_title,"plots/crosstalk/InsertChannel=122_%s.png",plot_title);
-	img->WriteImage(img_title);
+	//img->WriteImage(img_title);
 
 
 	/*sprintf(plot_title,"LG_%d",cross_ch[j]);
@@ -406,7 +415,7 @@ void makePlots::Loop(){
     c1->SetTitle("crosstalk");
     c1->SaveAs("crosstalk.pdf");
     img->FromPad(c1);
-    img->WriteImage("plots/crosstalk/InsertChannel=122_Crosstalk_low.png");
+    //img->WriteImage("plots/crosstalk/InsertChannel=122_Crosstalk_low.png");
 
 
 
@@ -565,7 +574,7 @@ void makePlots::Crosstalk(Int_t CH){
   cross_posy[5] = Y + Ydist;
 
   for(int i=0; i<6; i++){
-    cout << cross_posx[i] << " " << cross_posy[i] << endl;
+    //cout << cross_posx[i] << " " << cross_posy[i] << endl;
     int ch = 0;
     
     while(abs(CHmap[ch].first-cross_posx[i]) > 1e-4 || abs(CHmap[ch].second-cross_posy[i]) > 1e-4){
@@ -577,7 +586,7 @@ void makePlots::Crosstalk(Int_t CH){
     cross_ch[i] = ch;
   }
   for(int i=0; i<6; i++){
-    cout << cross_ch[i] << endl;
+    //cout << cross_ch[i] << endl;
   }
   
 }
