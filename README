@@ -15,7 +15,7 @@ Output root file will be inside "root_out"
 The Analysis part usage:
 1. cd Analysis
 2. make
-3. ls root_data/targetfile.root
+3. ls root_data/targetfile.root > input.txt
 4. ./makePlots
 5. It will show a 1D histogram for time sample0 for chip 0 ch 20.
 6. Then I fill some TH2Poly by a single event TS0.
