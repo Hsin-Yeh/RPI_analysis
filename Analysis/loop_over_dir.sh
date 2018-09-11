@@ -4,10 +4,10 @@
 # merge them.
 # please do "make" before run it
 FILES="root_data/Long_term_ped0910/*.root"
-i = 0
+
 for f in $FILES
 do
     echo "Processing file $f ... "
     ls $f > input.txt
-    ./makePlots -p 0
+    ./makePlots -p 
 done

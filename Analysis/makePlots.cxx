@@ -250,11 +250,11 @@ void makePlots::P_and_N(int option,bool output){
     string outf = filename.substr(start+1,end-start-1);
     char outtitleH[100];
     char outtitleL[100];   
-    sprintf(outtitleH,"long_term_ped/%s_HG.txt",outf.c_str());
+    sprintf(outtitleH,"long_term_ped/opt%d/%s_HG.txt",option,outf.c_str());
     ofstream fileHG(outtitleH);
-    sprintf(outtitleL,"long_term_ped/%s_LG.txt",outf.c_str());
+    sprintf(outtitleL,"long_term_ped/opt%d/%s_LG.txt",option,outf.c_str());
     ofstream fileLG(outtitleL);
-  }
+    cout << outf << endl;
     fileHG << fixed << setprecision(2) << avg_HG << " ";
     fileLG << fixed << setprecision(2) << avg_LG << " ";
     fileHG << "\n";
