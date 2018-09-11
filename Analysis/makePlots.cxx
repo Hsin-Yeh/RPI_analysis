@@ -249,8 +249,7 @@ void makePlots::P_and_N(int option,bool output){
     int end   = filename.find(".root");
     string outf = filename.substr(start+1,end-start-1);
     char outtitleH[100];
-    char outtitleL[100];
-    
+    char outtitleL[100];   
     sprintf(outtitleH,"long_term_ped/%s_HG.txt",outf.c_str());
     ofstream fileHG(outtitleH);
     sprintf(outtitleL,"long_term_ped/%s_LG.txt",outf.c_str());
