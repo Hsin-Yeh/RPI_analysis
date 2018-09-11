@@ -30,25 +30,18 @@ class makePlots{
   void Loop();
   virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
   string         input_RUN;
-  bool doTruth;
-  int pedopt;
-  int Inj_ch;
   
  private:
 
   void Init();
   void TwoDPoly();
-  void Crosstalk(Int_t ch);
   void P_and_N(int option,bool output);
   // P_and_N function:
   // option 0 can be used for pedestal run.
   // option 1 is an informal way that can deal with signal runs,
   // similar method is applied in test beam framework.
-  void Pedestal_ana(int option);
-  void Injection_ana(int Inj_ch);
   double sigmaCal(int N, int sum, double sqsum);
   
-  void read_P_and_N(string ped_file);
   void readmap();
   void InitTH2Poly(TH2Poly& poly); //Give frame to TH2Poly
 
