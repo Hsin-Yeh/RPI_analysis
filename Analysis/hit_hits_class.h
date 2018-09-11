@@ -17,10 +17,10 @@ class hit : public TObject {
   int chtype;   // Cell type: 0 = Full cell , 2 = half cell,
                 //            3 = Mouse bite(half), 4 = outer calib (Full Cell)
   int chip;     // Chip number for the pad. From 0 to 3
-  int ch;       // Ch number for the pad. From 0 to 63
+  int ch;       // Ch number for the pad. From 0 to 63ㄖ
   int formatCH; // Will be calculate by (chip * 32 + ch/2 ) for CC, -1 for NC
 
-                // * For these 4 value, only TOTs is used currently
+                // * For these 4 value, only TOTs qis used currently
   int TOTS;     // Time over threshold(slow), used for very high energy
   int TOTF;     // Time over threshold(fast), no one is looking at this
   int TOAR;     // Time of arrival(rise) for the pulse, a TDC information

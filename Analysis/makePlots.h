@@ -9,6 +9,7 @@
 
 #include "hit_hits_class.h"
 #include "TChain.h"
+#include "TFile.h"
 #include "TROOT.h"
 #include "TH2Poly.h"
 #include "TApplication.h"
@@ -29,6 +30,9 @@ class makePlots{
   void Loop();
   virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
   string         input_RUN;
+  bool doTruth;
+  int pedopt;
+  int Inj_ch;
   
  private:
 
@@ -40,21 +44,24 @@ class makePlots{
   // option 0 can be used for pedestal run.
   // option 1 is an informal way that can deal with signal runs,
   // similar method is applied in test beam framework.
-
+  void Pedestal_ana(int option);
+  void Injection_ana(int Inj_ch);
+  double sigmaCal(int N, int sum, double sqsum);
   
   void read_P_and_N(string ped_file);
   void readmap();
   void InitTH2Poly(TH2Poly& poly); //Give frame to TH2Poly
 
+  TFile* outfile;
   TApplication *app;
   TTree          *fChain;
   hitcollection  *HITS;
   hit            H;
   int            TS[NSCA];
-  float avg_HG  [NCHIP][NCH][NSCA];
-  float sigma_HG[NCHIP][NCH][NSCA];
-  float avg_LG  [NCHIP][NCH][NSCA];
-  float sigma_LG[NCHIP][NCH][NSCA];
+  float avg_HG_SCA  [NCHIP][NCH][NSCA];
+  float sigma_HG_SCA[NCHIP][NCH][NSCA];
+  float avg_LG_SCA  [NCHIP][NCH][NSCA];
+  float sigma_LG_SCA[NCHIP][NCH][NSCA];
   int cross_ch[6];
 
   // map < key = chip*32+ch/2 , pair <x, y> > 
