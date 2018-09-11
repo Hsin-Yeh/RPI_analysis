@@ -9,5 +9,5 @@ for f in $FILES
 do
     echo "Processing file $f ... "
     ls $f > input.txt
-    ./makePlots -p 1
+    ./makePlots -p 0
 done
