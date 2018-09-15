@@ -10,6 +10,7 @@
 #include "TLegend.h"
 #include "TSystem.h"
 #include "TImage.h"
+#include <string>
 
 ClassImp(hit)
 ClassImp(hitcollection)
@@ -42,8 +43,7 @@ void makePlots::Loop(){
   P_and_N(0,1);
   
   P_and_N(1,1);
-  
-  outfile->Close();
+
 }
   
 Int_t makePlots::Cut(Long64_t entry, Long64_t sigma)
@@ -230,11 +230,11 @@ void makePlots::P_and_N(int option,bool output){
 	noisy_SCA_check[i][j][k] = (sigma_HG_SCA[i][j][k] - sigma_HG_ch[i][j])/sigma_HG_ch[i][j];
 	h_noisy_SCA->Fill(noisy_SCA_check[i][j][k]);
 	if(noisy_SCA_check[i][j][k]>1){
-	  cout << "chip_" << i << "ch_" << j << "SCA" << k << endl;
+	  //cout << "chip_" << i << "ch_" << j << "SCA" << k << endl;
 	}
       }
       if(noisy_ch_check[i][j]>1){
-	cout << "chip_" << i << "ch_" << j << endl;
+	//cout << "chip_" << i << "ch_" << j << endl;
       }
       delete h_HGped_ch[i][j];
       delete h_LGped_ch[i][j];
@@ -254,7 +254,7 @@ void makePlots::P_and_N(int option,bool output){
     ofstream fileHG(outtitleH);
     sprintf(outtitleL,"long_term_ped/opt%d/%s_LG.txt",option,outf.c_str());
     ofstream fileLG(outtitleL);
-    cout << outf << endl;
+
     fileHG << fixed << setprecision(2) << avg_HG << " ";
     fileLG << fixed << setprecision(2) << avg_LG << " ";
     fileHG << "\n";
@@ -328,7 +328,7 @@ void makePlots::P_and_N(int option,bool output){
 	fileLG << "\n";      
       }
     }
-     fileHG.close();
+    fileHG.close();
     fileLG.close();
     cout << "output mode is selected output file will be:" << endl;
     cout << "1. " << outtitleH << "\n" << "2. " << outtitleL << endl;
