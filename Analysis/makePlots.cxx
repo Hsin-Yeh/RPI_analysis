@@ -4,6 +4,8 @@
 #include <fstream>
 #include <math.h>
 #include "TApplication.h"
+#include "TFile.h"
+#include "TTree.h"
 #include "TCanvas.h"
 #include "TGraph.h"
 #include "TMultiGraph.h"
@@ -16,7 +18,7 @@ ClassImp(hitcollection)
 //Constructo
 makePlots::makePlots(TChain* inchain):fChain(inchain)
 {
-  //  HITS = new hitcollection;
+  //HITS = new hitcollection;
   readmap();
   cout << "Constructor of makePlot ... \n\n" << endl;
 }
@@ -31,25 +33,23 @@ makePlots::~makePlots()
 void makePlots::Init(){
   fChain->SetBranchAddress("hits",&HITS);
   outfile = new TFile("output.root","RECREATE");
+  app = new TApplication("app",0,0);
+  c1 = new TCanvas();
 }
 
 void makePlots::Loop(){
-
-  Init();
 
   //P_and_N(0,1);
   //read_P_and_N("ped_result/Module_1_RUN_300318_0527");
 
 
   //==================== Call the Parameters ====================
-  
-  app = new TApplication("app",0,0);
-  TCanvas *c1 = new TCanvas;
-  //  TCanvas *cmulti = new TCanvas;
-  //cmulti->Divide(3,2,0,0);
 
+  char title[50];
   char plot_title[50];
   int nevents = fChain->GetEntries();
+  int injch;
+  int injADC=0;
   int injevents_perdac = 1;
   int injevents = nevents/injevents_perdac;
 
@@ -70,24 +70,22 @@ void makePlots::Loop(){
   TMultiGraph* mg = new TMultiGraph();
   TGraph **g = new TGraph*[13];
   TLegend *legend = new TLegend(0.85,0.8,1.,1.);
-  //  legend->SetNColumns(2);
+  //legend->SetNColumns(2);
   TImage *img = TImage::Create();
 
-  cout << "Hello" << endl;
-  //  TwoDPoly();   
-  if(doTruth==0){
-    P_and_N(0,1);
-    //Pedestal_ana(pedopt);
-  }
-  if(doTruth==1){
-    cout << "Doing Injection_ana" << endl;
-    Injection_ana(Inj_ch);
-  }
-
-  outfile->Close();
-
+  // Set Output Root File
+  string Input_filename;
+  Input_filename = input_RUN;
+  int start = Input_filename.find_last_of("/");
+  int end   = Input_filename.find(".root");
+  string outf = Input_filename.substr(start+1,end-start-1);
+  sprintf(title,"output_root/%s.root",outf.c_str());
+  //  TFile outf(title,"recreate");
+  TTree *outT1 = new TTree("Rechit_var","Rechit_var");
+  
+  
   //==================== Initialize ====================
-  /*
+  
   //for(int ts = 0; ts < 7; ts++){
   int ts = 4; //choose this time sample to be the peak
   dac = -1;
@@ -98,108 +96,35 @@ void makePlots::Loop(){
     ADC_event[i] = 0;
     dac_ctrl[i] = i;
   }
-    for(int i=0; i<injevents_perdac; i++){
-       ADC[i] = 0;
-      n[i] = i+1;
-    }
 
     //==================== Loop over the events ====================
-    Crosstalk(52);
-    /*
+   
   for(int ev = 0; ev < nevents ; ++ev){  
     fChain -> GetEntry(ev); //== Get HITcollection from root file event 
 
-    // Update the dac number and show plots for every event at the dac number 
-    if(ev%injevents_perdac == 0){
-      dac++; 
-      sprintf(plot_title,"DAC:%d",dac_ctrl[dac]);
-      TGraph *g = new TGraph(injevents_perdac,n,ADC);
-      g->SetTitle(plot_title);
-      //g->Draw("A*");
-      //c1->Update();
-      //gPad->WaitPrimitive();
-      delete g;
-      test=0;
-    }
-      
-    for(int i = 0 ; i < NSCA ; ++i){
-      TS[i] = HITS->rollposition[i];
-    }
+    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];
     
     int nhits = HITS->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){
-      
       H = HITS->Hits.at(hit);
       if(!H.CCorNC) continue; // remove unconnected channel
-
-      if(H.formatCH == 31)
-	{
-      
-	  for(int sca = 0; sca < NSCA; ++sca){
-	    if( TS[sca] == ts ){	    
-	      //H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
-	      //H.SCA_lg[sca] -= avg_LG[H.chip][H.ch][sca];
-
-	
-	      NoisyChannel_ADC_H[dac] = H.SCA_hg[sca];
-	    }
-	  }
-	}
-      
-
-      for (int j=0; j<6; j++){
-	
-	  
-	//	if(H.formatCH == cross_ch[j] ){
-	if(H.formatCH == 42){
-	  for(int sca = 0; sca < NSCA; ++sca){
-	    if( TS[sca] == ts ){	    
-	      //H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
-	      //H.SCA_lg[sca] -= avg_LG[H.chip][H.ch][sca];
-	      h->Fill(H.SCA_hg[sca]);
-	      cout << H.SCA_hg[sca] << endl;
-	      //	  if(Cut(H.SCA_hg[sca], sigma_HG[H.chip][H.ch][sca])==1){
-	      //ADC_H[dac]+=H.SCA_hg[sca];
-	      // }
-	      // if(Cut(H.SCA_lg[sca], sigma_LG[H.chip][H.ch][sca])==1){
-	      //ADC_L[dac]+=H.SCA_lg[sca];
-	      // cout << dac << " " << hit << " " << H.ch << " "<< sigma_LG[H.chip][H.ch][sca]<< " " << H.SCA_lg[sca] << endl;
-	      //}
-	      //h_TOTS->Fill(H.TOTS);
-	      //h_TOTF->Fill(H.TOTF);
-	      //h_TOAR->Fill(H.TOAR);
-	      //h_TOAF->Fill(H.TOAF);
-	    
-	      //TOTS[dac] = H.TOTS;
-	      Crosstalk_ADC_H[j][dac] = H.SCA_hg[sca];
-	      Crosstalk_ADC_L[j][dac] = H.SCA_lg[sca];
-	      Crosstalk_TOTS[j][dac] = H.TOTS;
-
-	      
-	      
-	      //cout << H.TOTS <<" " << H.TOTF << endl <<
-	      //  H.TOAR <<" " <<  H.TOAF << endl;
-	    }
-	  }
+      if(H.ch!=HITS->inj_ch.at(0)) continue;
+      for(int sca=0; sca<NSCA; sca++){
+	if(TS[sca]==3){
+	  ADC_H[ev] = H.SCA_hg[sca];
+	  ADC_L[ev] = H.SCA_lg[sca];
 	}
       }
-      test++;    
     }
   }
   
-  
-    for(int i=0; i<injevents; i++){
-      ADC_H[i] /= injevents_perdac;
-      ADC_L[i] /= injevents_perdac;
-    }
-
     //==================== End of Loop ====================
     //
     //==================== Draw Plots ====================
     
     //g[ts] = new TGraph(injevents,dac_ctrl,ADC_H);
-    TGraph* gh = new TGraph(injevents,dac_ctrl,ADC_H);
-    TGraph* gl = new TGraph(injevents,dac_ctrl,ADC_L);
+    TGraph* gh = new TGraph(nevents,dac_ctrl,ADC_H);
+    TGraph* gl = new TGraph(nevents,dac_ctrl,ADC_L);
     TGraph* gTOT = new TGraph(injevents,dac_ctrl,TOTS);
     TGraph* ghlratio = new TGraph(injevents,ADC_L,ADC_H);
     TGraph* gltratio = new TGraph(injevents,TOTS,ADC_L);
@@ -209,56 +134,8 @@ void makePlots::Loop(){
     TGraph* gnoisy_h = new TGraph(injevents,dac_ctrl,NoisyChannel_ADC_H);
     
     
-    h->Draw();
-    c1->Update();
-    gPad->WaitPrimitive();
-    
-    
-    
-    //  gh->GetYaxis()->SetRangeUser(0,200);
-    //gl->GetXaxis()->SetRangeUser(xmin,xmax);
-
-    // Draw Plots for each SCA 
-    /*
-      sprintf(plot_title,"High Gain");  
-      g[ts]->SetTitle(plot_title);
-      g[ts]->GetXaxis()->SetTitle("DAC");
-      g[ts]->GetYaxis()->SetTitle("ADC");
-      int style = 22+ts; int color = ts+1;
-      if(color%10==0)color++;
-      g[ts]->SetMarkerColor(color);
-      g[ts]->SetMarkerStyle(style);
-      //g[ts]->Draw("AP");
-      //c1->Update();
-      //gPad->WaitPrimitive();
-      */
-    //gPad->WaitPrimitive();
-
-    
-    /*h_TOTF->Draw();
-      c1->Update();
-      gPad->WaitPrimitive();
-    
-      h_TOAR->Draw();
-      c1->Update();
-      gPad->WaitPrimitive();
-    
-      h_TOAF->Draw();
-      c1->Update();
-      gPad->WaitPrimitive();
-      h->Draw();
-      c1->Update();
-      gPad->WaitPrimitive();*/
-    /*
-    sprintf(plot_title,"Noisy Channel 31");
-    gnoisy_h->SetTitle(plot_title);
-    gnoisy_h->GetXaxis()->SetTitle("Event");
-    gnoisy_h->GetYaxis()->SetTitle("ADC");
-    gnoisy_h->SetMarkerStyle(7);
-    gnoisy_h->Draw("AP");
-    c1->Update();
-    gPad->WaitPrimitive();
-
+    gh->GetYaxis()->SetRangeUser(0,200);
+    //    gl->GetXaxis()->SetRangeUser(xmin,xmax);
     sprintf(plot_title,"High Gain");
     gh->SetTitle(plot_title);
     gh->GetXaxis()->SetTitle("Event");
@@ -266,7 +143,7 @@ void makePlots::Loop(){
     gh->SetMarkerStyle(7);
     gh->Draw("AP");
     c1->Update();
-    //gPad->WaitPrimitive();
+    gPad->WaitPrimitive();
     
     sprintf(plot_title,"Low Gain");
     gl->SetTitle(plot_title);
@@ -275,150 +152,68 @@ void makePlots::Loop(){
     gl->SetMarkerStyle(7);
     gl->Draw("AP");
     c1->Update();
-    //gPad->WaitPrimitive();
+    gPad->WaitPrimitive();
 
-    sprintf(plot_title,"TOTS");
-    gTOT->SetTitle(plot_title);
-    gTOT->GetXaxis()->SetTitle("Event");
-    gTOT->GetYaxis()->SetTitle("ADC");
-    gTOT->SetMarkerStyle(7);
-    gTOT->Draw("AP");
-    c1->Update();
-    //gPad->WaitPrimitive();
+  //=================== End of filling hist =======================
+  
+}
 
+void makePlots::Evt_display(){
 
-    sprintf(plot_title,"High vs Low Gain");
-    ghlratio->SetTitle(plot_title);
-    ghlratio->GetXaxis()->SetTitle("Low");
-    ghlratio->GetYaxis()->SetTitle("High");
-    ghlratio->SetMarkerStyle(24);
-    ghlratio->Draw("AP");
-    c1->Update();
-    //gPad->WaitPrimitive();
+  int nevents = fChain->GetEntries();
+  char plot_title[50];
+  for(int ev = 0; ev < nevents ; ++ev){
+    if(ev % 1 != 0) continue;
 
-    sprintf(plot_title,"Low Gain vs TOT");
-    gltratio->SetTitle(plot_title);
-    gltratio->GetXaxis()->SetTitle("TOT");
-    gltratio->GetYaxis()->SetTitle("Low");
-    gltratio->SetMarkerStyle(24);
-    gltratio->Draw("AP");
-    c1->Update();
-    //gPad->WaitPrimitive();
-
-    for(int j=0; j<6; j++){
-      if(cross_ch[j]!=257){
-	for(int i=0; i<injevents; i++){
-	  gcross_h[j] = new TGraph(injevents,dac_ctrl,Crosstalk_ADC_H[j]);
-	  gcross_l[j] = new TGraph(injevents,dac_ctrl,Crosstalk_ADC_L[j]);
-	  gcross_TOTS[j] = new TGraph(injevents,dac_ctrl,Crosstalk_TOTS[j]);
-	}
-	sprintf(plot_title,"HG_%d",cross_ch[j]);
-	gcross_h[j]->SetTitle(plot_title);
-	gcross_h[j]->SetMarkerStyle(20+j);
-	gcross_h[j]->SetMarkerColor(2+j);
-	gcross_h[j]->SetMarkerSize(0.5);
-	gcross_h[j]->Draw("AP");
-	c1->Update();
-	gPad->WaitPrimitive();
-	img->FromPad(c1);
-	sprintf(img_title,"plots/crosstalk/InsertChannel=122_%s.png",plot_title);
-	//img->WriteImage(img_title);
-
-	sprintf(plot_title,"LG_%d",cross_ch[j]);
-	gcross_l[j]->SetTitle(plot_title);
-	gcross_l[j]->SetMarkerStyle(20+j);
-	gcross_l[j]->SetMarkerColor(2+j);
-	gcross_l[j]->SetMarkerSize(0.5);
-	gcross_l[j]->Draw("AP");
-	c1->Update();
-	gPad->WaitPrimitive();
-	img->FromPad(c1);
-	sprintf(img_title,"plots/crosstalk/InsertChannel=123_%s.pdf",plot_title);
-	//	img->WriteImage(img_title);
-	c1->SaveAs(img_title);
-
-	sprintf(plot_title,"TOTS_%d",cross_ch[j]);
-	gcross_TOTS[j]->SetTitle(plot_title);
-	gcross_TOTS[j]->SetMarkerStyle(20+j);
-	gcross_TOTS[j]->SetMarkerColor(2+j);
-	gcross_TOTS[j]->SetMarkerSize(0.5);
-	gcross_TOTS[j]->Draw("AP");
-	c1->Update();
-	gPad->WaitPrimitive();
-	img->FromPad(c1);
-	sprintf(img_title,"plots/crosstalk/InsertChannel=122_%s.png",plot_title);
-	//img->WriteImage(img_title);
-
-
-	/*sprintf(plot_title,"LG_%d",cross_ch[j]);
-	gl->SetTitle(plot_title);
-	gl->Draw("AP");
-	c1->Update();
-	gPad->WaitPrimitive();
-	
-	sprintf(plot_title,"TOT_%d",cross_ch[j]);
-	gTOT->SetTitle(plot_title);
-	gTOT->Draw("AP");
-	c1->Update();
-	gPad->WaitPrimitive();
-
-	mg->Add(gcross_h[j]);
-	sprintf(leg,"HG_%d",cross_ch[j]);
-	legend->AddEntry(gcross_h[j],leg,"p");	
-
-      }
-    }
-    //    cmulti->Update();
-    //cmulti->Draw();
-    //gPad->WaitPrimitive();
-    //img->FromPad(cmulti);
-    //img->WriteImage("plots/chip3.png");
-    mg->Draw("AP");
-    gPad->Modified();
-    legend->SetTextFont(110);
-    legend->Draw();
+    fChain -> GetEntry(ev); // Get HITcollection from root file event
+    TH2Poly *poly = new TH2Poly;
+    InitTH2Poly(*poly);
+    
+    poly->Draw("colztext0");
+  
+    sprintf(plot_title,"test%d",ev);
+    poly->SetTitle(plot_title);
     c1->Update();
     gPad->WaitPrimitive();
-    c1->SetTitle("crosstalk");
-    c1->SaveAs("crosstalk.pdf");
-    img->FromPad(c1);
-    //img->WriteImage("plots/crosstalk/InsertChannel=122_Crosstalk_low.png");
+        
+    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];
 
+    int nhits = HITS->hit_num;
+    for(int hit = 0; hit < nhits ; ++hit){  
+      H = HITS->Hits.at(hit);
+      if(!H.CCorNC) continue; // remove unconnected channel
+      int forCH = H.chip*32+H.ch/2;
+      float X = CHmap[forCH].first;
+      float Y = CHmap[forCH].second;	  
 
-
-    /*
-      mg->Add(g[ts]);
-      sprintf(leg,"%dTS",ts);
-      legend->AddEntry(g[ts],leg, "P");
-    
-      // h->Draw();
-      //c1->Update();
-      //gPad->WaitPrimitive();
-      //}
+      for(int sca = 0; sca < NSCA; ++sca){
+	if(TS[sca] == 8 ){
+	  cout << H.SCA_lg[sca] << endl;
+	  //	  H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
+	  //poly->Fill(X,Y,H.SCA_lg[sca]);
+	  poly->Fill(X,Y,H.ch);
+	}
       }
-      //mg->SetTitle("High Gain");
-
-
-      mg->Draw("AP");
-      mg->GetXaxis()->SetTitle("DAC");
-      mg->GetYaxis()->SetTitle("ADC");
-      gPad->Modified();
-      legend->Draw();
-      c1->Update();
-      //img->FromPad(c1);
-      //img->WriteImage("MultiGraph0-6.png");
-      gPad->WaitPrimitive();
-    */
+    }  
+    
+    poly->Draw("colztext0");
   
-  //=================== End of filling hist =======================
-  /*
+    sprintf(plot_title,"HG_TS4_evt%d",ev);
+    poly->SetTitle(plot_title);
+    c1->Update();
+    gPad->WaitPrimitive();
+    delete poly;
+  }
+}
 
-   
-  // An example shows how to check the ADC vs TS for certain channel(injected)
-  // Remove this comment to run
 
-  
+
+void makePlots::Inj_Pulse_display(){
+
   TGraph *gr;
+  int nevents = fChain->GetEntries();
+  char plot_title[50];
+  
   for(int ev = 0; ev < nevents ; ++ev){
     if(ev % 35 != 0) continue;
     fChain -> GetEntry(ev);
@@ -426,7 +221,10 @@ void makePlots::Loop(){
     int nhits = HITS->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){
       H = HITS->Hits.at(hit);
-      if(H.ch != 40) continue;
+      if(H.ch != HITS->inj_ch.at(0)) continue;
+      for(int sca=0; sca<13; sca++){
+	if(TS[sca]==8) cout << H.SCA_lg[sca] << endl;
+      }
 
       gr = new TGraph(13, TS,H.SCA_lg );
       gr->SetMarkerColor(H.chip+2);
@@ -442,58 +240,10 @@ void makePlots::Loop(){
       //if(ev == 400){
       //sprintf(plot_title,"%s.png",plot_title);
       //c1->SaveAs(plot_title);} // remove the comment to save plots
-      //gPad->WaitPrimitive();
+      gPad->WaitPrimitive();
+
     }
   }
-  */
-}
-
-void makePlots::TwoDPoly(){
-  
-  //========== Here shows the example how to use TH2Poly to draw plot =========
-  int nevents = fChain->GetEntries();
-  char plot_title[50];
-  TCanvas* c1 = new TCanvas();
-  for(int ev = 0; ev < nevents ; ++ev){
-    if(ev % 50 != 0) continue;
-
-    fChain -> GetEntry(ev); // Get HITcollection from root file event
-    TH2Poly *poly = new TH2Poly;
-    InitTH2Poly(*poly); 
-        
-    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];
-    
-    int nhits = HITS->hit_num;
-    //    cout << nhits << endl;
-    
-    for(int hit = 0; hit < nhits ; ++hit){  
-      H = HITS->Hits.at(hit);
-      if(!H.CCorNC) continue; // remove unconnected channel
-      int forCH = H.chip*32+H.ch/2;
-      float X = CHmap[forCH].first;
-      float Y = CHmap[forCH].second;	  
-
-      for(int sca = 0; sca < NSCA; ++sca){
-	if(TS[sca] == 4 ){
-	  //	  H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
-
-	  poly->Fill(X,Y,H.SCA_lg[sca]);
-	  //	    poly->Fill(X,Y,H.ch);
-	}
-      }
-    }
-  
-    
-    poly->Draw("colztext0");
-  
-    sprintf(plot_title,"HG_TS4_evt%d",ev);
-    poly->SetTitle(plot_title);
-    c1->Update();
-    gPad->WaitPrimitive();
-    delete poly;
-  }
-
-  //============== End of the example to use TH2Poly to draw plot ==============
 }
 
   

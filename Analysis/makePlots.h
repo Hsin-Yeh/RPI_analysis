@@ -27,7 +27,10 @@ class makePlots{
   makePlots (TChain* inchain);
   ~makePlots();
 
+  void Init();
   void Loop();
+  void Evt_display();
+  void Inj_Pulse_display();
   virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
   string         input_RUN;
   bool doTruth;
@@ -36,8 +39,6 @@ class makePlots{
   
  private:
 
-  void Init();
-  void TwoDPoly();
   void Crosstalk(Int_t ch);
   void P_and_N(int option,bool output);
   // P_and_N function:
@@ -54,6 +55,7 @@ class makePlots{
 
   TFile* outfile;
   TApplication *app;
+  TCanvas* c1;
   TTree          *fChain;
   hitcollection  *HITS;
   hit            H;
