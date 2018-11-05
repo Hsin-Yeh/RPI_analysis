@@ -1,15 +1,8 @@
-#include "TApplication.h"
-#include "TROOT.h"
-#include "TChain.h"
+#include "makePlots.h"
 #include <fstream>
 #include <iostream>
-#include <cctype>
-#include <cstdlib>
-#include "makePlots.h"
 
-
-int main (int argc, char* argv[])
-{
+int main(){
   TChain *chain = new TChain("HGCBD");
   string filename;
   ifstream infile("input.txt");
@@ -20,14 +13,12 @@ int main (int argc, char* argv[])
   else
     cout << "There is no input root file written in the input.txt!" << endl;
 
-  std::cout << "To run it you type: " << std::endl;
-  std::cout << "./makePlots"<< std::endl;
-
-  makePlots makePlots(chain);
-  makePlots.input_RUN=filename;
-  makePlots.Loop();
-
-  cout << "Last line in main ..." << endl;
-  return 0;
+  makePlots M(chain);
+  M.input_RUN = filename;
+  M.Init();
+  //M.Loop();
+  M.Evt_display();
+  //M.Inj_Pulse_display();
+  
+  return(0);
 }
-
