@@ -16,7 +16,7 @@
 ClassImp(hit)
 ClassImp(hitcollection)
 //Constructo
-makePlots::makePlots(TChain* inchain):fChain(inchain)
+makePlots::makePlots(TChain* inchain):Chain1(inchain)
 {
   //HITS = new hitcollection;
   readmap();
@@ -25,29 +25,34 @@ makePlots::makePlots(TChain* inchain):fChain(inchain)
 //Destructor
 makePlots::~makePlots()
 {
-  delete HITS;
+  delete HITCOLLECTION;
   cout << "\n\n";
   cout << "Destructor of makePlot ... " << endl;
 }
 
 void makePlots::Init(){
-  fChain->SetBranchAddress("hits",&HITS);
-  outfile = new TFile("output.root","RECREATE");
+  Chain1->SetBranchAddress("hits",&HITCOLLECTION);
+  //outfile = new TFile("output.root","RECREATE");
   app = new TApplication("app",0,0);
-  c1 = new TCanvas();
 }
 
-void makePlots::Loop(){
+void makePlots::Ntuplizer(){
+
+
+  
+}
+
+void makePlots::PlotProducer(){
 
   //P_and_N(0,1);
   //read_P_and_N("ped_result/Module_1_RUN_300318_0527");
 
 
   //==================== Call the Parameters ====================
-
+  //  Init();
   char title[50];
   char plot_title[50];
-  int nevents = fChain->GetEntries();
+  int nevents = Chain1->GetEntries();
   int injch;
   int injADC=0;
   int injevents_perdac = 1;
@@ -59,7 +64,7 @@ void makePlots::Loop(){
   TH1D *h_TOAR = new TH1D("h_TOAR","",100,1000,3000);
   TH1D *h_TOAF = new TH1D("h_TOAF","",100,1000,3000);
   
-  int ADC_H[injevents], ADC_L[injevents], TOTS[injevents], dac_ctrl[injevents];
+  int ADC_H[injevents], ADC_L[injevents], TOTS[injevents], dac_ctrl[injevents], ADC_H_0[injevents], ADC_L_0[injevents];
   int ADC_event[nevents], ADC[injevents_perdac], n[injevents_perdac];
   int Crosstalk_ADC_H[6][injevents], Crosstalk_ADC_L[6][injevents], Crosstalk_TOTS[6][injevents];
   int NoisyChannel_ADC_H[injevents];;
@@ -72,6 +77,8 @@ void makePlots::Loop(){
   TLegend *legend = new TLegend(0.85,0.8,1.,1.);
   //legend->SetNColumns(2);
   TImage *img = TImage::Create();
+  TCanvas* c1 = new TCanvas();
+    
 
   // Set Output Root File
   string Input_filename;
@@ -80,19 +87,21 @@ void makePlots::Loop(){
   int end   = Input_filename.find(".root");
   string outf = Input_filename.substr(start+1,end-start-1);
   sprintf(title,"output_root/%s.root",outf.c_str());
-  //  TFile outf(title,"recreate");
+  TFile *outfile = new TFile(title,"recreate");
   TTree *outT1 = new TTree("Rechit_var","Rechit_var");
   
   
   //==================== Initialize ====================
   
   //for(int ts = 0; ts < 7; ts++){
-  int ts = 4; //choose this time sample to be the peak
+  int MaxTS = 8; //choose this time sample to be the peak
   dac = -1;
 
   for (int i=0; i<injevents; i++){
     ADC_H[i] = 0;
     ADC_L[i] = 0;
+    ADC_H_0[i] = 0;
+    ADC_L_0[i] = 0;
     ADC_event[i] = 0;
     dac_ctrl[i] = i;
   }
@@ -100,23 +109,37 @@ void makePlots::Loop(){
     //==================== Loop over the events ====================
    
   for(int ev = 0; ev < nevents ; ++ev){  
-    fChain -> GetEntry(ev); //== Get HITcollection from root file event 
+    Chain1 -> GetEntry(ev); //== Get HITcollection from root file event
 
-    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];
+    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITCOLLECTION->rollposition[i];
     
-    int nhits = HITS->hit_num;
+    int nhits = HITCOLLECTION->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){
-      H = HITS->Hits.at(hit);
+      H = HITCOLLECTION->Hits.at(hit);
       if(!H.CCorNC) continue; // remove unconnected channel
-      if(H.ch!=HITS->inj_ch.at(0)) continue;
-      for(int sca=0; sca<NSCA; sca++){
-	if(TS[sca]==3){
-	  ADC_H[ev] = H.SCA_hg[sca];
-	  ADC_L[ev] = H.SCA_lg[sca];
+      if(H.ch!=HITCOLLECTION->inj_ch.front()) continue;
+      //if(H.ch!=InjCh.at(0)) continue;
+      //      if(H.ch!=2) continue;
+      //if(H.ch==2){
+	for(int sca=0; sca<NSCA; sca++){
+	  if(TS[sca]==MaxTS){
+	    ADC_H[ev] = H.SCA_hg[sca];
+	    ADC_L[ev] = H.SCA_lg[sca];
+	  }
+	}
+      }
+      if(H.ch==0){
+	for(int sca=0; sca<NSCA; sca++){
+	  if(TS[sca]==MaxTS){
+	    ADC_H_0[ev] = H.SCA_hg[sca];
+	    ADC_L_0[ev] = H.SCA_lg[sca];
+	  }
 	}
       }
     }
   }
+
+
   
     //==================== End of Loop ====================
     //
@@ -124,7 +147,7 @@ void makePlots::Loop(){
     
     //g[ts] = new TGraph(injevents,dac_ctrl,ADC_H);
     TGraph* gh = new TGraph(nevents,dac_ctrl,ADC_H);
-    TGraph* gl = new TGraph(nevents,dac_ctrl,ADC_L);
+    TGraph* gl = new TGraph(nevents,dac_ctrl,ADC_L_0);
     TGraph* gTOT = new TGraph(injevents,dac_ctrl,TOTS);
     TGraph* ghlratio = new TGraph(injevents,ADC_L,ADC_H);
     TGraph* gltratio = new TGraph(injevents,TOTS,ADC_L);
@@ -132,27 +155,38 @@ void makePlots::Loop(){
     TGraph** gcross_l = new TGraph*[cross_num];
     TGraph** gcross_TOTS = new TGraph*[cross_num];
     TGraph* gnoisy_h = new TGraph(injevents,dac_ctrl,NoisyChannel_ADC_H);
+    TGraph* gcorrelation_l = new TGraph(nevents,ADC_L,ADC_L_0);
     
     
-    gh->GetYaxis()->SetRangeUser(0,200);
+    //gh->GetYaxis()->SetRangeUser(0,200);
     //    gl->GetXaxis()->SetRangeUser(xmin,xmax);
     sprintf(plot_title,"High Gain");
     gh->SetTitle(plot_title);
-    gh->GetXaxis()->SetTitle("Event");
+    gh->GetXaxis()->SetTitle("DAC");
     gh->GetYaxis()->SetTitle("ADC");
     gh->SetMarkerStyle(7);
     gh->Draw("AP");
     c1->Update();
     gPad->WaitPrimitive();
     
-    sprintf(plot_title,"Low Gain");
+    sprintf(plot_title,"CH 0 Low Gain");
     gl->SetTitle(plot_title);
-    gl->GetXaxis()->SetTitle("Event");
+    gl->GetXaxis()->SetTitle("DAC");
     gl->GetYaxis()->SetTitle("ADC");
     gl->SetMarkerStyle(7);
     gl->Draw("AP");
     c1->Update();
     gPad->WaitPrimitive();
+
+    sprintf(plot_title,"Low Gain correlation");
+    gcorrelation_l->SetTitle(plot_title);
+    gcorrelation_l->GetXaxis()->SetTitle("CH2");
+    gcorrelation_l->GetYaxis()->SetTitle("CH0");
+    gcorrelation_l->SetMarkerStyle(7);
+    gcorrelation_l->Draw("AP");
+    c1->Update();
+    gPad->WaitPrimitive();
+
 
   //=================== End of filling hist =======================
   
@@ -160,27 +194,23 @@ void makePlots::Loop(){
 
 void makePlots::Evt_display(){
 
-  int nevents = fChain->GetEntries();
+  //  Init();
+  TCanvas* c1 = new TCanvas();
+
+  int nevents = Chain1->GetEntries();
   char plot_title[50];
   for(int ev = 0; ev < nevents ; ++ev){
-    if(ev % 1 != 0) continue;
+    if(ev % 10 != 0) continue;
 
-    fChain -> GetEntry(ev); // Get HITcollection from root file event
+    Chain1 -> GetEntry(ev); // Get HITcollection from root file event
     TH2Poly *poly = new TH2Poly;
     InitTH2Poly(*poly);
     
-    poly->Draw("colztext0");
-  
-    sprintf(plot_title,"test%d",ev);
-    poly->SetTitle(plot_title);
-    c1->Update();
-    gPad->WaitPrimitive();
-        
-    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];
+    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITCOLLECTION->rollposition[i];
 
-    int nhits = HITS->hit_num;
+    int nhits = HITCOLLECTION->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){  
-      H = HITS->Hits.at(hit);
+      H = HITCOLLECTION->Hits.at(hit);
       if(!H.CCorNC) continue; // remove unconnected channel
       int forCH = H.chip*32+H.ch/2;
       float X = CHmap[forCH].first;
@@ -191,7 +221,7 @@ void makePlots::Evt_display(){
 	  cout << H.SCA_lg[sca] << endl;
 	  //	  H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
 	  //poly->Fill(X,Y,H.SCA_lg[sca]);
-	  poly->Fill(X,Y,H.ch);
+	  poly->Fill(X,Y,H.SCA_lg[sca]);
 	}
       }
     }  
@@ -204,34 +234,118 @@ void makePlots::Evt_display(){
     gPad->WaitPrimitive();
     delete poly;
   }
+
+  delete c1;
 }
 
 
 
+void makePlots::IdentifyInjCh(){
+  
+  //Define Parameters
+  int nevents = Chain1->GetEntries();
+  int MaxTS = 4;
+  int count = 0;
+  double EstimateSlope = 10.0;
+  double EstSlope_HG, EstSlope_LG, EstSlope_TOT;
+  
+  //Define vectors & arrays
+  vector<int> HG[NCHANNEL], LG[NCHANNEL], TOT[NCHANNEL];
+  double Mean_Estimate_HG_Slope[NCHANNEL], Mean_Estimate_LG_Slope[NCHANNEL], Mean_Estimate_TOT_Slope[NCHANNEL];
+
+  //Initialize
+  for(int channel = 0; channel < NCHANNEL; channel++){
+    Mean_Estimate_HG_Slope[channel] = 0;
+    Mean_Estimate_LG_Slope[channel] = 0;
+    Mean_Estimate_TOT_Slope[channel] = 0;
+  }
+  
+  //Loop over events
+  for(int ev = 0; ev < nevents; ev++){
+    if(ev%50!=0) continue;
+    Chain1->GetEntry(ev);
+    for(int sca = 0; sca < NSCA; sca++) { TS[sca] = HITCOLLECTION->rollposition[sca]; }
+
+    for(int ihit = 0; ihit < HITCOLLECTION->hit_num; ihit++){
+      H = HITCOLLECTION->Hits.at(ihit);
+      if (!H.CCorNC) continue;
+      
+      for(int sca = 0; sca < NSCA; sca++){
+	if ( TS[sca] !=  MaxTS ) continue;
+	HG[H.ch-1].push_back(H.SCA_hg[sca]);
+	LG[H.ch-1].push_back(H.SCA_lg[sca]);
+      }
+
+      TOT[H.ch-1].push_back(H.TOTS);
+    }
+    count++;
+  }
+  //Loop over events end
+
+    cout << HITCOLLECTION->inj_ch.at(0) << endl;
+  /*
+
+  //Find the Injection Channel
+  for(int ele = 0; ele < count/2; ele++){
+    for(int channel = 0; channel < NCHANNEL; channel++){
+      if(channel%2==0) continue;
+      cout << HG[2].at(18) << endl;
+      //      Estslope_HG = HG[channel].at(count-1-ele);
+      //      EstSlope_LG = (LG[channel].at(count-1-ele) - LG[channel].at(ele)) / (count-1-2*ele);
+      //EstSlope_TOT = (TOT[channel].at(count-1-ele) - TOT[channel].at(ele)) / (count-1-2*ele);
+      
+      //Mean_Estimate_HG_Slope[channel] += EstSlope_HG;
+      //Mean_Estimate_LG_Slope[channel] += EstSlope_LG;
+      //Mean_Estimate_TOT_Slope[channel] += EstSlope_TOT;
+	
+    }
+  }
+  /*
+  for(int channel = 0; channel < NCHANNEL; channel++){
+    if(channel%2==0) continue;
+    Mean_Estimate_HG_Slope[channel] /= count/2;
+    Mean_Estimate_LG_Slope[channel] /= count/2;
+    Mean_Estimate_TOT_Slope[channel] /= count/2;
+    if(Mean_Estimate_LG_Slope[channel] > EstimateSlope){ InjCh.push_back(channel+1); }
+  }
+
+  for(int ele = 0 ; ele < InjCh.size(); ele++){
+    cout << InjCh.at(ele) << endl;
+  }   
+  */ 
+}
+
+
 void makePlots::Inj_Pulse_display(){
 
+  //Init();
+
   TGraph *gr;
-  int nevents = fChain->GetEntries();
+  int nevents = Chain1->GetEntries();
   char plot_title[50];
+  TCanvas* c1 = new TCanvas();
+    
   
   for(int ev = 0; ev < nevents ; ++ev){
     if(ev % 35 != 0) continue;
-    fChain -> GetEntry(ev);
-    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];    
-    int nhits = HITS->hit_num;
+    Chain1 -> GetEntry(ev);
+    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITCOLLECTION->rollposition[i];    
+    int nhits = HITCOLLECTION->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){
-      H = HITS->Hits.at(hit);
-      if(H.ch != HITS->inj_ch.at(0)) continue;
+      H = HITCOLLECTION->Hits.at(hit);
+      //      if(H.ch != HITCOLLECTION->inj_ch.at(0)) continue;
+      //if(H.ch!=InjCh.at(0)) continue;
+      if(H.ch!=2) continue;
       for(int sca=0; sca<13; sca++){
 	if(TS[sca]==8) cout << H.SCA_lg[sca] << endl;
       }
-
+      
       gr = new TGraph(13, TS,H.SCA_lg );
       gr->SetMarkerColor(H.chip+2);
       gr->SetMarkerStyle(22);
       gr->SetMarkerSize(1.2);
       gr->Draw("AP");
-      sprintf(plot_title,"HG_evt %d chip %d",ev,H.chip);
+      sprintf(plot_title,"LG_evt %d chip %d",ev,H.chip);
       gr->SetTitle(plot_title);
       gr->GetXaxis()->SetTitle("TS");
       gr->GetYaxis()->SetTitle("ADC");
@@ -241,9 +355,13 @@ void makePlots::Inj_Pulse_display(){
       //sprintf(plot_title,"%s.png",plot_title);
       //c1->SaveAs(plot_title);} // remove the comment to save plots
       gPad->WaitPrimitive();
-
+      
     }
   }
+
+
+  delete c1;
+  
 }
 
   
@@ -416,15 +534,15 @@ void makePlots::P_and_N(int option,bool output){
     cout << "invalid option for pedestal noise calculation!" << endl;
     return;}
 
-  int nevents = fChain->GetEntries();
+  int nevents = Chain1->GetEntries();
   for(int ev = 0; ev < nevents ; ++ev){
-    fChain -> GetEntry(ev);
+    Chain1 -> GetEntry(ev);
     for(int i = 0 ; i < NSCA ; ++i)
-      TS[i] = HITS->rollposition[i];
+      TS[i] = HITCOLLECTION->rollposition[i];
 
-    int nhits = HITS->hit_num;
+    int nhits = HITCOLLECTION->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){
-      H = HITS->Hits.at(hit); // H = hit (every channel would have one hit in an event)
+      H = HITCOLLECTION->Hits.at(hit); // H = hit (every channel would have one hit in an event)
       for(int sca = 0; sca < NSCA; ++sca){
 	if(TS[sca] >= skip_TS) continue;
 	sumHG += H.SCA_hg[sca];
@@ -585,7 +703,7 @@ void makePlots::Injection_ana(int Inj_ch){
   TCanvas *c1 = new TCanvas();
 
   char plot_title[50];
-  int nevents = fChain->GetEntries();
+  int nevents = Chain1->GetEntries();
   int injevents_perdac = 1;
   int injevents = nevents/injevents_perdac;
 
@@ -618,7 +736,7 @@ void makePlots::Injection_ana(int Inj_ch){
 
   
   for(int ev = 0; ev < nevents ; ++ev){  
-    fChain -> GetEntry(ev); //== Get HITcollection from root file event 
+    Chain1 -> GetEntry(ev); //== Get HITcollection from root file event 
 
     // Update the dac number
     if(ev%injevents_perdac == 0){
@@ -632,11 +750,11 @@ void makePlots::Injection_ana(int Inj_ch){
       delete g;
     }
        
-    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITS->rollposition[i];
+    for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITCOLLECTION->rollposition[i];
     double HGSubPed, LGSubPed;
-    int nhits = HITS->hit_num;
+    int nhits = HITCOLLECTION->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){
-      H = HITS->Hits.at(hit);
+      H = HITCOLLECTION->Hits.at(hit);
       for(int sca = 0; sca < NSCA; ++sca){
 	if( TS[sca] == ts ){	    
 	  HGSubPed = H.SCA_hg[sca] - avg_HG_SCA[H.chip][H.ch][sca]; // pedestal subtraction
@@ -839,15 +957,15 @@ void makePlots::Pedestal_ana(int option){
   
   ////////// Loop over events //////////
   
-  int nevents = fChain->GetEntries();
+  int nevents = Chain1->GetEntries();
   for(int ev = 0; ev < nevents ; ++ev){
-    fChain -> GetEntry(ev);
+    Chain1 -> GetEntry(ev);
     for(int i = 0 ; i < NSCA ; ++i)
-      TS[i] = HITS->rollposition[i];
+      TS[i] = HITCOLLECTION->rollposition[i];
 
-    int nhits = HITS->hit_num;
+    int nhits = HITCOLLECTION->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){
-      H = HITS->Hits.at(hit); // H = hit (every channel would have one hit in an event)
+      H = HITCOLLECTION->Hits.at(hit); // H = hit (every channel would have one hit in an event)
       for(int sca = 0; sca < NSCA; ++sca){
 	if(TS[sca] >= skip_TS) continue;
 	sumHG_chip [H.chip] += H.SCA_hg[sca];
@@ -916,14 +1034,14 @@ void makePlots::Pedestal_ana(int option){
   ////////// Loop over events //////////
   
   for(int ev = 0; ev < nevents ; ++ev){
-    fChain -> GetEntry(ev);
+    Chain1 -> GetEntry(ev);
     for(int i = 0 ; i < NSCA ; ++i)
-      TS[i] = HITS->rollposition[i];
+      TS[i] = HITCOLLECTION->rollposition[i];
 
-    int nhits = HITS->hit_num;
+    int nhits = HITCOLLECTION->hit_num;
     double HGSubPed, LGSubPed;
     for(int hit = 0; hit < nhits ; ++hit){
-      H = HITS->Hits.at(hit); // H = hit (every channel would have one hit in an event)
+      H = HITCOLLECTION->Hits.at(hit); // H = hit (every channel would have one hit in an event)
       for(int sca = 0; sca < NSCA; ++sca){
 	if(TS[sca] >= skip_TS) continue;
 	HGSubPed = (double)H.SCA_hg[sca] - avg_HG_SCA[H.chip][H.ch][sca];

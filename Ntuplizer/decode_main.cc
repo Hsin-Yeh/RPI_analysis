@@ -41,6 +41,7 @@ int evt_counter;
 int rollpos;
 uint32_t global_TS[4];
 vector<int> insert_ch;
+char Input_fileName[150];
 
 int raw_type(const char* filename);
 int decode_raw(int rawtype);
@@ -67,19 +68,18 @@ int main(){
   
     logfile >> logcontent; // 1 file at a time
     if( logfile.eof() ) break;
-    char fileName[150];
-    sprintf(fileName,"%s",logcontent.c_str());
-    ifstream file(fileName);
+    sprintf(Input_fileName,"%s",logcontent.c_str());
+    ifstream file(Input_fileName);
 
     int end = logcontent.find(".raw");
     if( end < 2 ){
       cout << endl;
-      cout << "please only feed .raw data!\n" << fileName << " is not legal!\n";
+      cout << "please only feed .raw data!\n" << Input_fileName << " is not legal!\n";
       cout << endl;
       continue;}    
     
-    cout << "input file: " << fileName << endl;
-    int rawT = raw_type(fileName);
+    cout << "input file: " << Input_fileName << endl;
+    int rawT = raw_type(Input_fileName);
     if(rawT == 3) continue;
 
     ifstream fileinj;
@@ -203,7 +203,38 @@ int raw_type(const char* filename){
 }
 
 void read_inj_config(){
+  
+  insert_ch.clear();
 
+  string searchstr;
+  int start, end;
+  
+  string rawFileName(Input_fileName);
+  start = rawFileName.find("/raw");
+  string temp = rawFileName.replace(start+1,3,"yaml");
+  start = temp.find(".raw");
+  string yamlFileName = temp.replace(start+1,3,"yaml");
+  
+  ifstream yamlFile(yamlFileName);
+  if(!yamlFile.is_open()){
+    cout << "Did not find injection file " << yamlFileName
+	 << ".\n Take this run as pedestal.(Inj_dac = 0)" << endl;
+  }
+  if(yamlFile.is_open()){
+    getline(yamlFile,searchstr);
+    getline(yamlFile,searchstr);
+    getline(yamlFile,searchstr);
+
+    start = searchstr.find("[");
+    searchstr = searchstr.substr(start+1,start+2);
+    end = searchstr.find("]");
+    searchstr = searchstr.erase(end);
+  }
+  
+  insert_ch.push_back(atoi(searchstr.c_str()));
+  
+    
+  /*
   insert_ch.clear();
   
   unsigned char lowB,highB;
@@ -238,7 +269,7 @@ void read_inj_config(){
   if((int) insert_ch.size() == 0){
     cout << "Find no insertion CH -> take this run pedestal run!" << endl;
   }
-  
+  */
 }
 
 

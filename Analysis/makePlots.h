@@ -28,10 +28,11 @@ class makePlots{
   ~makePlots();
 
   void Init();
-  void Loop();
+  void PlotProducer();
+  void Ntuplizer();
   void Evt_display();
   void Inj_Pulse_display();
-  virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
+  void IdentifyInjCh();
   string         input_RUN;
   bool doTruth;
   int pedopt;
@@ -39,6 +40,7 @@ class makePlots{
   
  private:
 
+  virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
   void Crosstalk(Int_t ch);
   void P_and_N(int option,bool output);
   // P_and_N function:
@@ -55,9 +57,8 @@ class makePlots{
 
   TFile* outfile;
   TApplication *app;
-  TCanvas* c1;
-  TTree          *fChain;
-  hitcollection  *HITS;
+  TTree          *Chain1;
+  hitcollection  *HITCOLLECTION;
   hit            H;
   int            TS[NSCA];
   float avg_HG_SCA  [NCHIP][NCH][NSCA];
@@ -65,6 +66,7 @@ class makePlots{
   float avg_LG_SCA  [NCHIP][NCH][NSCA];
   float sigma_LG_SCA[NCHIP][NCH][NSCA];
   int cross_ch[6];
+  std::vector<int> InjCh = {2};
 
   // map < key = chip*32+ch/2 , pair <x, y> > 
   map<int,pair < double,double > > CHmap;

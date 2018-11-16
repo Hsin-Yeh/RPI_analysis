@@ -6,6 +6,7 @@
 
 const int NCHIP = 4;
 const int NSCA  = 13;
+const int NCHANNEL = 256;
 
 class hit : public TObject {
  public:
