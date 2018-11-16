@@ -57,6 +57,8 @@ void makePlots::PlotProducer(){
   int injADC=0;
   int injevents_perdac = 1;
   int injevents = nevents/injevents_perdac;
+  int cross_num = 6;
+    
 
   TH1D *h = new TH1D("h","",100,150,250); //("title","",slice,star,end)
   TH1D *h_TOTS = new TH1D("h_TOTS","",100,5,500);
@@ -65,12 +67,12 @@ void makePlots::PlotProducer(){
   TH1D *h_TOAF = new TH1D("h_TOAF","",100,1000,3000);
   
   int ADC_H[injevents], ADC_L[injevents], TOTS[injevents], dac_ctrl[injevents], ADC_H_0[injevents], ADC_L_0[injevents];
+  int ADC_Cross_H[cross_num][injevents],ADC_Cross_L[cross_num][injevents];
   int ADC_event[nevents], ADC[injevents_perdac], n[injevents_perdac];
   int Crosstalk_ADC_H[6][injevents], Crosstalk_ADC_L[6][injevents], Crosstalk_TOTS[6][injevents];
   int NoisyChannel_ADC_H[injevents];;
   
   int dac = -1; int test =0;
-  int cross_num = 6;
   char leg[50], img_title[50];
   TMultiGraph* mg = new TMultiGraph();
   TGraph **g = new TGraph*[13];
@@ -104,6 +106,10 @@ void makePlots::PlotProducer(){
     ADC_L_0[i] = 0;
     ADC_event[i] = 0;
     dac_ctrl[i] = i;
+    for (int cross_n = 0; cross_n < cross_num; cross_n++){
+      ADC_Cross_H[cross_n][i] = 0;
+      ADC_Cross_L[cross_n][i] = 0;
+    }
   }
 
     //==================== Loop over the events ====================
@@ -121,37 +127,37 @@ void makePlots::PlotProducer(){
       for(int sca=0; sca<NSCA; sca++){
 	if(TS[sca]==MaxTS){
 	  switch ( H.ch ){
-	  case 'HITCOLLECTION->inj_ch.front()'
+	  case 'HITCOLLECTION->inj_ch.front()':
 	    {
 	      ADC_H[ev] = H.SCA_hg[sca];
 	      ADC_L[ev] = H.SCA_lg[sca];
 	    } 
-	  case 'cross_ch[0]'
+	  case 'cross_ch[0]':
 	    {
 	      ADC_Cross_H[0][ev] = H.SCA_hg[sca];
 	      ADC_Cross_L[0][ev] = H.SCA_lg[sca];
 	    }
-	  case 'cross_ch[1]'
+	  case 'cross_ch[1]':
 	    {
 	      ADC_Cross_H[1][ev] = H.SCA_hg[sca];
 	      ADC_Cross_L[1][ev] = H.SCA_lg[sca];
 	    }
-	  case 'cross_ch[2]'
+	  case 'cross_ch[2]':
 	    {
 	      ADC_Cross_H[2][ev] = H.SCA_hg[sca];
 	      ADC_Cross_L[2][ev] = H.SCA_lg[sca];
 	    }
-	  case 'cross_ch[3]'
+	  case 'cross_ch[3]':
 	    {
 	      ADC_Cross_H[3][ev] = H.SCA_hg[sca];
 	      ADC_Cross_L[3][ev] = H.SCA_lg[sca];
 	    }
-	  case 'cross_ch[4]'
+	  case 'cross_ch[4]':
 	    {
 	      ADC_Cross_H[4][ev] = H.SCA_hg[sca];
 	      ADC_Cross_L[4][ev] = H.SCA_lg[sca];
 	    }
-	  case 'cross_ch[5]'
+	  case 'cross_ch[5]':
 	    {
 	      ADC_Cross_H[5][ev] = H.SCA_hg[sca];
 	      ADC_Cross_L[5][ev] = H.SCA_lg[sca];
@@ -213,9 +219,28 @@ void makePlots::PlotProducer(){
     gPad->WaitPrimitive();
 
     for(int cross_n = 0; cross_n < cross_num; cross_n++){
-      gcross_h[cross_n] 
+      gcross_h[cross_n] = new TGraph(nevents,dac_ctrl,ADC_Cross_H[cross_n]);
+      gcross_l[cross_n] = new TGraph(nevents,dac_ctrl,ADC_Cross_L[cross_n]);
+      
+      sprintf(plot_title,"CH %d High Gain",cross_ch[cross_n]);
+      gcross_h[cross_n]->SetTitle(plot_title);
+      gcross_h[cross_n]->GetXaxis()->SetTitle("DAC");
+      gcross_h[cross_n]->GetYaxis()->SetTitle("ADC");
+      gcross_h[cross_n]->SetMarkerStyle(7);
+      gcross_h[cross_n]->Draw("AP");
+      c1->Update();
+      gPad->WaitPrimitive();
+      
+      sprintf(plot_title,"CH %d Low Gain",cross_ch[cross_n]);
+      gcross_l[cross_n]->SetTitle(plot_title);
+      gcross_l[cross_n]->GetXaxis()->SetTitle("DAC");
+      gcross_l[cross_n]->GetYaxis()->SetTitle("ADC");
+      gcross_l[cross_n]->SetMarkerStyle(7);
+      gcross_l[cross_n]->Draw("AP");
+      c1->Update();
+      gPad->WaitPrimitive();
     }
-
+    
 
   //=================== End of filling hist =======================
   
