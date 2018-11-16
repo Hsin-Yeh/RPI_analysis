@@ -117,33 +117,58 @@ void makePlots::PlotProducer(){
     for(int hit = 0; hit < nhits ; ++hit){
       H = HITCOLLECTION->Hits.at(hit);
       if(!H.CCorNC) continue; // remove unconnected channel
-      if(H.ch!=HITCOLLECTION->inj_ch.front()) continue;
-      //if(H.ch!=InjCh.at(0)) continue;
-      //      if(H.ch!=2) continue;
-      //if(H.ch==2){
-	for(int sca=0; sca<NSCA; sca++){
-	  if(TS[sca]==MaxTS){
-	    ADC_H[ev] = H.SCA_hg[sca];
-	    ADC_L[ev] = H.SCA_lg[sca];
+
+      for(int sca=0; sca<NSCA; sca++){
+	if(TS[sca]==MaxTS){
+	  switch ( H.ch ){
+	  case 'HITCOLLECTION->inj_ch.front()'
+	    {
+	      ADC_H[ev] = H.SCA_hg[sca];
+	      ADC_L[ev] = H.SCA_lg[sca];
+	    } 
+	  case 'cross_ch[0]'
+	    {
+	      ADC_Cross_H[0][ev] = H.SCA_hg[sca];
+	      ADC_Cross_L[0][ev] = H.SCA_lg[sca];
+	    }
+	  case 'cross_ch[1]'
+	    {
+	      ADC_Cross_H[1][ev] = H.SCA_hg[sca];
+	      ADC_Cross_L[1][ev] = H.SCA_lg[sca];
+	    }
+	  case 'cross_ch[2]'
+	    {
+	      ADC_Cross_H[2][ev] = H.SCA_hg[sca];
+	      ADC_Cross_L[2][ev] = H.SCA_lg[sca];
+	    }
+	  case 'cross_ch[3]'
+	    {
+	      ADC_Cross_H[3][ev] = H.SCA_hg[sca];
+	      ADC_Cross_L[3][ev] = H.SCA_lg[sca];
+	    }
+	  case 'cross_ch[4]'
+	    {
+	      ADC_Cross_H[4][ev] = H.SCA_hg[sca];
+	      ADC_Cross_L[4][ev] = H.SCA_lg[sca];
+	    }
+	  case 'cross_ch[5]'
+	    {
+	      ADC_Cross_H[5][ev] = H.SCA_hg[sca];
+	      ADC_Cross_L[5][ev] = H.SCA_lg[sca];
+	    }
 	  }
 	}
-      }
-      if(H.ch==0){
-	for(int sca=0; sca<NSCA; sca++){
-	  if(TS[sca]==MaxTS){
-	    ADC_H_0[ev] = H.SCA_hg[sca];
-	    ADC_L_0[ev] = H.SCA_lg[sca];
-	  }
-	}
-      }
+      }     
     }
   }
+  
+  //==================== End of Loop ====================
+
+
 
 
   
-    //==================== End of Loop ====================
-    //
-    //==================== Draw Plots ====================
+  //==================== Draw Plots ====================
     
     //g[ts] = new TGraph(injevents,dac_ctrl,ADC_H);
     TGraph* gh = new TGraph(nevents,dac_ctrl,ADC_H);
@@ -186,6 +211,10 @@ void makePlots::PlotProducer(){
     gcorrelation_l->Draw("AP");
     c1->Update();
     gPad->WaitPrimitive();
+
+    for(int cross_n = 0; cross_n < cross_num; cross_n++){
+      gcross_h[cross_n] 
+    }
 
 
   //=================== End of filling hist =======================
