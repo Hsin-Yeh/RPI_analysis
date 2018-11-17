@@ -42,6 +42,7 @@ class makePlots{
 
   virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
   void Crosstalk(Int_t ch);
+  void Crosstalk_2ndRing(Int_t ch);
   void P_and_N(int option,bool output);
   // P_and_N function:
   // option 0 can be used for pedestal run.
@@ -66,6 +67,7 @@ class makePlots{
   float avg_LG_SCA  [NCHIP][NCH][NSCA];
   float sigma_LG_SCA[NCHIP][NCH][NSCA];
   int cross_ch[6];
+  int cross_ch_2ndRing[12];
   std::vector<int> InjCh = {2};
 
   // map < key = chip*32+ch/2 , pair <x, y> > 

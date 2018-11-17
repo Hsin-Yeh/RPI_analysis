@@ -68,6 +68,7 @@ void makePlots::PlotProducer(){
   
   int ADC_H[injevents], ADC_L[injevents], TOTS[injevents], dac_ctrl[injevents], ADC_H_0[injevents], ADC_L_0[injevents];
   int ADC_Cross_H[cross_num][injevents],ADC_Cross_L[cross_num][injevents];
+  int ADC_H_CH[64][injevents],ADC_L_CH[64][injevents];
   int ADC_event[nevents], ADC[injevents_perdac], n[injevents_perdac];
   int Crosstalk_ADC_H[6][injevents], Crosstalk_ADC_L[6][injevents], Crosstalk_TOTS[6][injevents];
   int NoisyChannel_ADC_H[injevents];;
@@ -80,8 +81,9 @@ void makePlots::PlotProducer(){
   //legend->SetNColumns(2);
   TImage *img = TImage::Create();
   TCanvas* c1 = new TCanvas();
+  //  TCanvas* c2 = new TCanvas("c2","c2",6400,3600);
+  //  c2->Divide(8,4);
     
-
   // Set Output Root File
   string Input_filename;
   Input_filename = input_RUN;
@@ -112,6 +114,10 @@ void makePlots::PlotProducer(){
     }
   }
 
+  Chain1->GetEntry(1);
+  cout << HITCOLLECTION->inj_ch.front() << endl;
+  Crosstalk(HITCOLLECTION->inj_ch.front());
+
     //==================== Loop over the events ====================
    
   for(int ev = 0; ev < nevents ; ++ev){  
@@ -123,50 +129,49 @@ void makePlots::PlotProducer(){
     for(int hit = 0; hit < nhits ; ++hit){
       H = HITCOLLECTION->Hits.at(hit);
       if(!H.CCorNC) continue; // remove unconnected channel
+      if(H.chip!=0) continue;
 
       for(int sca=0; sca<NSCA; sca++){
 	if(TS[sca]==MaxTS){
-	  switch ( H.ch ){
-	  case 'HITCOLLECTION->inj_ch.front()':
-	    {
-	      ADC_H[ev] = H.SCA_hg[sca];
-	      ADC_L[ev] = H.SCA_lg[sca];
-	    } 
-	  case 'cross_ch[0]':
-	    {
-	      ADC_Cross_H[0][ev] = H.SCA_hg[sca];
-	      ADC_Cross_L[0][ev] = H.SCA_lg[sca];
-	    }
-	  case 'cross_ch[1]':
-	    {
-	      ADC_Cross_H[1][ev] = H.SCA_hg[sca];
-	      ADC_Cross_L[1][ev] = H.SCA_lg[sca];
-	    }
-	  case 'cross_ch[2]':
-	    {
-	      ADC_Cross_H[2][ev] = H.SCA_hg[sca];
-	      ADC_Cross_L[2][ev] = H.SCA_lg[sca];
-	    }
-	  case 'cross_ch[3]':
-	    {
-	      ADC_Cross_H[3][ev] = H.SCA_hg[sca];
-	      ADC_Cross_L[3][ev] = H.SCA_lg[sca];
-	    }
-	  case 'cross_ch[4]':
-	    {
-	      ADC_Cross_H[4][ev] = H.SCA_hg[sca];
-	      ADC_Cross_L[4][ev] = H.SCA_lg[sca];
-	    }
-	  case 'cross_ch[5]':
-	    {
-	      ADC_Cross_H[5][ev] = H.SCA_hg[sca];
-	      ADC_Cross_L[5][ev] = H.SCA_lg[sca];
-	    }
+	  if(H.ch == HITCOLLECTION->inj_ch.front()){
+	  //	  if(H.ch == ){
+	    ADC_H[ev] = H.SCA_hg[sca];
+	    ADC_L[ev] = H.SCA_lg[sca];
+	  } 
+	  if(H.ch == cross_ch[0]){
+	    ADC_Cross_H[0][ev] = H.SCA_hg[sca];
+	    ADC_Cross_L[0][ev] = H.SCA_lg[sca];
+	  }
+	  if(H.ch == cross_ch[1]){
+	    ADC_Cross_H[1][ev] = H.SCA_hg[sca];
+	    ADC_Cross_L[1][ev] = H.SCA_lg[sca];
+	  }
+	  if(H.ch == cross_ch[2]){
+	    ADC_Cross_H[2][ev] = H.SCA_hg[sca];
+	    ADC_Cross_L[2][ev] = H.SCA_lg[sca];
+	  }
+	  if(H.ch == cross_ch[3]){
+	    ADC_Cross_H[3][ev] = H.SCA_hg[sca];
+	    ADC_Cross_L[3][ev] = H.SCA_lg[sca];
+	  }
+	  if(H.ch == cross_ch[4]){
+	    ADC_Cross_H[4][ev] = H.SCA_hg[sca];
+	    ADC_Cross_L[4][ev] = H.SCA_lg[sca];
+	  }
+	  if(H.ch == cross_ch[5]){
+	    ADC_Cross_H[5][ev] = H.SCA_hg[sca];
+	    ADC_Cross_L[5][ev] = H.SCA_lg[sca];
 	  }
 	}
-      }     
-    }
+      }
+
+      for(int sca = 0; sca<NSCA; sca++){
+	ADC_H_CH[H.ch][ev] = H.SCA_hg[sca];
+	ADC_L_CH[H.ch][ev] = H.SCA_lg[sca];
+      }
+    }     
   }
+
   
   //==================== End of Loop ====================
 
@@ -178,20 +183,33 @@ void makePlots::PlotProducer(){
     
     //g[ts] = new TGraph(injevents,dac_ctrl,ADC_H);
     TGraph* gh = new TGraph(nevents,dac_ctrl,ADC_H);
-    TGraph* gl = new TGraph(nevents,dac_ctrl,ADC_L_0);
+    TGraph* gl = new TGraph(nevents,dac_ctrl,ADC_L);
     TGraph* gTOT = new TGraph(injevents,dac_ctrl,TOTS);
     TGraph* ghlratio = new TGraph(injevents,ADC_L,ADC_H);
     TGraph* gltratio = new TGraph(injevents,TOTS,ADC_L);
     TGraph** gcross_h = new TGraph*[cross_num];
     TGraph** gcross_l = new TGraph*[cross_num];
-    TGraph** gcross_TOTS = new TGraph*[cross_num];
+    TGraph** Gcross_TOTS = new TGraph*[cross_num];
     TGraph* gnoisy_h = new TGraph(injevents,dac_ctrl,NoisyChannel_ADC_H);
-    TGraph* gcorrelation_l = new TGraph(nevents,ADC_L,ADC_L_0);
+    TGraph* gcorrelation_l = new TGraph(nevents,ADC_L,ADC_Cross_H[0]);
+    TMultiGraph* multig_cross_h = new TMultiGraph();
+    TMultiGraph* multig_cross_l = new TMultiGraph();
+
+    for(int ch = 0; ch < 64; ch=ch+2){
+      //      c2->cd(ch/2+1);
+      TGraph* gh_ch = new TGraph(nevents,dac_ctrl,ADC_H_CH[ch]);
+      gh_ch->SetTitle(plot_title);
+      gh_ch->GetXaxis()->SetTitle("DAC");
+      gh_ch->GetYaxis()->SetTitle("ADC");
+      gh_ch->SetMarkerStyle(7);
+      //gh_ch->Draw("AP");
+      //c2->Update();
+    }
     
-    
+    //    gPad->WaitPrimitive();
     //gh->GetYaxis()->SetRangeUser(0,200);
     //    gl->GetXaxis()->SetRangeUser(xmin,xmax);
-    sprintf(plot_title,"High Gain");
+    sprintf(plot_title,"Chip 0 Channel 2 TS 8 High Gain");
     gh->SetTitle(plot_title);
     gh->GetXaxis()->SetTitle("DAC");
     gh->GetYaxis()->SetTitle("ADC");
@@ -200,7 +218,7 @@ void makePlots::PlotProducer(){
     c1->Update();
     gPad->WaitPrimitive();
     
-    sprintf(plot_title,"CH 0 Low Gain");
+    sprintf(plot_title,"Chip 0 Channel 2 TS 8 Low Gain");
     gl->SetTitle(plot_title);
     gl->GetXaxis()->SetTitle("DAC");
     gl->GetYaxis()->SetTitle("ADC");
@@ -216,7 +234,7 @@ void makePlots::PlotProducer(){
     gcorrelation_l->SetMarkerStyle(7);
     gcorrelation_l->Draw("AP");
     c1->Update();
-    gPad->WaitPrimitive();
+    //    gPad->WaitPrimitive();
 
     for(int cross_n = 0; cross_n < cross_num; cross_n++){
       gcross_h[cross_n] = new TGraph(nevents,dac_ctrl,ADC_Cross_H[cross_n]);
@@ -227,9 +245,10 @@ void makePlots::PlotProducer(){
       gcross_h[cross_n]->GetXaxis()->SetTitle("DAC");
       gcross_h[cross_n]->GetYaxis()->SetTitle("ADC");
       gcross_h[cross_n]->SetMarkerStyle(7);
+      gcross_h[cross_n]->SetMarkerColor(cross_n);
       gcross_h[cross_n]->Draw("AP");
       c1->Update();
-      gPad->WaitPrimitive();
+      //      gPad->WaitPrimitive();
       
       sprintf(plot_title,"CH %d Low Gain",cross_ch[cross_n]);
       gcross_l[cross_n]->SetTitle(plot_title);
@@ -237,9 +256,20 @@ void makePlots::PlotProducer(){
       gcross_l[cross_n]->GetYaxis()->SetTitle("ADC");
       gcross_l[cross_n]->SetMarkerStyle(7);
       gcross_l[cross_n]->Draw("AP");
+      
       c1->Update();
-      gPad->WaitPrimitive();
+      //      gPad->WaitPrimitive();
+
+      multig_cross_h->Add(gcross_h[cross_n]);
+      multig_cross_l->Add(gcross_l[cross_n]);
     }
+    multig_cross_h->SetTitle("First Ring around chip 0 channel 2, TS 8, High Gain");
+    multig_cross_h->Draw("AP");
+    multig_cross_h->GetXaxis()->SetTitle("DAC");
+    multig_cross_h->GetYaxis()->SetTitle("ADC");
+    c1->BuildLegend(0.1,0.7,0.3,0.9);
+    c1->Update();
+    //    gPad->WaitPrimitive();
     
 
   //=================== End of filling hist =======================
@@ -434,7 +464,9 @@ Int_t makePlots::Cut(Long64_t entry, Long64_t sigma)
 
 
 void makePlots::Crosstalk(Int_t CH){
-  int chip = 3;
+
+  TCanvas* c1 = new TCanvas();
+  int chip = 0;
   int cross_num = 6;
   int forCH = chip*32+CH/2;
   float Xdist = 0.974452;
@@ -461,18 +493,101 @@ void makePlots::Crosstalk(Int_t CH){
     int ch = 0;
     
     while(abs(CHmap[ch].first-cross_posx[i]) > 1e-4 || abs(CHmap[ch].second-cross_posy[i]) > 1e-4){
-      cout << ch << " "<<abs(CHmap[ch].first - cross_posx[i])<< " " << abs(CHmap[ch].second - cross_posy[i])<< endl;
+      //  cout << ch << " "<<abs(CHmap[ch].first - cross_posx[i])<< " " << abs(CHmap[ch].second - cross_posy[i])<< endl;
       ch++;
       if(ch>256) break;
     }
-    //    cross_ch[i] = (ch-chip*32)*2;
-    cross_ch[i] = ch;
+    cross_ch[i] = (ch-chip*32)*2;
+    //    cross_ch[i] = ch;
   }
+
+  TH2Poly *poly = new TH2Poly;
+  InitTH2Poly(*poly);
+
   for(int i=0; i<6; i++){
-    //cout << cross_ch[i] << endl;
+    cout << cross_ch[i] << endl;
+    forCH = chip*32+cross_ch[i]/2;
+    X = CHmap[forCH].first;
+    Y = CHmap[forCH].second;	      
+    poly->Fill(X,Y,cross_ch[i]);
+    poly->Draw("colztext0");
+    c1->Update();
+    gPad->WaitPrimitive();
   }
   
+  delete c1;
+  
 }
+
+void makePlots::Crosstalk_2ndRing(Int_t CH){
+
+  TCanvas* c1 = new TCanvas();
+  int chip = 0;
+  int cross_num_2ndRing = 12;
+  int forCH = chip*32+CH/2;
+  float Xdist = 0.974452;
+  float Ydist = 0.5626;
+  float cross_posx[cross_num_2ndRing], cross_posy[cross_num_2ndRing];
+  float X = CHmap[forCH].first;
+  float Y = CHmap[forCH].second;
+  
+  cross_posx[0] = X + 2*Xdist;
+  cross_posy[0] = Y;
+  cross_posx[1] = X + 2*Xdist;
+  cross_posy[1] = Y - 2*Ydist;
+  cross_posx[2] = X + Xdist;
+  cross_posy[2] = Y - 3*Ydist;
+  cross_posx[3] = X;
+  cross_posy[3] = Y - 4*Ydist;
+  cross_posx[4] = X - Xdist;
+  cross_posy[4] = Y - 3*Ydist;
+  cross_posx[5] = X - 2*Xdist;
+  cross_posy[5] = Y - 2*Ydist;
+  cross_posx[6] = X - 2*Xdist;
+  cross_posy[6] = Y;
+  cross_posx[7] = X - 2*Xdist;
+  cross_posy[7] = Y + 2*Ydist;
+  cross_posx[8] = X - Xdist;
+  cross_posy[8] = Y + 3*Ydist;
+  cross_posx[9] = X;
+  cross_posy[9] = Y + 4*Ydist;
+  cross_posx[10] = X + Xdist;
+  cross_posy[10] = Y + 3*Ydist;
+  cross_posx[11] = X + 2*Xdist;
+  cross_posy[11] = Y + 2*Ydist;
+
+
+  for(int i=0; i<cross_num_2ndRing; i++){
+    //cout << cross_posx[i] << " " << cross_posy[i] << endl;
+    int ch = 0;
+    
+    while(abs(CHmap[ch].first-cross_posx[i]) > 1e-4 || abs(CHmap[ch].second-cross_posy[i]) > 1e-4){
+      //  cout << ch << " "<<abs(CHmap[ch].first - cross_posx[i])<< " " << abs(CHmap[ch].second - cross_posy[i])<< endl;
+      ch++;
+      if(ch>256) break;
+    }
+    cross_ch_2ndRing[i] = (ch-chip*32)*2;
+    //    cross_ch[i] = ch;
+  }
+
+  TH2Poly *poly = new TH2Poly;
+  InitTH2Poly(*poly);
+
+  for(int i=0; i<6; i++){
+    cout << cross_ch_2ndRing[i] << endl;
+    forCH = chip*32+cross_ch_2ndRing[i]/2;
+    X = CHmap[forCH].first;
+    Y = CHmap[forCH].second;	      
+    poly->Fill(X,Y,forCH);
+    poly->Draw("colztext0");
+    c1->Update();
+    gPad->WaitPrimitive();
+  }
+  
+  delete c1;
+  
+}
+
 
 void makePlots::P_and_N(int option,bool output){
 
