@@ -41,7 +41,6 @@ int evt_counter;
 int rollpos;
 uint32_t global_TS[4];
 vector<int> insert_ch;
-char Input_fileName[150];
 
 int raw_type(const char* filename);
 int decode_raw(int rawtype);
@@ -68,18 +67,19 @@ int main(){
   
     logfile >> logcontent; // 1 file at a time
     if( logfile.eof() ) break;
-    sprintf(Input_fileName,"%s",logcontent.c_str());
-    ifstream file(Input_fileName);
+    char fileName[150];
+    sprintf(fileName,"%s",logcontent.c_str());
+    ifstream file(fileName);
 
     int end = logcontent.find(".raw");
     if( end < 2 ){
       cout << endl;
-      cout << "please only feed .raw data!\n" << Input_fileName << " is not legal!\n";
+      cout << "please only feed .raw data!\n" << fileName << " is not legal!\n";
       cout << endl;
       continue;}    
     
-    cout << "input file: " << Input_fileName << endl;
-    int rawT = raw_type(Input_fileName);
+    cout << "input file: " << fileName << endl;
+    int rawT = raw_type(fileName);
     if(rawT == 3) continue;
 
     ifstream fileinj;
@@ -203,38 +203,7 @@ int raw_type(const char* filename){
 }
 
 void read_inj_config(){
-  
-  insert_ch.clear();
 
-  string searchstr;
-  int start, end;
-  
-  string rawFileName(Input_fileName);
-  start = rawFileName.find("/raw");
-  string temp = rawFileName.replace(start+1,3,"yaml");
-  start = temp.find(".raw");
-  string yamlFileName = temp.replace(start+1,3,"yaml");
-  
-  ifstream yamlFile(yamlFileName);
-  if(!yamlFile.is_open()){
-    cout << "Did not find injection file " << yamlFileName
-	 << ".\n Take this run as pedestal.(Inj_dac = 0)" << endl;
-  }
-  if(yamlFile.is_open()){
-    getline(yamlFile,searchstr);
-    getline(yamlFile,searchstr);
-    getline(yamlFile,searchstr);
-
-    start = searchstr.find("[");
-    searchstr = searchstr.substr(start+1,start+2);
-    end = searchstr.find("]");
-    searchstr = searchstr.erase(end);
-  }
-  
-  insert_ch.push_back(atoi(searchstr.c_str()));
-  
-    
-  /*
   insert_ch.clear();
   
   unsigned char lowB,highB;
@@ -259,7 +228,7 @@ void read_inj_config(){
 	guess_CH++;	      
       }
       bitC++;
-      if(bitC == 83 || bitC == 147){
+      if(bitC >= 83 && bitC <= 147){
 	ch_flag = true;}
       else
 	ch_flag = false;
@@ -269,7 +238,7 @@ void read_inj_config(){
   if((int) insert_ch.size() == 0){
     cout << "Find no insertion CH -> take this run pedestal run!" << endl;
   }
-  */
+  
 }
 
 
@@ -292,7 +261,7 @@ int decode_raw(int rawtype){
 	  x = raw[offset + i*16 + j];
 	  x = x & 15;
 	  for (k = 0; k < 4; k = k + 1){
-	    ev[k][i] = ev[k][i] | (unsigned int) (((x >> (3 - k) ) & 1) << (15 - j));
+	    ev[k][i] = ev[k][i] | (unsigned int) (((x >> k ) & 1) << (15 - j));
 	  }
         }
       }
@@ -304,8 +273,11 @@ int decode_raw(int rawtype){
 	  y = (x >> 4) & 0xf;
 	  x = x & 0xf;
 	  for (k = 0; k < 4; k = k + 1){
-	    ev[k][i] = ev[k][i] | (((x >> (3 - k) ) & 1) << (14 - j*2));
-	    ev[k][i] = ev[k][i] | (((y >> (3 - k) ) & 1) << (15 - j*2));}
+	    //ev[k][i] = ev[k][i] | (((x >> (3 - k) ) & 1) << (14 - j*2));
+	    //ev[k][i] = ev[k][i] | (((y >> (3 - k) ) & 1) << (15 - j*2));
+	    ev[k][i] = ev[k][i] | (uint16_t)((x >> k)  & 1) << (14 - j*2);
+	    ev[k][i] = ev[k][i] | (uint16_t)((y >> k)  & 1) << (15 - j*2);
+	  }
 	}
       }
     }
@@ -354,6 +326,7 @@ int roll_position(){
   for (chip =0; chip < 4; chip = chip +1 ){
     unsigned int roll;
     roll = ev[chip][1920] & 0x1FFF;
+    //cout << (int)roll << endl;
     if(chip == 0) roll_check = roll;
     else if( roll_check != roll ){
       cout << "Problematic event!( No. " << evt_counter <<") Chip" << chip
@@ -491,11 +464,16 @@ hitcollection Fill_ntuple(){
 
   for(int i = 0 ; i < 4 ; ++i)
     tmp_hits.global_ts[i] = (int) global_TS[i];
+  // BUG! conflict with framework
   for(int i = 0 ; i < NSCA; ++i){
     if(i >= rollpos)
       tmp_hits.rollposition[i] = i - rollpos;
     else
-      tmp_hits.rollposition[i] = NSCA - rollpos + i;}
+      tmp_hits.rollposition[i] = NSCA - rollpos + i; }
+
+  // reverse
+  for(int i = 0 ; i < NSCA; ++i){
+    tmp_hits.rollposition[i] = 12 - tmp_hits.rollposition[i];  }  
 
   return tmp_hits;
 }
