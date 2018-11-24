@@ -12,6 +12,7 @@
 #include "TLegend.h"
 #include "TSystem.h"
 #include "TImage.h"
+#include "TStyle.h"
 
 ClassImp(hit)
 ClassImp(hitcollection)
@@ -47,17 +48,30 @@ void makePlots::PlotProducer(){
   //P_and_N(0,1);
   //read_P_and_N("ped_result/Module_1_RUN_300318_0527");
 
+  /*
+  Int_t palette[5];
+  palette[0] = 15;
+  palette[1] = 20;
+  palette[2] = 23;
+  palette[3] = 30;
+  palette[4] = 32;
+  gStyle->SetPalette(5,palette);
+  */
+  gStyle->SetOptStat(0);
+  //gROOT->SetBatch(kTRUE);
+
 
   //==================== Call the Parameters ====================
   //  Init();
-  char title[50];
-  char plot_title[50];
+  char title[100];
+  char plot_title[100];
   int nevents = Chain1->GetEntries();
   int injch;
   int injADC=0;
   int injevents_perdac = 1;
   int injevents = nevents/injevents_perdac;
   int cross_num = 6;
+  int Unconnected_num = 2;
     
 
   TH1D *h = new TH1D("h","",100,150,250); //("title","",slice,star,end)
@@ -67,11 +81,12 @@ void makePlots::PlotProducer(){
   TH1D *h_TOAF = new TH1D("h_TOAF","",100,1000,3000);
   
   int ADC_H[injevents], ADC_L[injevents], TOTS[injevents], dac_ctrl[injevents], ADC_H_0[injevents], ADC_L_0[injevents];
-  int ADC_Cross_H[cross_num][injevents],ADC_Cross_L[cross_num][injevents];
-  int ADC_H_CH[64][injevents],ADC_L_CH[64][injevents];
+  int ADC_Cross_H[cross_num][injevents],ADC_Cross_L[cross_num][injevents], ADC_Unconnected_H[Unconnected_num][injevents],ADC_Unconnected_L[Unconnected_num][injevents];
+  int ADC_H_CH[NformatCH][injevents],ADC_L_CH[NformatCH][injevents], ADC_TOT_CH[NformatCH][injevents];
   int ADC_event[nevents], ADC[injevents_perdac], n[injevents_perdac];
   int Crosstalk_ADC_H[6][injevents], Crosstalk_ADC_L[6][injevents], Crosstalk_TOTS[6][injevents];
-  int NoisyChannel_ADC_H[injevents];;
+  int NoisyChannel_ADC_H[injevents];
+  int Unconnected_ch[Unconnected_num];
   
   int dac = -1; int test =0;
   char leg[50], img_title[50];
@@ -81,8 +96,8 @@ void makePlots::PlotProducer(){
   //legend->SetNColumns(2);
   TImage *img = TImage::Create();
   TCanvas* c1 = new TCanvas();
-  //  TCanvas* c2 = new TCanvas("c2","c2",6400,3600);
-  //  c2->Divide(8,4);
+  TCanvas* c2 = new TCanvas("c2","c2",6400,3600);
+  c2->Divide(8,8);
     
   // Set Output Root File
   string Input_filename;
@@ -98,7 +113,7 @@ void makePlots::PlotProducer(){
   //==================== Initialize ====================
   
   //for(int ts = 0; ts < 7; ts++){
-  int MaxTS = 8; //choose this time sample to be the peak
+  int MaxTS = 5; //choose this time sample to be the peak
   dac = -1;
 
   for (int i=0; i<injevents; i++){
@@ -117,11 +132,13 @@ void makePlots::PlotProducer(){
   Chain1->GetEntry(1);
   cout << HITCOLLECTION->inj_ch.front() << endl;
   Crosstalk(HITCOLLECTION->inj_ch.front());
+  Inj_ch = HITCOLLECTION->inj_ch.front();
 
-    //==================== Loop over the events ====================
+  //==================== Loop over the events ====================
    
   for(int ev = 0; ev < nevents ; ++ev){  
     Chain1 -> GetEntry(ev); //== Get HITcollection from root file event
+    dac_ctrl[ev] = HITCOLLECTION->inj_dac;
 
     for(int i = 0 ; i < NSCA ; ++i) TS[i] = HITCOLLECTION->rollposition[i];
     
@@ -129,15 +146,28 @@ void makePlots::PlotProducer(){
     for(int hit = 0; hit < nhits ; ++hit){
       H = HITCOLLECTION->Hits.at(hit);
       if(!H.CCorNC) continue; // remove unconnected channel
-      if(H.chip!=0) continue;
+      //      if(H.chip!=0) continue;
 
       for(int sca=0; sca<NSCA; sca++){
 	if(TS[sca]==MaxTS){
 	  if(H.ch == HITCOLLECTION->inj_ch.front()){
-	  //	  if(H.ch == ){
+	    if(H.chip == 0){
+	    //	  if(H.ch == ){
 	    ADC_H[ev] = H.SCA_hg[sca];
 	    ADC_L[ev] = H.SCA_lg[sca];
-	  } 
+	    }
+	  }
+	  if(H.ch == HITCOLLECTION->inj_ch.front()-1){
+	    ADC_Unconnected_H[0][ev] = H.SCA_hg[sca];
+	    ADC_Unconnected_L[0][ev] = H.SCA_lg[sca];
+	    Unconnected_ch[0] = H.ch;
+	  }
+	  if(H.ch == HITCOLLECTION->inj_ch.front()+1){
+	    ADC_Unconnected_H[1][ev] = H.SCA_hg[sca];
+	    ADC_Unconnected_L[1][ev] = H.SCA_lg[sca];
+	    Unconnected_ch[1] = H.ch;
+	  }
+
 	  if(H.ch == cross_ch[0]){
 	    ADC_Cross_H[0][ev] = H.SCA_hg[sca];
 	    ADC_Cross_L[0][ev] = H.SCA_lg[sca];
@@ -166,9 +196,13 @@ void makePlots::PlotProducer(){
       }
 
       for(int sca = 0; sca<NSCA; sca++){
-	ADC_H_CH[H.ch][ev] = H.SCA_hg[sca];
-	ADC_L_CH[H.ch][ev] = H.SCA_lg[sca];
+	if(TS[sca] == MaxTS){
+	  ADC_H_CH[H.ch/2+H.chip*32][ev] = H.SCA_hg[sca];
+	  ADC_L_CH[H.ch/2+H.chip*32][ev] = H.SCA_lg[sca];
+	  cout << H.ch/2+H.chip*32 << endl;
+	}
       }
+      ADC_TOT_CH[H.ch/2+H.chip*32][ev] = H.TOTS;
     }     
   }
 
@@ -178,108 +212,232 @@ void makePlots::PlotProducer(){
 
 
 
+
   
   //==================== Draw Plots ====================
     
-    //g[ts] = new TGraph(injevents,dac_ctrl,ADC_H);
-    TGraph* gh = new TGraph(nevents,dac_ctrl,ADC_H);
-    TGraph* gl = new TGraph(nevents,dac_ctrl,ADC_L);
-    TGraph* gTOT = new TGraph(injevents,dac_ctrl,TOTS);
-    TGraph* ghlratio = new TGraph(injevents,ADC_L,ADC_H);
-    TGraph* gltratio = new TGraph(injevents,TOTS,ADC_L);
-    TGraph** gcross_h = new TGraph*[cross_num];
-    TGraph** gcross_l = new TGraph*[cross_num];
-    TGraph** Gcross_TOTS = new TGraph*[cross_num];
-    TGraph* gnoisy_h = new TGraph(injevents,dac_ctrl,NoisyChannel_ADC_H);
-    TGraph* gcorrelation_l = new TGraph(nevents,ADC_L,ADC_Cross_H[0]);
-    TMultiGraph* multig_cross_h = new TMultiGraph();
-    TMultiGraph* multig_cross_l = new TMultiGraph();
+  //g[ts] = new TGraph(injevents,dac_ctrl,ADC_H);
+  TGraph* gh = new TGraph(nevents,dac_ctrl,ADC_H);
+  TGraph* gl = new TGraph(nevents,dac_ctrl,ADC_L);
+  TGraph* gTOT = new TGraph(injevents,dac_ctrl,TOTS);
+  TGraph* ghlratio = new TGraph(injevents,ADC_L,ADC_H);
+  TGraph* gltratio = new TGraph(injevents,TOTS,ADC_L);
+  TGraph** gcross_h = new TGraph*[cross_num];
+  TGraph** gcross_l = new TGraph*[cross_num];
+  TGraph** gUnconnected_h = new TGraph*[Unconnected_num];
+  TGraph** gUnconnected_l = new TGraph*[Unconnected_num];
+  TGraph** gh_ch = new TGraph*[NformatCH];
+  TGraph** gl_ch = new TGraph*[NformatCH];
+  TGraph** gtot_ch = new TGraph*[NformatCH];
+  TGraph** Gcross_TOTS = new TGraph*[cross_num];
+  TGraph* gnoisy_h = new TGraph(injevents,dac_ctrl,NoisyChannel_ADC_H);
+  TGraph* gcorrelation_l = new TGraph(nevents,ADC_L,ADC_Cross_H[0]);
+  TMultiGraph* multig_cross_h = new TMultiGraph();
+  TMultiGraph* multig_cross_l = new TMultiGraph();
 
-    for(int ch = 0; ch < 64; ch=ch+2){
-      //      c2->cd(ch/2+1);
-      TGraph* gh_ch = new TGraph(nevents,dac_ctrl,ADC_H_CH[ch]);
-      gh_ch->SetTitle(plot_title);
-      gh_ch->GetXaxis()->SetTitle("DAC");
-      gh_ch->GetYaxis()->SetTitle("ADC");
-      gh_ch->SetMarkerStyle(7);
-      //gh_ch->Draw("AP");
-      //c2->Update();
+  string plotfolder_path("plots/V2_BarePCB_Inj_Data");
+
+  double slope_h[NformatCH], slope_l[NformatCH], slope_tot[NformatCH];
+  for(int ch = 0; ch < NformatCH; ch++){
+    //    TF1* linear_fit = new TF1("");
+    c2->cd(ch+1);
+    gh_ch[ch] = new TGraph(nevents,dac_ctrl,ADC_H_CH[ch]);
+    sprintf(plot_title,"HG %d",ch);
+    gh_ch[ch]->SetTitle(plot_title);
+    //      gh_ch[ch]->SetTitleSize(10);
+    //    gh_ch[ch]->GetYaxis()->SetRangeUser(0,1500);
+    gh_ch[ch]->GetXaxis()->SetTitle("DAC");
+    gh_ch[ch]->GetYaxis()->SetTitle("ADC");
+    gh_ch[ch]->SetMarkerStyle(7);
+    //    gh_ch[ch]->Draw("AL");
+    gh_ch[ch]->Fit("pol1","","",1000,4000);
+    //gh_ch[ch]->Fit("pol1");
+    gh_ch[ch]->Draw("AL");
+
+    gl_ch[ch] = new TGraph(nevents,dac_ctrl,ADC_L_CH[ch]);
+    sprintf(plot_title,"LG ch = %d",ch);
+    gl_ch[ch]->SetTitle(plot_title);
+    //      gl_ch[ch]->SetTitleSize(10);
+    //    gl_ch[ch]->GetYaxis()->SetRangeUser(0,1500);
+    gl_ch[ch]->GetXaxis()->SetTitle("DAC");
+    gl_ch[ch]->GetYaxis()->SetTitle("ADC");
+    gl_ch[ch]->SetMarkerStyle(7);
+    //    gl_ch[ch]->Draw("AL");
+    gl_ch[ch]->Fit("pol1","","",1000,4000);
+    //gl_ch[ch]->Fit("pol1");
+    gl_ch[ch]->Draw("AL");
+
+    gtot_ch[ch] = new TGraph(nevents,dac_ctrl,ADC_TOT_CH[ch]);
+    sprintf(plot_title,"tot ch = %d",ch);
+    gtot_ch[ch]->SetTitle(plot_title);
+    //      gtot_ch[ch]->SetTitleSize(10);
+    //    gtot_ch[ch]->GetYaxis()->SetRangeUser(0,1500);
+    gtot_ch[ch]->GetXaxis()->SetTitle("DAC");
+    gtot_ch[ch]->GetYaxis()->SetTitle("ADC");
+    gtot_ch[ch]->SetMarkerStyle(7);
+    //    gtot_ch[ch]->Draw("AL");
+    gtot_ch[ch]->Fit("pol1","","",1000,4000);
+    //gtot_ch[ch]->Fit("pol1");
+    gtot_ch[ch]->Draw("AL");
+
+
+    
+    TF1* Linear_fit_h = gh_ch[ch]->GetFunction("pol1");
+    TF1* Linear_fit_l = gl_ch[ch]->GetFunction("pol1");
+    TF1* Linear_fit_tot = gtot_ch[ch]->GetFunction("pol1");
+    slope_h[ch] = Linear_fit_h->GetParameter(1);
+    slope_l[ch] = Linear_fit_l->GetParameter(1);
+    slope_tot[ch] = Linear_fit_tot->GetParameter(1);
+  }
+
+  
+  c1->cd();
+  gl_ch[Inj_ch/2+2]->Draw("AP");
+  c1->Update();
+  //  sprintf(title,"%s/%s_%s.pdf",plotfolder_path.c_str(),outf.c_str(),plot_title);
+  //c1->SaveAs("Linear_fitting.png");
+
+  //  gPad->WaitPrimitive();
+
+  sprintf(plot_title,"InjCh_%d",Inj_ch);
+  c2->SetTitle(plot_title);
+  c2->Update();
+  sprintf(title,"%s/%s_%s.pdf",plotfolder_path.c_str(),outf.c_str(),plot_title);
+  //c2->SaveAs(title);
+  //gPad->WaitPrimitive();
+  //gh->GetYaxis()->SetRangeUser(0,200);
+  //    gl->GetXaxis()->SetRangeUser(xmin,xmax);
+
+  //    char title[50];
+  c1->cd();
+
+  sprintf(plot_title,"Inj_CH_Chip0Channel%dTS%d_HG",Inj_ch,MaxTS);
+  gh->SetTitle(plot_title);
+  gh->GetXaxis()->SetTitle("DAC");
+  gh->GetYaxis()->SetTitle("ADC");
+  gh->SetMarkerStyle(7);
+  gh->Draw("AP");
+  c1->Update();
+  sprintf(title,"%s/%s_%s.pdf",plotfolder_path.c_str(),outf.c_str(),plot_title);
+  //c1->SaveAs(title);
+  gPad->WaitPrimitive();
+    
+  sprintf(plot_title,"Inj_CH_Chip0Channel%dTS%d_LG",Inj_ch,MaxTS);
+  gl->SetTitle(plot_title);
+  gl->GetXaxis()->SetTitle("DAC");
+  gl->GetYaxis()->SetTitle("ADC");
+  gl->SetMarkerStyle(7);
+  gl->Draw("AP");
+  c1->Update();
+  sprintf(title,"%s/%s_%s.pdf",plotfolder_path.c_str(),outf.c_str(),plot_title);
+  //c1->SaveAs(title);
+
+  gPad->WaitPrimitive();
+  
+  sprintf(plot_title,"Low Gain correlation");
+  gcorrelation_l->SetTitle(plot_title);
+  gcorrelation_l->GetXaxis()->SetTitle("CH2");
+  gcorrelation_l->GetYaxis()->SetTitle("CH0");
+  gcorrelation_l->SetMarkerStyle(7);
+  gcorrelation_l->Draw("AP");
+  c1->Update();
+  //gPad->WaitPrimitive();
+
+  for(int cross_n = 0; cross_n < cross_num; cross_n++){
+    gcross_h[cross_n] = new TGraph(nevents,dac_ctrl,ADC_Cross_H[cross_n]);
+    gcross_l[cross_n] = new TGraph(nevents,dac_ctrl,ADC_Cross_L[cross_n]);
+      
+    sprintf(plot_title,"CH %d High Gain",cross_ch[cross_n]);
+    gcross_h[cross_n]->SetTitle(plot_title);
+    gcross_h[cross_n]->GetXaxis()->SetTitle("DAC");
+    gcross_h[cross_n]->GetYaxis()->SetTitle("ADC");
+    gcross_h[cross_n]->SetMarkerStyle(26);
+    gcross_h[cross_n]->SetMarkerSize(0.4);
+    gcross_h[cross_n]->SetMarkerColor(cross_n);
+    gcross_h[cross_n]->Draw("AP");
+    c1->Update();
+    //gPad->WaitPrimitive();
+      
+    sprintf(plot_title,"CH %d Low Gain",cross_ch[cross_n]);
+    gcross_l[cross_n]->SetTitle(plot_title);
+    gcross_l[cross_n]->GetXaxis()->SetTitle("DAC");
+    gcross_l[cross_n]->GetYaxis()->SetTitle("ADC");
+    gcross_l[cross_n]->SetMarkerSize(0.4);
+    gcross_l[cross_n]->SetMarkerStyle(26);
+    gcross_l[cross_n]->Draw("AP");
+      
+    c1->Update();
+    //gPad->WaitPrimitive();
+
+    multig_cross_h->Add(gcross_h[cross_n]);
+    multig_cross_l->Add(gcross_l[cross_n]);
+  }
+
+  for(int Unconnected_id = 0; Unconnected_id < 2; Unconnected_id++){
+    gUnconnected_h[Unconnected_id] = new TGraph(nevents,dac_ctrl,ADC_Unconnected_H[Unconnected_id]);
+    gUnconnected_l[Unconnected_id] = new TGraph(nevents,dac_ctrl,ADC_Unconnected_L[Unconnected_id]);
+      
+    sprintf(plot_title,"Unconnected CH %d High Gain",Unconnected_ch[Unconnected_id]);
+    gUnconnected_h[Unconnected_id]->SetTitle(plot_title);
+    gUnconnected_h[Unconnected_id]->GetXaxis()->SetTitle("DAC");
+    gUnconnected_h[Unconnected_id]->GetYaxis()->SetTitle("ADC");
+    gUnconnected_h[Unconnected_id]->SetMarkerStyle(7);
+    gUnconnected_h[Unconnected_id]->SetMarkerSize(0.5);
+    gUnconnected_h[Unconnected_id]->SetMarkerColor(Unconnected_id+3);
+    gUnconnected_h[Unconnected_id]->Draw("AP");
+    c1->Update();
+
+    multig_cross_h->Add(gUnconnected_h[Unconnected_id]);
+  }
+
+  sprintf(plot_title,"FirstRing_&_UnConnectedCh_around_Chip0Channel%dTS%dHG",Inj_ch,MaxTS);
+  multig_cross_h->SetTitle(plot_title);
+  multig_cross_h->Draw("AP");
+  multig_cross_h->GetXaxis()->SetTitle("DAC");
+  multig_cross_h->GetYaxis()->SetTitle("ADC");
+  c1->BuildLegend(0.1,0.7,0.3,0.9);
+  c1->Update();
+  sprintf(title,"%s/%s_%s.pdf",plotfolder_path.c_str(),outf.c_str(),plot_title);
+  //c1->SaveAs(title);
+
+  //gPad->WaitPrimitive();
+
+  TH2Poly *poly = new TH2Poly;
+  InitTH2Poly(*poly);
+  
+  for(int ch=0; ch < NformatCH; ch++){
+    float X, Y;
+    //    forCH = chip*32+cross_ch[i]/2;
+    X = CHmap[ch].first;
+    Y = CHmap[ch].second;    
+    if(ch%32==Inj_ch/2){
+      poly->Fill(X,Y,0.1);
     }
-    
-    //    gPad->WaitPrimitive();
-    //gh->GetYaxis()->SetRangeUser(0,200);
-    //    gl->GetXaxis()->SetRangeUser(xmin,xmax);
-    sprintf(plot_title,"Chip 0 Channel 2 TS 8 High Gain");
-    gh->SetTitle(plot_title);
-    gh->GetXaxis()->SetTitle("DAC");
-    gh->GetYaxis()->SetTitle("ADC");
-    gh->SetMarkerStyle(7);
-    gh->Draw("AP");
-    c1->Update();
-    gPad->WaitPrimitive();
-    
-    sprintf(plot_title,"Chip 0 Channel 2 TS 8 Low Gain");
-    gl->SetTitle(plot_title);
-    gl->GetXaxis()->SetTitle("DAC");
-    gl->GetYaxis()->SetTitle("ADC");
-    gl->SetMarkerStyle(7);
-    gl->Draw("AP");
-    c1->Update();
-    gPad->WaitPrimitive();
-
-    sprintf(plot_title,"Low Gain correlation");
-    gcorrelation_l->SetTitle(plot_title);
-    gcorrelation_l->GetXaxis()->SetTitle("CH2");
-    gcorrelation_l->GetYaxis()->SetTitle("CH0");
-    gcorrelation_l->SetMarkerStyle(7);
-    gcorrelation_l->Draw("AP");
-    c1->Update();
-    //    gPad->WaitPrimitive();
-
-    for(int cross_n = 0; cross_n < cross_num; cross_n++){
-      gcross_h[cross_n] = new TGraph(nevents,dac_ctrl,ADC_Cross_H[cross_n]);
-      gcross_l[cross_n] = new TGraph(nevents,dac_ctrl,ADC_Cross_L[cross_n]);
-      
-      sprintf(plot_title,"CH %d High Gain",cross_ch[cross_n]);
-      gcross_h[cross_n]->SetTitle(plot_title);
-      gcross_h[cross_n]->GetXaxis()->SetTitle("DAC");
-      gcross_h[cross_n]->GetYaxis()->SetTitle("ADC");
-      gcross_h[cross_n]->SetMarkerStyle(7);
-      gcross_h[cross_n]->SetMarkerColor(cross_n);
-      gcross_h[cross_n]->Draw("AP");
-      c1->Update();
-      //      gPad->WaitPrimitive();
-      
-      sprintf(plot_title,"CH %d Low Gain",cross_ch[cross_n]);
-      gcross_l[cross_n]->SetTitle(plot_title);
-      gcross_l[cross_n]->GetXaxis()->SetTitle("DAC");
-      gcross_l[cross_n]->GetYaxis()->SetTitle("ADC");
-      gcross_l[cross_n]->SetMarkerStyle(7);
-      gcross_l[cross_n]->Draw("AP");
-      
-      c1->Update();
-      //      gPad->WaitPrimitive();
-
-      multig_cross_h->Add(gcross_h[cross_n]);
-      multig_cross_l->Add(gcross_l[cross_n]);
+    else {
+      poly->Fill(X,Y,slope_l[ch]);
     }
-    multig_cross_h->SetTitle("First Ring around chip 0 channel 2, TS 8, High Gain");
-    multig_cross_h->Draw("AP");
-    multig_cross_h->GetXaxis()->SetTitle("DAC");
-    multig_cross_h->GetYaxis()->SetTitle("ADC");
-    c1->BuildLegend(0.1,0.7,0.3,0.9);
-    c1->Update();
-    //    gPad->WaitPrimitive();
-    
+  }
+  sprintf(plot_title,"Slope of LG TS5 vs Injdac, Inj_ch=%d",Inj_ch);
+  poly->SetTitle(plot_title);
+  poly->Draw("colztext");
+  c1->Update();
+  sprintf(title,"%s/%s_%s.pdf",plotfolder_path.c_str(),outf.c_str(),plot_title);
+  //c1->SaveAs(title);
+  //gPad->WaitPrimitive();
+
 
   //=================== End of filling hist =======================
+
+  delete c1, c2;
   
 }
+
 
 void makePlots::Evt_display(){
 
   //  Init();
   TCanvas* c1 = new TCanvas();
+  int MaxTS = 5;
 
   int nevents = Chain1->GetEntries();
   char plot_title[50];
@@ -301,8 +459,8 @@ void makePlots::Evt_display(){
       float Y = CHmap[forCH].second;	  
 
       for(int sca = 0; sca < NSCA; ++sca){
-	if(TS[sca] == 8 ){
-	  cout << H.SCA_lg[sca] << endl;
+	if(TS[sca] == MaxTS ){
+	  //cout << H.SCA_lg[sca] << endl;
 	  //	  H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
 	  //poly->Fill(X,Y,H.SCA_lg[sca]);
 	  poly->Fill(X,Y,H.SCA_lg[sca]);
@@ -318,7 +476,7 @@ void makePlots::Evt_display(){
     gPad->WaitPrimitive();
     delete poly;
   }
-
+  
   delete c1;
 }
 
@@ -328,7 +486,7 @@ void makePlots::IdentifyInjCh(){
   
   //Define Parameters
   int nevents = Chain1->GetEntries();
-  int MaxTS = 4;
+  int MaxTS = 5;
   int count = 0;
   double EstimateSlope = 10.0;
   double EstSlope_HG, EstSlope_LG, EstSlope_TOT;
@@ -366,35 +524,35 @@ void makePlots::IdentifyInjCh(){
   }
   //Loop over events end
 
-    cout << HITCOLLECTION->inj_ch.at(0) << endl;
+  cout << HITCOLLECTION->inj_ch.at(0) << endl;
   /*
 
   //Find the Injection Channel
   for(int ele = 0; ele < count/2; ele++){
-    for(int channel = 0; channel < NCHANNEL; channel++){
-      if(channel%2==0) continue;
-      cout << HG[2].at(18) << endl;
-      //      Estslope_HG = HG[channel].at(count-1-ele);
-      //      EstSlope_LG = (LG[channel].at(count-1-ele) - LG[channel].at(ele)) / (count-1-2*ele);
-      //EstSlope_TOT = (TOT[channel].at(count-1-ele) - TOT[channel].at(ele)) / (count-1-2*ele);
+  for(int channel = 0; channel < NCHANNEL; channel++){
+  if(channel%2==0) continue;
+  cout << HG[2].at(18) << endl;
+  //      Estslope_HG = HG[channel].at(count-1-ele);
+  //      EstSlope_LG = (LG[channel].at(count-1-ele) - LG[channel].at(ele)) / (count-1-2*ele);
+  //EstSlope_TOT = (TOT[channel].at(count-1-ele) - TOT[channel].at(ele)) / (count-1-2*ele);
       
-      //Mean_Estimate_HG_Slope[channel] += EstSlope_HG;
-      //Mean_Estimate_LG_Slope[channel] += EstSlope_LG;
-      //Mean_Estimate_TOT_Slope[channel] += EstSlope_TOT;
+  //Mean_Estimate_HG_Slope[channel] += EstSlope_HG;
+  //Mean_Estimate_LG_Slope[channel] += EstSlope_LG;
+  //Mean_Estimate_TOT_Slope[channel] += EstSlope_TOT;
 	
-    }
+  }
   }
   /*
   for(int channel = 0; channel < NCHANNEL; channel++){
-    if(channel%2==0) continue;
-    Mean_Estimate_HG_Slope[channel] /= count/2;
-    Mean_Estimate_LG_Slope[channel] /= count/2;
-    Mean_Estimate_TOT_Slope[channel] /= count/2;
-    if(Mean_Estimate_LG_Slope[channel] > EstimateSlope){ InjCh.push_back(channel+1); }
+  if(channel%2==0) continue;
+  Mean_Estimate_HG_Slope[channel] /= count/2;
+  Mean_Estimate_LG_Slope[channel] /= count/2;
+  Mean_Estimate_TOT_Slope[channel] /= count/2;
+  if(Mean_Estimate_LG_Slope[channel] > EstimateSlope){ InjCh.push_back(channel+1); }
   }
 
   for(int ele = 0 ; ele < InjCh.size(); ele++){
-    cout << InjCh.at(ele) << endl;
+  cout << InjCh.at(ele) << endl;
   }   
   */ 
 }
@@ -417,11 +575,12 @@ void makePlots::Inj_Pulse_display(){
     int nhits = HITCOLLECTION->hit_num;
     for(int hit = 0; hit < nhits ; ++hit){
       H = HITCOLLECTION->Hits.at(hit);
-      //      if(H.ch != HITCOLLECTION->inj_ch.at(0)) continue;
+      if(H.ch != HITCOLLECTION->inj_ch.at(0)) continue;
+      cout << HITCOLLECTION->inj_ch.at(0) << endl;
       //if(H.ch!=InjCh.at(0)) continue;
-      if(H.ch!=2) continue;
+      //if(H.ch!=2) continue;
       for(int sca=0; sca<13; sca++){
-	if(TS[sca]==8) cout << H.SCA_lg[sca] << endl;
+	//	if(TS[sca]==8) cout << H.SCA_lg[sca] << endl;
       }
       
       gr = new TGraph(13, TS,H.SCA_lg );
@@ -500,11 +659,11 @@ void makePlots::Crosstalk(Int_t CH){
     cross_ch[i] = (ch-chip*32)*2;
     //    cross_ch[i] = ch;
   }
-
-  TH2Poly *poly = new TH2Poly;
-  InitTH2Poly(*poly);
-
-  for(int i=0; i<6; i++){
+  /*
+    TH2Poly *poly = new TH2Poly;
+    InitTH2Poly(*poly);
+  
+    for(int i=0; i<6; i++){
     cout << cross_ch[i] << endl;
     forCH = chip*32+cross_ch[i]/2;
     X = CHmap[forCH].first;
@@ -512,9 +671,9 @@ void makePlots::Crosstalk(Int_t CH){
     poly->Fill(X,Y,cross_ch[i]);
     poly->Draw("colztext0");
     c1->Update();
-    gPad->WaitPrimitive();
-  }
-  
+    //gPad->WaitPrimitive();
+    }
+  */
   delete c1;
   
 }
@@ -581,7 +740,7 @@ void makePlots::Crosstalk_2ndRing(Int_t CH){
     poly->Fill(X,Y,forCH);
     poly->Draw("colztext0");
     c1->Update();
-    gPad->WaitPrimitive();
+    //gPad->WaitPrimitive();
   }
   
   delete c1;
@@ -859,7 +1018,7 @@ void makePlots::P_and_N(int option,bool output){
 	fileLG << "\n";      
       }
     }
-     fileHG.close();
+    fileHG.close();
     fileLG.close();
     cout << "output mode is selected output file will be:" << endl;
     cout << "1. " << outtitleH << "\n" << "2. " << outtitleL << endl;
@@ -943,72 +1102,72 @@ void makePlots::Injection_ana(int Inj_ch){
   }
   
   
-    for(int i=0; i<injevents; i++){
-      Inj_hg[i] /= injevents_perdac;
-      Inj_lg[i] /= injevents_perdac;
-    }
+  for(int i=0; i<injevents; i++){
+    Inj_hg[i] /= injevents_perdac;
+    Inj_lg[i] /= injevents_perdac;
+  }
 
-    TGraph* g_Inj_hg = new TGraph(injevents,dac_ctrl,Inj_hg);
-    TGraph* g_Inj_lg = new TGraph(injevents,dac_ctrl,Inj_lg);
-    TGraph* g_Inj_tots = new TGraph(injevents,dac_ctrl,Inj_tots);
-    TGraph* g_hlratio = new TGraph(injevents,Inj_lg,Inj_hg);
-    TGraph* g_ltratio = new TGraph(injevents,Inj_tots,Inj_lg);
+  TGraph* g_Inj_hg = new TGraph(injevents,dac_ctrl,Inj_hg);
+  TGraph* g_Inj_lg = new TGraph(injevents,dac_ctrl,Inj_lg);
+  TGraph* g_Inj_tots = new TGraph(injevents,dac_ctrl,Inj_tots);
+  TGraph* g_hlratio = new TGraph(injevents,Inj_lg,Inj_hg);
+  TGraph* g_ltratio = new TGraph(injevents,Inj_tots,Inj_lg);
 
-    sprintf(plot_title,"High Gain");
-    g_Inj_hg->SetTitle(plot_title);
-    g_Inj_hg->GetXaxis()->SetTitle("Event");
-    g_Inj_hg->GetYaxis()->SetTitle("ADC");
-    g_Inj_hg->SetMarkerStyle(7);
-    g_Inj_hg->Draw("AP");
-    c1->Update();
-    gPad->WaitPrimitive();
-    c1->Write();
+  sprintf(plot_title,"High Gain");
+  g_Inj_hg->SetTitle(plot_title);
+  g_Inj_hg->GetXaxis()->SetTitle("Event");
+  g_Inj_hg->GetYaxis()->SetTitle("ADC");
+  g_Inj_hg->SetMarkerStyle(7);
+  g_Inj_hg->Draw("AP");
+  c1->Update();
+  gPad->WaitPrimitive();
+  c1->Write();
     
-    sprintf(plot_title,"Low Gain");
-    g_Inj_lg->SetTitle(plot_title);
-    g_Inj_lg->GetXaxis()->SetTitle("Event");
-    g_Inj_lg->GetYaxis()->SetTitle("ADC");
-    g_Inj_lg->SetMarkerStyle(7);
-    g_Inj_lg->Draw("AP");
-    c1->Update();
-    gPad->WaitPrimitive();
-    c1->Write();
+  sprintf(plot_title,"Low Gain");
+  g_Inj_lg->SetTitle(plot_title);
+  g_Inj_lg->GetXaxis()->SetTitle("Event");
+  g_Inj_lg->GetYaxis()->SetTitle("ADC");
+  g_Inj_lg->SetMarkerStyle(7);
+  g_Inj_lg->Draw("AP");
+  c1->Update();
+  gPad->WaitPrimitive();
+  c1->Write();
 
-    sprintf(plot_title,"TOTS");
-    g_Inj_tots->SetTitle(plot_title);
-    g_Inj_tots->GetXaxis()->SetTitle("Event");
-    g_Inj_tots->GetYaxis()->SetTitle("ADC");
-    g_Inj_tots->SetMarkerStyle(7);
-    g_Inj_tots->Draw("AP");
-    c1->Update();
-    gPad->WaitPrimitive();
-    c1->Write();
+  sprintf(plot_title,"TOTS");
+  g_Inj_tots->SetTitle(plot_title);
+  g_Inj_tots->GetXaxis()->SetTitle("Event");
+  g_Inj_tots->GetYaxis()->SetTitle("ADC");
+  g_Inj_tots->SetMarkerStyle(7);
+  g_Inj_tots->Draw("AP");
+  c1->Update();
+  gPad->WaitPrimitive();
+  c1->Write();
 
 
-    sprintf(plot_title,"High vs Low Gain");
-    g_hlratio->SetTitle(plot_title);
-    g_hlratio->GetXaxis()->SetTitle("Low");
-    g_hlratio->GetYaxis()->SetTitle("High");
-    g_hlratio->SetMarkerStyle(24);
-    g_hlratio->Draw("AP");
-    c1->Update();
-    gPad->WaitPrimitive();
-    c1->Write();
+  sprintf(plot_title,"High vs Low Gain");
+  g_hlratio->SetTitle(plot_title);
+  g_hlratio->GetXaxis()->SetTitle("Low");
+  g_hlratio->GetYaxis()->SetTitle("High");
+  g_hlratio->SetMarkerStyle(24);
+  g_hlratio->Draw("AP");
+  c1->Update();
+  gPad->WaitPrimitive();
+  c1->Write();
 
-    sprintf(plot_title,"Low Gain vs TOT");
-    g_ltratio->SetTitle(plot_title);
-    g_ltratio->GetXaxis()->SetTitle("TOT");
-    g_ltratio->GetYaxis()->SetTitle("Low");
-    g_ltratio->SetMarkerStyle(24);
-    g_ltratio->Draw("AP");
-    c1->Update();
-    gPad->WaitPrimitive();
-    c1->Write();
-    outfile->Write();
+  sprintf(plot_title,"Low Gain vs TOT");
+  g_ltratio->SetTitle(plot_title);
+  g_ltratio->GetXaxis()->SetTitle("TOT");
+  g_ltratio->GetYaxis()->SetTitle("Low");
+  g_ltratio->SetMarkerStyle(24);
+  g_ltratio->Draw("AP");
+  c1->Update();
+  gPad->WaitPrimitive();
+  c1->Write();
+  outfile->Write();
 
-    //==================== End of Loop ====================
+  //==================== End of Loop ====================
 
-    delete c1;
+  delete c1;
 
 }
 
@@ -1153,12 +1312,12 @@ void makePlots::Pedestal_ana(int option){
 	mem_of_ch[H.chip][H.ch]++;
 	mem_of_chip[H.chip]++;
 	/*
-	h_HGped[H.chip][H.ch][sca]->Fill(H.SCA_hg[sca]);
-	h_LGped[H.chip][H.ch][sca]->Fill(H.SCA_lg[sca]);
-	h_HGped_ch[H.chip][H.ch]->Fill(H.SCA_hg[sca]);
-	h_LGped_ch[H.chip][H.ch]->Fill(H.SCA_lg[sca]);
-	h_HGped_chip[H.chip]->Fill(H.SCA_hg[sca]);
-	h_LGped_chip[H.chip]->Fill(H.SCA_lg[sca]);	
+	  h_HGped[H.chip][H.ch][sca]->Fill(H.SCA_hg[sca]);
+	  h_LGped[H.chip][H.ch][sca]->Fill(H.SCA_lg[sca]);
+	  h_HGped_ch[H.chip][H.ch]->Fill(H.SCA_hg[sca]);
+	  h_LGped_ch[H.chip][H.ch]->Fill(H.SCA_lg[sca]);
+	  h_HGped_chip[H.chip]->Fill(H.SCA_hg[sca]);
+	  h_LGped_chip[H.chip]->Fill(H.SCA_lg[sca]);	
 	*/
       }
     }
@@ -1283,22 +1442,22 @@ void makePlots::Pedestal_ana(int option){
       cout << avg_HG_ch[i][j] <<endl;
       cout << mem_of_ch[i][j] << endl;
       /*
-      h_HGped_ch[i][j]->Draw();
-      c1->Update();
-      //gPad->WaitPrimitive();
-      sprintf(name,"h_HGped%d_%d",i,j);
-      sprintf(filepath,"../plots/Pedestal/Pedestal_HG_Chip%d_Ch%d.pdf",i,j);
-      c1->SetTitle(name);
-      //c1->SaveAs(filepath);
+	h_HGped_ch[i][j]->Draw();
+	c1->Update();
+	//gPad->WaitPrimitive();
+	sprintf(name,"h_HGped%d_%d",i,j);
+	sprintf(filepath,"../plots/Pedestal/Pedestal_HG_Chip%d_Ch%d.pdf",i,j);
+	c1->SetTitle(name);
+	//c1->SaveAs(filepath);
               
-      h_LGped_ch[i][j]->Draw();
-      c1->Update();
-      //gPad->WaitPrimitive();
-      sprintf(name,"h_LGped%d_%d",i,j);
-      sprintf(filepath,"../plots/Pedestal/Pedestal_LG_Chip%d_Ch%d.pdf",i,j);
-      c1->SetTitle(name);
-      //c1->SaveAs(filepath);
-      */
+	h_LGped_ch[i][j]->Draw();
+	c1->Update();
+	//gPad->WaitPrimitive();
+	sprintf(name,"h_LGped%d_%d",i,j);
+	sprintf(filepath,"../plots/Pedestal/Pedestal_LG_Chip%d_Ch%d.pdf",i,j);
+	c1->SetTitle(name);
+	//c1->SaveAs(filepath);
+	*/
       
        
       for(int k = 0; k < NSCA; ++k){
@@ -1313,21 +1472,21 @@ void makePlots::Pedestal_ana(int option){
 
 	
 	/*
-	h_HGped[i][j][k]->Draw();
-	c1->Update();
-	//gPad->WaitPrimitive();
-	sprintf(name,"h_HGped%d_%d_%d",i,j,k);
-	sprintf(filepath,"../plots/Pedestal/Pedestal_HG_Chip%d_Ch%d_SCA%d.pdf",i,j,k);
-	c1->SetTitle(name);
-	c1->SaveAs(filepath);
+	  h_HGped[i][j][k]->Draw();
+	  c1->Update();
+	  //gPad->WaitPrimitive();
+	  sprintf(name,"h_HGped%d_%d_%d",i,j,k);
+	  sprintf(filepath,"../plots/Pedestal/Pedestal_HG_Chip%d_Ch%d_SCA%d.pdf",i,j,k);
+	  c1->SetTitle(name);
+	  c1->SaveAs(filepath);
               
-	h_LGped[i][j][k]->Draw();
-	c1->Update();
-	//gPad->WaitPrimitive();
-	sprintf(name,"h_LGped%d_%d_%d",i,j,k);
-	sprintf(filepath,"../plots/Pedestal/Pedestal_LG_Chip%d_Ch%d_SCA%d.pdf",i,j,k);
-	c1->SetTitle(name);
-	c1->SaveAs(filepath);
+	  h_LGped[i][j][k]->Draw();
+	  c1->Update();
+	  //gPad->WaitPrimitive();
+	  sprintf(name,"h_LGped%d_%d_%d",i,j,k);
+	  sprintf(filepath,"../plots/Pedestal/Pedestal_LG_Chip%d_Ch%d_SCA%d.pdf",i,j,k);
+	  c1->SetTitle(name);
+	  c1->SaveAs(filepath);
 	*/
 
 	noisy_SCA_check[i][j][k] = (sigma_HG_SCA[i][j][k] - sigma_HG_ch[i][j])/sigma_HG_ch[i][j];

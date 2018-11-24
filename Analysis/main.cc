@@ -16,9 +16,9 @@ int main(){
   makePlots M(chain);
   M.input_RUN = filename;
   M.Init();
-  M.PlotProducer();
+  //M.PlotProducer();
   //M.Evt_display();
-  //M.Inj_Pulse_display();
+  M.Inj_Pulse_display();
   //  M.IdentifyInjCh();
 
 		      

@@ -3,8 +3,10 @@
 # So this is a bypass way for dealing with different data sheet without
 # merge them.
 # please do "make" before run it
-FILES="root_data/TBHexaboard/Module100_27*.root"
+
+FILES="root_data/V2_BarePCB_Inj_Data/*"
 i = 0
+make
 for f in $FILES
 do
     echo "Processing file $f ... "

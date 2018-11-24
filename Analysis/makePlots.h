@@ -20,6 +20,7 @@
 using namespace std;
 // Please Avoid variable NSCA = 13 and NCHIP = 4 defined in hit_hits_class.h
 const int NCH = 64;
+const int NformatCH = 128;
 
 class makePlots{
  public:
@@ -44,6 +45,7 @@ class makePlots{
   void Crosstalk(Int_t ch);
   void Crosstalk_2ndRing(Int_t ch);
   void P_and_N(int option,bool output);
+
   // P_and_N function:
   // option 0 can be used for pedestal run.
   // option 1 is an informal way that can deal with signal runs,
