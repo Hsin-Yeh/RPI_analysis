@@ -3,7 +3,7 @@
 #include <iostream>
 
 int main(){
-  TChain *chain = new TChain("HGCBD");
+  TChain *chain = new TChain("treeproducer/sk2cms");
   string filename;
   ifstream infile("input.txt");
   infile >> filename;
@@ -16,9 +16,9 @@ int main(){
   makePlots M(chain);
   M.input_RUN = filename;
   M.Init();
-  //M.PlotProducer();
+  M.PlotProducer();
   //M.Evt_display();
-  M.Inj_Pulse_display();
+  // M.Inj_Pulse_display();
   //  M.IdentifyInjCh();
 
 		      

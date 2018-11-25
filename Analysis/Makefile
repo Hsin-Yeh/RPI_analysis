@@ -4,14 +4,14 @@ ROOTFLAGS=$(shell root-config --libs --cflags --glibs)
 
 All: makePlots	
 
-makePlots: main.o hit_hits_class.so makePlots.o
+makePlots: main.o makePlots.o
 	g++ $^ -o makePlots $(CXXFLAGS) $(ROOTFLAGS)
 	mv *.o obj_file
 
 main.o: main.cc makePlots.h
 	g++ -c $(CXXFLAGS) $(ROOTFLAGS) $< -o $@
 
-makePlots.o:makePlots.cxx makePlots.h hit_hits_class.h
+makePlots.o:makePlots.cxx makePlots.h 
 	g++ -c $(CXXFLAGS) $(ROOTFLAGS) makePlots.cxx -o $@
 
 ############################################################
