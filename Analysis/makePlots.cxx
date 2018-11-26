@@ -321,6 +321,10 @@ void makePlots::PlotProducer(){
   //gPad->WaitPrimitive();
   
 
+  //************************************************** Cross talk Plots **************************************************//
+
+  int NNoisyCh = 7;
+  int NoisyChannel[7] = {248,186,214,120,126,42,254};
   
   TH2Poly *polyh = new TH2Poly;
   TH2Poly *polyl = new TH2Poly;
@@ -329,24 +333,31 @@ void makePlots::PlotProducer(){
   
   for(int ch = 0; ch < NformatCH; ch++){
     float X, Y;
+    bool NoisyBool = false;
     X = CHmap[ch].first;
-    Y = CHmap[ch].second;    
+    Y = CHmap[ch].second;
     if(ch%32==Inj_ch/2){
-      polyh->Fill(X,Y,ch*2);
-      polyl->Fill(X,Y,ch*2);
+      polyh->Fill(X,Y,0.5);
+      polyl->Fill(X,Y,0.05);
     }
     else {
-      polyh->Fill(X,Y,ch*2);
-      polyl->Fill(X,Y,ch*2);
+      for(int iNoisy = 0; iNoisy < NNoisyCh; iNoisy++){
+	if(ch == NoisyChannel[iNoisy]/2) {NoisyBool = true;}
+      }
+      if(!NoisyBool){
+	polyh->Fill(X,Y,slope_h[ch]);
+	polyl->Fill(X,Y,slope_l[ch]);
+      }
     }
   }
+  
   sprintf(plot_title,"Slope of HG TS%d vs Injdac, Inj_ch=%d",MaxTS,Inj_ch);
   polyh->SetTitle(plot_title);
-  polyh->Draw("colztext0");
+  polyh->Draw("colztext");
   c1->Update();
   sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
   c1->SaveAs(title);
-  //gPad->WaitPrimitive();
+  //  gPad->WaitPrimitive();
 
   sprintf(plot_title,"Slope of LG TS%d vs Injdac, Inj_ch=%d",MaxTS,Inj_ch);
   polyl->SetTitle(plot_title);
@@ -358,7 +369,7 @@ void makePlots::PlotProducer(){
 
   /*
   InitTH2Poly(*polyh);
-  InitTH2Poly(*polyl);
+p  InitTH2Poly(*polyl);
   
   for(int ch = 0; ch < NformatCH; ch++){
     float X, Y;
@@ -409,7 +420,7 @@ void makePlots::Evt_display(){
       float Y = CHmap[forCH].second;	  
 
       for(int sca = 0; sca < NSCA; ++sca){
-	if(TS[sca] == MaxTS ){
+p	if(TS[sca] == MaxTS ){
 	  //cout << H.SCA_lg[sca] << endl;
 	  //	  H.SCA_hg[sca] -= avg_HG[H.chip][H.ch][sca]; // pedestal subtraction
 	  //poly->Fill(X,Y,H.SCA_lg[sca]);
