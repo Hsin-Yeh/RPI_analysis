@@ -60,7 +60,7 @@ void makePlots::PlotProducer(){
   int TotalEntries = Chain1->GetEntries();
   int Nevents = TotalEntries/NCHIP;
   int cross_num = 6;
-  int MaxTS = 3; //choose this time sample to be the peak  
+  int MaxTS = 2; //choose this time sample to be the peak  
   int dac = -1; int test = 0;
   
   int ADC_H_InjCh[Nevents], ADC_L_InjCh[Nevents], TOTS_InjCh[Nevents];
