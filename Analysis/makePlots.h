@@ -71,7 +71,6 @@ class makePlots{
   float sigma_LG_SCA[NCHIP][NCH][NSCA];
   int cross_ch[6];
   int cross_ch_2ndRing[12];
-  std::vector<int> InjCh = {2};
 
   ///////////////////////////////
   // Declaration of leaf types //
