@@ -616,7 +616,7 @@ void makePlots::yamlReader(){
   string yamlFileName = temp.replace(start,14,".yaml");
   
   string searchstr;
-  ifstream yamlFile(yamlFileName);
+  ifstream yamlFile(yamlFileName.c_str());
   if(!yamlFile.is_open()){
     cout << "Did not find injection file " << yamlFileName
 	 << ".\n Take this run as pedestal.(Inj_dac = 0)" << endl;
