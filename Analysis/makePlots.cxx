@@ -104,19 +104,22 @@ void makePlots::PlotProducer(){
     }
   }
 
-  //  yamlReader();
-  Crosstalk(Inj_ch);
+  Crosstalk(0, Inj_ch);
+
+
   
   //==================== Loop over the events ====================
    
-  for(int entry = 0; entry < TotalEntries ; ++entry){  
+  for(int entry = 0; entry < TotalEntries ; ++entry){
+    
+    if(entry%100==0){ cout << "Now Processing entry = " << entry << endl; }    
     Chain1 -> GetEntry(entry);
     dac_ctrl[event] = dacinj;
     
     // Filling hg, lg data (with 13 SCA)
     
     for(int i = 0 ; i < NSCA ; ++i) TS[i] = timesamp[i];    
-    for(int sca=0; sca<NSCA; sca++){
+    for(int sca = 0; sca < NSCA; sca++){
       if(TS[sca]==MaxTS){
 	
 	ADC_H_InjCh[event] = hg[sca][Inj_ch]; // Filling the Inj_ch
@@ -124,6 +127,7 @@ void makePlots::PlotProducer(){
 
 	ADC_H_InjCh_Chip[chip][event] = hg[sca][Inj_ch];
 	ADC_L_InjCh_Chip[chip][event] = lg[sca][Inj_ch];
+	cout << ADC_L_InjCh_Chip[chip][event] << endl;
 	
 	for(int ch = 0; ch < 32; ch++){
 	    ADC_H_ConnectedCh[ch+chip*32][event] = hg[sca][ch*2]; // Filling all the connected channels
@@ -713,7 +717,7 @@ Int_t makePlots::Cut(Long64_t entry, Long64_t sigma)
 //****************************************************************************************************//
 
 
-void makePlots::Crosstalk(Int_t CH){
+void makePlots::Crosstalk(Int_t ichip, Int_t CH){
 
   TCanvas* c1 = new TCanvas();
   int cross_num = 6;
@@ -741,11 +745,12 @@ void makePlots::Crosstalk(Int_t CH){
     //cout << cross_posx[i] << " " << cross_posy[i] << endl;
     int ch = 0;
     while(abs(CHmap[ch].first-cross_posx[i]) > 1e-4 || abs(CHmap[ch].second-cross_posy[i]) > 1e-4){
-      //  cout << ch << " "<<abs(CHmap[ch].first - cross_posx[i])<< " " << abs(CHmap[ch].second - cross_posy[i])<< endl;
+      //cout << ch << " "<<abs(CHmap[ch].first - cross_posx[i])<< " " << abs(CHmap[ch].second - cross_posy[i])<< endl;
       ch++;
       if(ch>256) break;
     }
-    cross_ch[i] = (ch-chip*32)*2;
+    cross_ch[i] = (ch-ichip*32)*2;
+    //    cout << cross_ch[i] << endl;
   }
   /*
     TH2Poly *poly = new TH2Poly;

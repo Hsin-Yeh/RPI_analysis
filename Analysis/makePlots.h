@@ -48,7 +48,7 @@ class makePlots{
 
   void yamlReader();
   virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
-  void Crosstalk(Int_t ch);
+  void Crosstalk(Int_t ichip, Int_t ch);
   void Crosstalk_2ndRing(Int_t ch);
   void P_and_N(int option,bool output);
   // P_and_N function:
