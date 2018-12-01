@@ -12,6 +12,8 @@
 #include "TROOT.h"
 #include "TH2Poly.h"
 #include "TApplication.h"
+#include "TExec.h"
+#include "TStyle.h"
 #include <string>
 #include <utility> //std::pair
 #include <map>     //std::map
@@ -56,7 +58,8 @@ class makePlots{
   double sigmaCal(int N, int sum, double sqsum);
   void read_P_and_N(string ped_file);
   void readmap();
-  void InitTH2Poly(TH2Poly& poly); //Give frame to TH2Poly
+  void InitTH2Poly(TH2Poly& poly); //Give frame to TH2Poly 
+
 
   TFile* outfile;
   TApplication *app;
