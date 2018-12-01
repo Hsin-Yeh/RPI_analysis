@@ -70,6 +70,7 @@ class makePlots{
   float avg_LG_SCA  [NCHIP][NCH][NSCA];
   float sigma_LG_SCA[NCHIP][NCH][NSCA];
   int cross_ch[6];
+  bool cross_type[6];
   int cross_ch_2ndRing[12];
 
   ///////////////////////////////

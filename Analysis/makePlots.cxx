@@ -60,17 +60,23 @@ void makePlots::PlotProducer(){
   int TotalEntries = Chain1->GetEntries();
   int Nevents = TotalEntries/NCHIP;
   int cross_num = 6;
-  int MaxTS = 2; //choose this time sample to be the peak  
+  int MaxTS = 3; //choose this time sample to be the peak  
   int dac = -1; int test = 0;
   
   int ADC_H_InjCh[Nevents], ADC_L_InjCh[Nevents], TOTS_InjCh[Nevents];
   int ADC_H_InjCh_Chip[NCHIP][Nevents], ADC_L_InjCh_Chip[NCHIP][Nevents], TOT_InjCh_Chip[NCHIP][Nevents];
-  int ADC_H_Cross[cross_num][Nevents],ADC_L_Cross[cross_num][Nevents];
+  int ADC_H_Cross[cross_num][Nevents],ADC_L_Cross[cross_num][Nevents], ADC_H_Cross_Chip[NCHIP][cross_num][Nevents], ADC_L_Cross_Chip[NCHIP][cross_num][Nevents];
+  int ADC_H_FirstRing[NCHIP][Nevents],ADC_L_FirstRing[NCHIP][Nevents];
   int ADC_H_ConnectedCh[NformatCH][Nevents],ADC_L_ConnectedCh[NformatCH][Nevents], TOT_ConnectedCh[NformatCH][Nevents];
   int ADC_H_AllCh[NCHANNEL][Nevents], ADC_L_AllCh[NCHANNEL][Nevents], TOT_AllCh[NCHANNEL][Nevents];
   int ADC_H_NoisyChannel[Nevents];
+  double ADC_L_InjCh_Chip_double[NCHIP][Nevents], Ratio_L_FirstRing_InjCh[NCHIP][event];
   int dac_ctrl[Nevents];
+  int cross_ch_chip[cross_num][NCHIP];
+  bool cross_type_chip[cross_num][NCHIP];
 
+
+  
   
   // Define Histograms 
 
@@ -98,13 +104,26 @@ void makePlots::PlotProducer(){
     ADC_H_InjCh[i] = 0;
     ADC_L_InjCh[i] = 0;
     dac_ctrl[i] = i;
+    for(int ichip = 0; ichip < NCHIP; ichip++){
+      ADC_L_FirstRing[ichip][i] = 0;
+    }
     for (int cross_n = 0; cross_n < cross_num; cross_n++){
       ADC_H_Cross[cross_n][i] = 0;
       ADC_L_Cross[cross_n][i] = 0;
     }
   }
 
-  Crosstalk(0, Inj_ch);
+  for(int ichip = 0; ichip < NCHIP; ichip++){
+    Crosstalk(ichip,Inj_ch);
+    for(int cross_n = 0; cross_n < cross_num; cross_n++){
+      cross_ch_chip[cross_n][ichip] = cross_ch[cross_n];
+      cross_type_chip[cross_n][ichip] = cross_type[cross_n];
+    }
+  }
+    
+    
+
+
 
 
   
@@ -112,37 +131,43 @@ void makePlots::PlotProducer(){
    
   for(int entry = 0; entry < TotalEntries ; ++entry){
     
-    if(entry%100==0){ cout << "Now Processing entry = " << entry << endl; }    
+    if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }    
     Chain1 -> GetEntry(entry);
     dac_ctrl[event] = dacinj;
     
     // Filling hg, lg data (with 13 SCA)
-    
-    for(int i = 0 ; i < NSCA ; ++i) TS[i] = timesamp[i];    
-    for(int sca = 0; sca < NSCA; sca++){
-      if(TS[sca]==MaxTS){
-	
-	ADC_H_InjCh[event] = hg[sca][Inj_ch]; // Filling the Inj_ch
-	ADC_L_InjCh[event] = lg[sca][Inj_ch];
-
-	ADC_H_InjCh_Chip[chip][event] = hg[sca][Inj_ch];
-	ADC_L_InjCh_Chip[chip][event] = lg[sca][Inj_ch];
-	cout << ADC_L_InjCh_Chip[chip][event] << endl;
-	
-	for(int ch = 0; ch < 32; ch++){
-	    ADC_H_ConnectedCh[ch+chip*32][event] = hg[sca][ch*2]; // Filling all the connected channels
-	    ADC_L_ConnectedCh[ch+chip*32][event] = lg[sca][ch*2];
-	    ADC_H_AllCh[ch+chip*64][event] = hg[sca][ch];
-	    ADC_H_AllCh[ch+chip*64][event] = hg[sca][ch];
-	}
-	
-	for(int icross = 0; icross < cross_num; icross++){
-	  ADC_H_Cross[icross][event] = hg[sca][cross_ch[icross]]; // Filling FirstRing around Inj_ch
-	  ADC_L_Cross[icross][event] = lg[sca][cross_ch[icross]];
-	}
-	
-      }
+    int TS0_sca, MaxTS_sca;
+    for(int sca = 0 ; sca < NSCA ; sca++) {
+      TS[sca] = timesamp[sca];
+      if (timesamp[sca] == 0) { TS0_sca = sca ; }
+      if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
     }
+	
+    ADC_H_InjCh[event] = hg[MaxTS_sca][Inj_ch]; // Filling the Inj_ch
+    ADC_L_InjCh[event] = lg[MaxTS_sca][Inj_ch];
+
+    ADC_H_InjCh_Chip[chip][event] = hg[MaxTS_sca][Inj_ch];
+    ADC_L_InjCh_Chip[chip][event] = lg[MaxTS_sca][Inj_ch];
+    ADC_L_InjCh_Chip_double[chip][event] = ( lg[MaxTS_sca][Inj_ch] - lg[TS0_sca][Inj_ch] );
+	
+    for(int ch = 0; ch < 32; ch++){
+      ADC_H_ConnectedCh[ch+chip*32][event] = hg[MaxTS_sca][ch*2]; // Filling all the connected channels
+      ADC_L_ConnectedCh[ch+chip*32][event] = lg[MaxTS_sca][ch*2];
+      ADC_H_AllCh[ch+chip*64][event] = hg[MaxTS_sca][ch];
+      ADC_H_AllCh[ch+chip*64][event] = hg[MaxTS_sca][ch];
+    }
+	
+    for(int icross = 0; icross < cross_num; icross++){
+      if(cross_type_chip[icross][chip] == false) break;
+      ADC_H_Cross[icross][event] = hg[MaxTS_sca][cross_ch_chip[chip][icross]]; // Filling FirstRing around Inj_ch
+      ADC_L_Cross[icross][event] = lg[MaxTS_sca][cross_ch_chip[chip][icross]];
+      ADC_H_Cross_Chip[chip][icross][event] = hg[MaxTS_sca][cross_ch_chip[chip][icross]];
+      ADC_L_Cross_Chip[chip][icross][event] = lg[MaxTS_sca][cross_ch_chip[chip][icross]];
+      ADC_H_FirstRing[chip][event] += (hg[MaxTS_sca][cross_ch_chip[chip][icross]] - hg[TS0_sca][cross_ch_chip[chip][icross]]);
+      ADC_L_FirstRing[chip][event] += (lg[MaxTS_sca][cross_ch_chip[chip][icross]] - lg[TS0_sca][cross_ch_chip[chip][icross]]);
+    }
+    Ratio_L_FirstRing_InjCh[chip][event] = ADC_L_FirstRing[chip][event]/(ADC_L_InjCh_Chip_double[chip][event]+ADC_L_FirstRing[chip][event]);
+	
 
     // Filling tot, toa data (without SCA)
     for(int ch = 0; ch < NformatCH/NCHIP; ch++){
@@ -152,7 +177,6 @@ void makePlots::PlotProducer(){
     TOT_InjCh_Chip[chip][event] = tot_slow[Inj_ch];
     
   }
-
   
   //... ==================== End of Loop ==================== ...
 
@@ -165,7 +189,7 @@ void makePlots::PlotProducer(){
   
   char plot_title[200], leg[50], img_title[50];
   //  sprintf(title,"plots/TBHexaboard/module%d",ModuleNumber);
-  sprintf(title,"plots/NTU_Inj_Data/Uncnct_ChSlope");
+  sprintf(title,"plots/TBHexaboard/Injch_%d",Inj_ch);
   string plotfolder_path(title);
 
   TCanvas* c1 = new TCanvas();
@@ -177,9 +201,11 @@ void makePlots::PlotProducer(){
   // Define Fitting Parameter
 
   double slope_h[NformatCH], slope_l[NformatCH], slope_tot[NformatCH];
-  double slope_h_Uncnct[NformatCH];
+  double slope_h_Uncnct[NformatCH], slope_l_Uncnct[NformatCH], slope_tot_Uncnct[NformatCH];
   double slope_h_InjCh, slope_l_InjCh, slope_h_chip[NCHIP], slope_l_chip[NCHIP];
   double CnctID[NformatCH], UncnctID[NformatCH];
+  int fitmin, fitmax;
+  
 
   for(int ch = 0; ch < NformatCH; ch++){
     UncnctID[ch] = ch*2 + 1;
@@ -199,6 +225,8 @@ void makePlots::PlotProducer(){
   TGraph** gl_chip = new TGraph*[NCHIP];
   TGraph** gtot_chip = new TGraph*[NCHIP];
   TGraph** gh_UnConnectedCh = new TGraph*[NformatCH];
+  TGraph** gl_UnConnectedCh = new TGraph*[NformatCH];
+  TGraph** gtot_UnConnectedCh = new TGraph*[NformatCH];  
   TGraph** gcross_h = new TGraph*[cross_num];
   TGraph** gcross_l = new TGraph*[cross_num];
   TGraph** gcross_tot = new TGraph*[cross_num];
@@ -207,8 +235,9 @@ void makePlots::PlotProducer(){
   TGraph** gtot_ConnectedCh = new TGraph*[NformatCH];
   TGraph* gnoisy_h = new TGraph(Nevents,dac_ctrl,ADC_H_NoisyChannel);
   TGraph* gcorrelation_l = new TGraph(Nevents,ADC_L_InjCh,ADC_H_Cross[0]);
-  TMultiGraph* multig_cross_h = new TMultiGraph();
-  TMultiGraph* multig_cross_l = new TMultiGraph();
+  TGraph** gratioRing1_Injch_l = new TGraph*[NCHIP];
+  //TMultiGraph* multig_cross_h = new TMultiGraph();
+  //TMultiGraph* multig_cross_l = new TMultiGraph();
   TMultiGraph* multig_InjCh_Chip_h = new TMultiGraph();
   TMultiGraph* multig_InjCh_Chip_l = new TMultiGraph();
   TMultiGraph* multig_InjCh_Chip_hltot = new TMultiGraph();
@@ -216,8 +245,14 @@ void makePlots::PlotProducer(){
 
 
   // Plots!!!!!
+
+
+  // ------------------------------ Fit ------------------------------ //
   
-  for(int ch = 0; ch < NformatCH; ch++){
+  for(int ch = 0; ch < NformatCH; ch++){    
+
+    fitmin = 1300;
+    fitmax = 3300;    
     c1->cd();
     gh_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_H_AllCh[ch*2+1]);
     sprintf(plot_title,"HG %d",ch);
@@ -226,18 +261,57 @@ void makePlots::PlotProducer(){
     gh_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
     gh_UnConnectedCh[ch]->SetMarkerStyle(7);
     gh_UnConnectedCh[ch]->Fit("pol1","","",1300,3300);
+
+    gl_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_L_AllCh[ch*2+1]);
+    sprintf(plot_title,"HG %d",ch);
+    gl_UnConnectedCh[ch]->SetTitle(plot_title);
+    gl_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
+    gl_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
+    gl_UnConnectedCh[ch]->SetMarkerStyle(7);
+    gl_UnConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+
+    gtot_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,TOT_AllCh[ch*2+1]);
+    sprintf(plot_title,"HG %d",ch);
+    gtot_UnConnectedCh[ch]->SetTitle(plot_title);
+    gtot_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
+    gtot_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
+    gtot_UnConnectedCh[ch]->SetMarkerStyle(7);
+    gtot_UnConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+
+
     TF1* Linear_fit_h_Uncnct = gh_UnConnectedCh[ch]->GetFunction("pol1");
+    TF1* Linear_fit_l_Uncnct = gl_UnConnectedCh[ch]->GetFunction("pol1");
+    TF1* Linear_fit_tot_Uncnct = gtot_UnConnectedCh[ch]->GetFunction("pol1");
     slope_h_Uncnct[ch] = Linear_fit_h_Uncnct->GetParameter(1);
-    gh_UnConnectedCh[ch]->Draw("AL");
-    c1->Update();
-    //gPad->WaitPrimitive();
+    slope_l_Uncnct[ch] = Linear_fit_h_Uncnct->GetParameter(1);
+    slope_tot_Uncnct[ch] = Linear_fit_h_Uncnct->GetParameter(1);
+
+    if(ch%50==0){
+      sprintf(plot_title,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
+      gh_UnConnectedCh[ch]->SetTitle(plot_title);
+      gh_UnConnectedCh[ch]->Draw("AL");
+      c1->Update();
+      sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
+      c1->SaveAs(title);
+    }
   }
-
-
   
+  gh_Uncnct_Slope = new TGraph(NformatCH,UncnctID,slope_h_Uncnct);
+  multig_AllCh_Slope->Add(gh_Uncnct_Slope);
+  gh_Uncnct_Slope->SetMarkerStyle(22);
+  gh_Uncnct_Slope->SetMarkerColor(kRed);
+  sprintf(plot_title,"UnconnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
+  gh_Uncnct_Slope->SetTitle(plot_title);
+  gh_Uncnct_Slope->Draw("AP");
+  c1->Update();
+  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
+  c1->SaveAs(title);
+  //gPad->WaitPrimitive();
+
 
   for(int ch = 0; ch < NformatCH; ch++){
-    //    c2->cd(ch+1);
+    fitmin = 1000;
+    fitmax = 4000;
     c1->cd();
     gh_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_H_ConnectedCh[ch]);
     sprintf(plot_title,"HG %d",ch);
@@ -245,12 +319,12 @@ void makePlots::PlotProducer(){
     gh_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
     gh_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
     gh_ConnectedCh[ch]->SetMarkerStyle(7);
-    gh_ConnectedCh[ch]->Fit("pol1","","",500,3000);
+    gh_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
     gh_ConnectedCh[ch]->Draw("AL");
     c1->Update();
     //gPad->WaitPrimitive();
     //gh_ConnectedCh[ch]->Fit("pol1");
-    //    gh_ConnectedCh[ch]->Draw("AP");
+    //gh_ConnectedCh[ch]->Draw("AP");
     
     gl_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_L_ConnectedCh[ch]);
     sprintf(plot_title,"LG ch = %d",ch);
@@ -259,7 +333,7 @@ void makePlots::PlotProducer(){
     gl_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
     gl_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
     gl_ConnectedCh[ch]->SetMarkerStyle(7);
-    gl_ConnectedCh[ch]->Fit("pol1","","",500,3000);
+    gl_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
     //gl_ConnectedCh[ch]->Fit("pol1");
     gl_ConnectedCh[ch]->Draw("AL");
 
@@ -283,45 +357,178 @@ void makePlots::PlotProducer(){
     slope_tot[ch] = Linear_fit_tot->GetParameter(1);
 
     CnctID[ch] = ch*2;
+
+    if(ch%50==0){
+      sprintf(plot_title,"CnctCh%d_InjCh%d_fit%d-%d",ch*2,Inj_ch,fitmin,fitmax);
+      gh_ConnectedCh[ch]->SetTitle(plot_title);
+      gh_ConnectedCh[ch]->Draw("AL");
+      c1->Update();
+      sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
+      c1->SaveAs(title);
+    }
   }
-
-  //c2->Update();
-  //gPad->WaitPrimitive();
-  //delete c2;
-
-  gh_Uncnct_Slope = new TGraph(NformatCH,UncnctID,slope_h_Uncnct);
   gh_Cnct_Slope = new TGraph(NformatCH,CnctID,slope_h);
-  multig_AllCh_Slope->Add(gh_Uncnct_Slope);
-  multig_AllCh_Slope->Add(gh_Cnct_Slope);  
-
-  gh_Uncnct_Slope->SetMarkerStyle(7);
-  gh_Uncnct_Slope->SetMarkerColor(kRed);
-  sprintf(plot_title,"UnconnectedCh_InjCh%d",Inj_ch);
-  gh_Uncnct_Slope->SetTitle("UnconnectedCh");
-  gh_Uncnct_Slope->Draw("AP");
+  multig_AllCh_Slope->Add(gh_Cnct_Slope);      
+  gh_Cnct_Slope->SetMarkerStyle(22);
+  gh_Cnct_Slope->SetMarkerColor(kBlue);
+  sprintf(plot_title,"ConnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
+  gh_Cnct_Slope->SetTitle(plot_title);
+  gh_Cnct_Slope->Draw("AP");
+  c1->Update();
   sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
   c1->SaveAs(title);
-  //gPad->WaitPrimitive();
-    
-  c1->Update();
-  //gPad->WaitPrimitive();
-  gh_Cnct_Slope->SetMarkerStyle(8);
-  gh_Cnct_Slope->SetMarkerColor(kBlue);
-  gh_Uncnct_Slope->SetTitle("ConnectedCh");
-  gh_Cnct_Slope->Draw("AP");  
-  c1->Update();
   //gPad->WaitPrimitive();
 
   multig_AllCh_Slope->Draw("AP");
   c1->Update();
   //gPad->WaitPrimitive();
-  //  multig_AllCh_Slope->SetMarkerStyle(7);
+  //multig_AllCh_Slope->SetMarkerStyle(7);
 
 
-  c1->cd();
-  gh_ConnectedCh[94]->Draw("AP");
+  //------------------------------ Change fitting Range ------------------------------//                               
+
+    for(int ch = 0; ch < NformatCH; ch++){    
+
+    fitmin = 3300;
+    fitmax = 4000;    
+    c1->cd();
+    gh_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_H_AllCh[ch*2+1]);
+    sprintf(plot_title,"HG %d",ch);
+    gh_UnConnectedCh[ch]->SetTitle(plot_title);
+    gh_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
+    gh_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
+    gh_UnConnectedCh[ch]->SetMarkerStyle(7);
+    gh_UnConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+
+    gl_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_L_AllCh[ch*2+1]);
+    sprintf(plot_title,"HG %d",ch);
+    gl_UnConnectedCh[ch]->SetTitle(plot_title);
+    gl_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
+    gl_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
+    gl_UnConnectedCh[ch]->SetMarkerStyle(7);
+    gl_UnConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+
+    gtot_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,TOT_AllCh[ch*2+1]);
+    sprintf(plot_title,"HG %d",ch);
+    gtot_UnConnectedCh[ch]->SetTitle(plot_title);
+    gtot_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
+    gtot_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
+    gtot_UnConnectedCh[ch]->SetMarkerStyle(7);
+    gtot_UnConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+
+
+    TF1* Linear_fit_h_Uncnct = gh_UnConnectedCh[ch]->GetFunction("pol1");
+    TF1* Linear_fit_l_Uncnct = gl_UnConnectedCh[ch]->GetFunction("pol1");
+    TF1* Linear_fit_tot_Uncnct = gtot_UnConnectedCh[ch]->GetFunction("pol1");
+    slope_h_Uncnct[ch] = Linear_fit_h_Uncnct->GetParameter(1);
+    slope_l_Uncnct[ch] = Linear_fit_h_Uncnct->GetParameter(1);
+    slope_tot_Uncnct[ch] = Linear_fit_h_Uncnct->GetParameter(1);
+    gh_UnConnectedCh[ch]->Draw("AL");
+    c1->Update();
+    //gPad->WaitPrimitive();
+
+    if(ch%50==0){
+      sprintf(plot_title,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
+      gh_UnConnectedCh[ch]->SetTitle(plot_title);
+      gh_UnConnectedCh[ch]->Draw("AL");
+      c1->Update();
+      sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
+      c1->SaveAs(title);
+    }
+  }
+      
+  gh_Uncnct_Slope = new TGraph(NformatCH,UncnctID,slope_h_Uncnct);
+  multig_AllCh_Slope->Add(gh_Uncnct_Slope);
+  gh_Uncnct_Slope->SetMarkerStyle(22);
+  gh_Uncnct_Slope->SetMarkerColor(kRed);
+  sprintf(plot_title,"UnconnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
+  gh_Uncnct_Slope->SetTitle(plot_title);
+  gh_Uncnct_Slope->Draw("AP");
+  c1->Update();
+  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
+  c1->SaveAs(title);
+  //gPad->WaitPrimitive();
+
+
+  for(int ch = 0; ch < NformatCH; ch++){
+
+    fitmin = 0;
+    fitmax = 1000;
+    c1->cd();
+    gh_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_H_ConnectedCh[ch]);
+    sprintf(plot_title,"HG %d",ch);
+    gh_ConnectedCh[ch]->SetTitle(plot_title);
+    gh_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
+    gh_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
+    gh_ConnectedCh[ch]->SetMarkerStyle(7);
+    gh_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+    gh_ConnectedCh[ch]->Draw("AL");
+    c1->Update();
+    //gPad->WaitPrimitive();
+    //gh_ConnectedCh[ch]->Fit("pol1");
+    //gh_ConnectedCh[ch]->Draw("AP");
+    
+    gl_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_L_ConnectedCh[ch]);
+    sprintf(plot_title,"LG ch = %d",ch);
+    gl_ConnectedCh[ch]->SetTitle(plot_title);
+    //gl_ConnectedCh[ch]->GetYaxis()->SetRangeUser(0,1500);
+    gl_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
+    gl_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
+    gl_ConnectedCh[ch]->SetMarkerStyle(7);
+    gl_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+    //gl_ConnectedCh[ch]->Fit("pol1");
+    gl_ConnectedCh[ch]->Draw("AL");
+
+    gtot_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,TOT_ConnectedCh[ch]);
+    sprintf(plot_title,"tot ch = %d",ch);
+    gtot_ConnectedCh[ch]->SetTitle(plot_title);
+    //gtot_ConnectedCh[ch]->GetYaxis()->SetRangeUser(0,1500);
+    gtot_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
+    gtot_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
+    gtot_ConnectedCh[ch]->SetMarkerStyle(7);
+    //gtot_ConnectedCh[ch]->Fit("pol1","","",1000,4000);
+    gtot_ConnectedCh[ch]->Fit("pol1");
+    gtot_ConnectedCh[ch]->Draw("AL");
+    
+    
+    TF1* Linear_fit_h = gh_ConnectedCh[ch]->GetFunction("pol1");
+    TF1* Linear_fit_l = gl_ConnectedCh[ch]->GetFunction("pol1");
+    TF1* Linear_fit_tot = gtot_ConnectedCh[ch]->GetFunction("pol1");
+    slope_h[ch] = Linear_fit_h->GetParameter(1);
+    slope_l[ch] = Linear_fit_l->GetParameter(1);
+    slope_tot[ch] = Linear_fit_tot->GetParameter(1);
+
+    CnctID[ch] = ch*2;
+    if(ch%50==0){
+      sprintf(plot_title,"CnctCh%d_InjCh%d_fit%d-%d",ch*2,Inj_ch,fitmin,fitmax);
+      gh_ConnectedCh[ch]->SetTitle(plot_title);
+      gh_ConnectedCh[ch]->Draw("AL");
+      c1->Update();
+      sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
+      c1->SaveAs(title);
+    }
+  }
+  
+  gh_Cnct_Slope = new TGraph(NformatCH,CnctID,slope_h);
+  multig_AllCh_Slope->Add(gh_Cnct_Slope);      
+  gh_Cnct_Slope->SetMarkerStyle(22);
+  gh_Cnct_Slope->SetMarkerColor(kBlue);
+  sprintf(plot_title,"ConnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
+  gh_Cnct_Slope->SetTitle(plot_title);
+  gh_Cnct_Slope->Draw("AP");
+  c1->Update();
+  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
+  c1->SaveAs(title);
+  //gPad->WaitPrimitive();
+
+  multig_AllCh_Slope->Draw("AP");
   c1->Update();
   //gPad->WaitPrimitive();
+  //multig_AllCh_Slope->SetMarkerStyle(7);
+  
+
+
+  // ------------------------------ Plot HG_LG_TOT for Inj_ch all chip ------------------------------ //
 
   gh->Fit("pol1","","",0,200);
   TF1* Linear_fit_h_InjCh = gh->GetFunction("pol1");
@@ -334,7 +541,7 @@ void makePlots::PlotProducer(){
   gh->Draw("AP");
   c1->Update();
   sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  //  c1->SaveAs(title);
+  c1->SaveAs(title);
   //gPad->WaitPrimitive();
 
   
@@ -349,7 +556,7 @@ void makePlots::PlotProducer(){
   gl->Draw("AP");
   c1->Update();
   sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  // c1->SaveAs(title);
+  c1->SaveAs(title);
   //gPad->WaitPrimitive();
 
   sprintf(plot_title,"Low Gain correlation");
@@ -421,54 +628,77 @@ void makePlots::PlotProducer(){
   legend->Draw();
   c1->Update();
   //gPad->WaitPrimitive();
-  //sprintf(title,"%s/%s.png",plotfolder_path.c_str(),plot_title);
-  //c1->SaveAs(title);
+  sprintf(title,"%s/%s.png",plotfolder_path.c_str(),plot_title);
+  c1->SaveAs(title);
 
 
 
   //... Plotting the First Ring around the Inj_Ch ...
-
-  for(int cross_n = 0; cross_n < cross_num; cross_n++){
-    gcross_h[cross_n] = new TGraph(Nevents,dac_ctrl,ADC_H_Cross[cross_n]);
-    gcross_l[cross_n] = new TGraph(Nevents,dac_ctrl,ADC_L_Cross[cross_n]);
+  TMultiGraph* multig_cross_h = new TMultiGraph();
+  TMultiGraph* multig_cross_l = new TMultiGraph();
+  for(int ichip = 0; ichip < NCHIP; ichip++){
+    for(int cross_n = 0; cross_n < cross_num; cross_n++){
+      if(cross_type_chip[cross_n][ichip] == false) break;
+      gcross_h[cross_n] = new TGraph(Nevents,dac_ctrl,ADC_H_Cross_Chip[ichip][cross_n]);
+      gcross_l[cross_n] = new TGraph(Nevents,dac_ctrl,ADC_L_Cross_Chip[ichip][cross_n]);
+      sprintf(plot_title,"CH %d High Gain",cross_ch_chip[cross_n][ichip]);
+      gcross_h[cross_n]->SetTitle(plot_title);
+      gcross_h[cross_n]->GetXaxis()->SetTitle("DAC");
+      gcross_h[cross_n]->GetYaxis()->SetTitle("ADC");
+      gcross_h[cross_n]->SetMarkerStyle(26);
+      gcross_h[cross_n]->SetMarkerSize(0.4);
+      gcross_h[cross_n]->SetMarkerColor(cross_n+1);
+      gcross_h[cross_n]->Draw("AP");
+      c1->Update();
+       //gPad->WaitPrimitive();
       
-    sprintf(plot_title,"CH %d High Gain",cross_ch[cross_n]);
-    gcross_h[cross_n]->SetTitle(plot_title);
-    gcross_h[cross_n]->GetXaxis()->SetTitle("DAC");
-    gcross_h[cross_n]->GetYaxis()->SetTitle("ADC");
-    gcross_h[cross_n]->SetMarkerStyle(26);
-    gcross_h[cross_n]->SetMarkerSize(0.4);
-    gcross_h[cross_n]->SetMarkerColor(cross_n);
-    gcross_h[cross_n]->Draw("AP");
+      sprintf(plot_title,"CH %d Low Gain",cross_ch_chip[cross_n][ichip]);
+      gcross_l[cross_n]->SetTitle(plot_title);
+      gcross_l[cross_n]->GetXaxis()->SetTitle("DAC");
+      gcross_l[cross_n]->GetYaxis()->SetTitle("ADC");
+      gcross_l[cross_n]->SetMarkerSize(0.4);
+      gcross_l[cross_n]->SetMarkerStyle(26);
+      gcross_l[cross_n]->SetMarkerColor(cross_n+1);
+      gcross_l[cross_n]->Draw("AP");      
+      c1->Update();
+      //gPad->WaitPrimitive();
+      multig_cross_h->Add(gcross_h[cross_n]);
+      multig_cross_l->Add(gcross_l[cross_n]);
+    }
+    sprintf(plot_title,"FirstRing_around_Chip%dChannel%dLG",ichip,Inj_ch);
+    multig_cross_l->SetTitle(plot_title);
+    multig_cross_l->Draw("AP");
+    multig_cross_l->GetXaxis()->SetTitle("DAC");
+    multig_cross_l->GetYaxis()->SetTitle("ADC");
+    c1->BuildLegend(0.1,0.7,0.3,0.9);
     c1->Update();
-    //gPad->WaitPrimitive();
-      
-    sprintf(plot_title,"CH %d Low Gain",cross_ch[cross_n]);
-    gcross_l[cross_n]->SetTitle(plot_title);
-    gcross_l[cross_n]->GetXaxis()->SetTitle("DAC");
-    gcross_l[cross_n]->GetYaxis()->SetTitle("ADC");
-    gcross_l[cross_n]->SetMarkerSize(0.4);
-    gcross_l[cross_n]->SetMarkerStyle(26);
-    gcross_l[cross_n]->Draw("AP");      
-    c1->Update();
+    sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
+    //c1->SaveAs(title);
     //gPad->WaitPrimitive();
 
-    multig_cross_h->Add(gcross_h[cross_n]);
-    multig_cross_l->Add(gcross_l[cross_n]);
-  }  
-  sprintf(plot_title,"FirstRing_&_UnConnectedCh_around_Chip0Channel%dTS%dHG",Inj_ch,MaxTS);
-  multig_cross_h->SetTitle(plot_title);
-  multig_cross_h->Draw("AP");
-  multig_cross_h->GetXaxis()->SetTitle("DAC");
-  multig_cross_h->GetYaxis()->SetTitle("ADC");
-  c1->BuildLegend(0.1,0.7,0.3,0.9);
-  c1->Update();
-  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  //c1->SaveAs(title);
-  //gPad->WaitPrimitive();
+      //delete multig_cross_h;
+      //delete multig_cross_l;
+  }
   
 
-  //************************************************** Cross talk Plots **************************************************//
+  // ------------------------------ Cross Talk Ratio ------------------------------ //
+
+  for(int ichip = 0; ichip < NCHIP; ichip++){
+    gratioRing1_Injch_l[ichip] = new TGraph(Nevents,ADC_L_InjCh_Chip_double[ichip],Ratio_L_FirstRing_InjCh[ichip]);
+    sprintf(plot_title,"Ratio_Ring1vsInjch%d_chip%d_L",Inj_ch,ichip);
+    gratioRing1_Injch_l[ichip]->SetTitle(plot_title);
+    gratioRing1_Injch_l[ichip]->GetXaxis()->SetTitle("LG_ADC");
+    gratioRing1_Injch_l[ichip]->GetYaxis()->SetRangeUser(-0.1,0.1);
+    gratioRing1_Injch_l[ichip]->GetYaxis()->SetTitle("EFirstRing/ETotal");
+    gratioRing1_Injch_l[ichip]->SetMarkerStyle(7);
+    gratioRing1_Injch_l[ichip]->Draw("AP");
+    c1->Update();
+    sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
+    c1->SaveAs(title);
+  }
+  
+
+  //************************************************** Cross talk TH2Poly Plots **************************************************//
 
   int NNoisyCh = 7;
   int NoisyChannel[7] = {248,186,214,120,126,42,254};
@@ -486,47 +716,47 @@ void makePlots::PlotProducer(){
     X = CHmap[ch].first;
     Y = CHmap[ch].second;
     if(Inj_ch%2!=1 && ch%32==Inj_ch/2){
-      polyh->Fill(X,Y,10000);
-      polyl->Fill(X,Y,10000);
-      //polyInj->Fill(X,Y,1000000);
+      polyh->Fill(X,Y,0);
+      polyl->Fill(X,Y,0);
+      polyInj->Fill(X,Y,1);
     }
     else {
       for(int iNoisy = 0; iNoisy < NNoisyCh; iNoisy++){
 	if(ch == NoisyChannel[iNoisy]/2) {NoisyBool = true;}
       }
-      //      if(!NoisyBool){
-	polyh->Fill(X,Y,slope_h[ch]/slope_h_chip[0]);
-	polyl->Fill(X,Y,slope_l[ch]/slope_l_chip[0]);
-	//}
+      if(!NoisyBool){
+	polyh->Fill(X,Y,slope_h[ch]);
+	polyl->Fill(X,Y,slope_l[ch]);
+      }
     }
   }
   //  gStyle->SetPalette(58);
   
    
-  sprintf(plot_title,"Slope of HG TS%d vs Injdac, Inj_ch=%d",MaxTS,Inj_ch);
+  sprintf(plot_title,"Slope_HG_TS%dvsInjdac,Inj_ch=%d",MaxTS,Inj_ch);
   polyh->SetTitle(plot_title);
   polyh->Draw("colztext");
   polyh->SetMaximum(0.2);
   polyInj->SetMaximum(1);
-  //polyInj->Draw("col0Same");
+  polyInj->Draw("col0Same");
 
   //  TExec *ex1 = new TExec("ex1","Pal2();");
   //ex1->Draw();
   //polyInj->Draw("col20Same");
   c1->Update();
   sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  //c1->SaveAs(title);
+  c1->SaveAs(title);
   //gPad->WaitPrimitive();
 
-  sprintf(plot_title,"Slope of LG TS%d vs Injdac, Inj_ch=%d",MaxTS,Inj_ch);
+  sprintf(plot_title,"Slope_LG_TS%dvsInjdac,Inj_ch=%d",MaxTS,Inj_ch);
   polyl->SetTitle(plot_title);
   polyl->Draw("colztext");
   polyl->SetMaximum(0.05);
-  //polyInj->Draw("col0Same");
+  polyInj->Draw("col0Same");
   polyInj->SetMaximum(1);
   c1->Update();
   sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  //c1->SaveAs(title);
+  c1->SaveAs(title);
   //gPad->WaitPrimitive();
 
   /*
@@ -721,7 +951,7 @@ void makePlots::Crosstalk(Int_t ichip, Int_t CH){
 
   TCanvas* c1 = new TCanvas();
   int cross_num = 6;
-  int formatInj_Ch = CH/2;
+  int formatInj_Ch = CH/2+ichip*32;
   float Xdist = 0.974452;
   float Ydist = 0.5626;
   float cross_posx[cross_num], cross_posy[cross_num];
@@ -740,17 +970,23 @@ void makePlots::Crosstalk(Int_t ichip, Int_t CH){
   cross_posy[4] = Y - Ydist;
   cross_posx[5] = X + Xdist;
   cross_posy[5] = Y + Ydist;
-
+  
   for(int i=0; i<6; i++){
     //cout << cross_posx[i] << " " << cross_posy[i] << endl;
     int ch = 0;
+    bool good_channel = true;
     while(abs(CHmap[ch].first-cross_posx[i]) > 1e-4 || abs(CHmap[ch].second-cross_posy[i]) > 1e-4){
+      if(ch>127) {
+	good_channel = false;
+	break;
+      }
+      ch++;	    
       //cout << ch << " "<<abs(CHmap[ch].first - cross_posx[i])<< " " << abs(CHmap[ch].second - cross_posy[i])<< endl;
-      ch++;
-      if(ch>256) break;
     }
     cross_ch[i] = (ch-ichip*32)*2;
-    //    cout << cross_ch[i] << endl;
+    cross_type[i] = good_channel;
+    cout << cross_ch[i] << endl;
+    cout << cross_type[i] << endl;
   }
   /*
     TH2Poly *poly = new TH2Poly;
