@@ -189,7 +189,7 @@ void makePlots::PlotProducer(){
   
   char plot_title[200], leg[50], img_title[50];
   //  sprintf(title,"plots/TBHexaboard/module%d",ModuleNumber);
-  sprintf(title,"plots/TBHexaboard/Injch_%d",Inj_ch);
+  sprintf(title,"plots/NTU_Inj_Data/Injch_%d",Inj_ch);
   string plotfolder_path(title);
 
   TCanvas* c1 = new TCanvas();
