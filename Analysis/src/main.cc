@@ -15,8 +15,6 @@ int main(){
     cout << "There is no input root file written in the input.txt!" << endl;
 
   makePlots M(chain);
-  PlotSetting P;
-  sprintf(P.plotfolder_path,"plots/TBHexaboard/Injch_%d",M.Inj_ch);
   M.input_RUN = filename;
   M.Init();
   //M.Gain_factor_producer();

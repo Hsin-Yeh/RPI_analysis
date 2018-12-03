@@ -30,6 +30,7 @@ makePlots::~makePlots()
 
 void makePlots::Init(){
   yamlReader();
+  sprintf(Plot.plotfolder_path,"plots/TBHexaboard/Injch_%d",Inj_ch);
   Chain1->SetBranchAddress("event",&event);
   Chain1->SetBranchAddress("chip",&chip);
   Chain1->SetBranchAddress("roll",&roll);
