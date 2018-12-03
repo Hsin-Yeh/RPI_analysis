@@ -6,7 +6,7 @@
 int main(){
   TChain *chain = new TChain("treeproducer/sk2cms");
   string filename;
-  ifstream infile("input.txt");
+  ifstream infile("data_input.txt");
   infile >> filename;
   infile.close();
   if( filename.length() > 2){
