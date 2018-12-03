@@ -58,6 +58,7 @@ void PlotSetting::TMultiGraphPlotSetting(TMultiGraph& g, TLegend& legend, char* 
     char title[200];
     sprintf(title,"%s/%s.pdf",plotfolder_path,plot_title);
     c->SaveAs(title);
+    cout << plotfolder_path << endl;
   }
   delete c;
 }

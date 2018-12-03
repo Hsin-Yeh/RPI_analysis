@@ -15,7 +15,7 @@ class PlotSetting{
   PlotSetting ();
   ~PlotSetting ();
 
-  char plotfolder_path[100];
+  char plotfolder_path[200];
 
   //public function
   void TGraphPlotSetting(TGraph& g, char* plot_title, string Xtitle, string Ytitle,int MarkerStyle,int MarkerColor,
@@ -24,8 +24,6 @@ class PlotSetting{
   void TH2PolyPlotSetting(TH2Poly& poly, char* plot_title, string Xtitle, string Ytitle, string Option,bool OptStat, bool Wait, bool SavePlot);
 
  private:
-
-  TCanvas *c;
   
 };
 

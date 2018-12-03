@@ -16,9 +16,9 @@ int main(){
 
   makePlots M(chain);
   PlotSetting P;
+  sprintf(P.plotfolder_path,"plots/TBHexaboard/Injch_%d",M.Inj_ch);
   M.input_RUN = filename;
   M.Init();
-  sprintf(P.plotfolder_path,"plots/TBHexaboard/Injch_%d",M.Inj_ch);
   //M.Gain_factor_producer();
   M.PlotProducer();
   //M.Evt_display();
