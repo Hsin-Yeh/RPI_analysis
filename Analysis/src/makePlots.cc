@@ -1,4 +1,5 @@
 #include "makePlots.h"
+#include "PlotSetting.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -9,7 +10,6 @@
 #include "TCanvas.h"
 #include "TGraph.h"
 #include "TMultiGraph.h"
-#include "TLegend.h"
 #include "TSystem.h"
 #include "TImage.h"
 #include "TStyle.h"
@@ -45,11 +45,120 @@ void makePlots::Init(){
   app = new TApplication("app",0,0);
 }
 
-void makePlots::Ntuplizer(){
 
+
+void makePlots::Gain_factor_producer(){
+  
+  //-------------------- Define Parameters --------------------
+
+  int TotalEntries = Chain1->GetEntries();
+  int Nevents = TotalEntries/NCHIP;
+  int MaxTS = 2;
+
+  int ADC_H_InjCh_Chip[NCHIP][Nevents], ADC_L_InjCh_Chip[NCHIP][Nevents], TOT_InjCh_Chip[NCHIP][Nevents];
+  int dac_ctrl[Nevents];
+  int HGLGfitmax[NCHIP], TOTLGfitmax[NCHIP];
+  bool HGTP_flag[NCHIP], LGTP_flag[NCHIP];
+
+  //==================== Set Output File ====================
 
   
+
+
+  //==================== Initialize ====================
+
+  for(int ichip = 0; ichip < NCHIP; ichip++){
+    HGTP_flag[ichip] = false;
+    LGTP_flag[ichip] = false;
+  }
+
+
+  //==================== Loop Over Events ====================
+
+  for(int ev = 0; ev < TotalEntries; ev++){
+    if(ev%1000 == 0){ cout << "Now Processing = " << ev << endl;}
+    Chain1->GetEntry(ev);
+    dac_ctrl[event] = dacinj;
+    
+    int TS0_sca, MaxTS_sca;
+    for(int sca = 0 ; sca < NSCA ; sca++) {
+      TS[sca] = timesamp[sca];
+      if (timesamp[sca] == 0) { TS0_sca = sca ; }
+      if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
+    }
+    
+    ADC_H_InjCh_Chip[chip][event] = ( hg[MaxTS_sca][Inj_ch] - hg[TS0_sca][Inj_ch] );
+    ADC_L_InjCh_Chip[chip][event] = ( lg[MaxTS_sca][Inj_ch] - lg[TS0_sca][Inj_ch] );
+    TOT_InjCh_Chip[chip][event] = tot_slow[Inj_ch];
+
+    if(ADC_H_InjCh_Chip[chip][event] > HGTP && HGTP_flag[chip] == false){
+      HGTP_flag[chip] = true;
+      HGLGfitmax[chip] = ADC_L_InjCh_Chip[chip][event];
+    }
+    if(ADC_L_InjCh_Chip[chip][event] > LGTP && LGTP_flag[chip] == false){
+      LGTP_flag[chip] = true;
+      TOTLGfitmax[chip] = TOT_InjCh_Chip[chip][event];
+    }
+  }
+
+  
+    
+  //==================== End Loop ====================
+
+  //...
+
+  //==================== Plots ====================
+
+  char pltTit[100];
+  string Xtit, Ytit, Opt;
+  int MkSty, MkClr, MkSize, LClr, LWid, fitmin, fitmax;
+  bool Stat, Wait, SavePlot;
+
+  TGraph** gl = new TGraph*[NCHIP];
+  TGraph** gtot = new TGraph*[NCHIP];
+  TGraph** LG2HG = new TGraph*[NCHIP];
+  TGraph** TOT2LG = new TGraph*[NCHIP];
+
+  for(int ichip = 0; ichip < NCHIP; ichip++){
+    gl[ichip] = new TGraph(Nevents,dac_ctrl,ADC_L_InjCh_Chip[ichip]);
+    gtot[ichip] = new TGraph(Nevents,dac_ctrl,TOT_InjCh_Chip[ichip]);
+    LG2HG[ichip] = new TGraph(Nevents,ADC_L_InjCh_Chip[ichip],ADC_H_InjCh_Chip[ichip]);
+    TOT2LG[ichip] = new TGraph(Nevents,TOT_InjCh_Chip[ichip],ADC_L_InjCh_Chip[ichip]);
+    
+    LG2HG[ichip]->Fit("pol1","","",fitmin = 0,fitmax = HGLGfitmax[ichip]);
+    TOT2LG[ichip]->Fit("pol1","","",fitmin = TOTOffSet,fitmax = TOTLGfitmax[ichip]);
+    
+    TF1* Linear_fit_LG2HG = LG2HG[ichip]->GetFunction("pol1");
+    TF1* Linear_fit_TOT2LG = TOT2LG[ichip]->GetFunction("pol1");
+    LG2HG_Conversion[ichip] = Linear_fit_LG2HG->GetParameter(1);
+    TOT2LG_Conversion[ichip] = Linear_fit_TOT2LG->GetParameter(1);
+
+    sprintf(pltTit,"LG_Chip%d",ichip);
+    Plot.TGraphPlotSetting(*gl[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+
+    sprintf(pltTit,"TOT_Chip%d",ichip);
+    Plot.TGraphPlotSetting(*gtot[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+    
+    sprintf(pltTit,"LG2HG_Chip%d",ichip);
+    Plot.TGraphPlotSetting(*LG2HG[ichip], pltTit, Xtit = "LG", Ytit = "HG",
+		      MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+    
+    sprintf(pltTit,"TOT2LG_Chip%d",ichip);
+    Plot.TGraphPlotSetting(*TOT2LG[ichip], pltTit, Xtit = "TOT", Ytit = "LG",
+		      MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+  }
 }
+
+
+
+//****************************************************************************************************//
+//                                        PlotProducer                                                //
+//****************************************************************************************************//
+
+
+
 
 void makePlots::PlotProducer(){
 
@@ -70,7 +179,7 @@ void makePlots::PlotProducer(){
   int ADC_H_ConnectedCh[NformatCH][Nevents],ADC_L_ConnectedCh[NformatCH][Nevents], TOT_ConnectedCh[NformatCH][Nevents];
   int ADC_H_AllCh[NCHANNEL][Nevents], ADC_L_AllCh[NCHANNEL][Nevents], TOT_AllCh[NCHANNEL][Nevents];
   int ADC_H_NoisyChannel[Nevents];
-  double ADC_L_InjCh_Chip_double[NCHIP][Nevents], Ratio_L_FirstRing_InjCh[NCHIP][event];
+  double ADC_L_InjCh_Chip_double[NCHIP][Nevents], Ratio_L_FirstRing_InjCh[NCHIP][event], ADC_H_InjCh_Chip_double[NCHIP][Nevents], Ratio_H_FirstRing_InjCh[NCHIP][event];
   int dac_ctrl[Nevents];
   int cross_ch_chip[cross_num][NCHIP];
   bool cross_type_chip[cross_num][NCHIP];
@@ -121,11 +230,6 @@ void makePlots::PlotProducer(){
     }
   }
     
-    
-
-
-
-
   
   //==================== Loop over the events ====================
    
@@ -148,6 +252,7 @@ void makePlots::PlotProducer(){
 
     ADC_H_InjCh_Chip[chip][event] = hg[MaxTS_sca][Inj_ch];
     ADC_L_InjCh_Chip[chip][event] = lg[MaxTS_sca][Inj_ch];
+    ADC_H_InjCh_Chip_double[chip][event] = ( hg[MaxTS_sca][Inj_ch] - hg[TS0_sca][Inj_ch] );
     ADC_L_InjCh_Chip_double[chip][event] = ( lg[MaxTS_sca][Inj_ch] - lg[TS0_sca][Inj_ch] );
 	
     for(int ch = 0; ch < 32; ch++){
@@ -167,6 +272,7 @@ void makePlots::PlotProducer(){
       ADC_L_FirstRing[chip][event] += (lg[MaxTS_sca][cross_ch_chip[chip][icross]] - lg[TS0_sca][cross_ch_chip[chip][icross]]);
     }
     Ratio_L_FirstRing_InjCh[chip][event] = ADC_L_FirstRing[chip][event]/(ADC_L_InjCh_Chip_double[chip][event]+ADC_L_FirstRing[chip][event]);
+    Ratio_H_FirstRing_InjCh[chip][event] = ADC_H_FirstRing[chip][event]/(ADC_H_InjCh_Chip_double[chip][event]+ADC_H_FirstRing[chip][event]);
 	
 
     // Filling tot, toa data (without SCA)
@@ -187,15 +293,10 @@ void makePlots::PlotProducer(){
 
   // Define Plotting Paramter
   
-  char plot_title[200], leg[50], img_title[50];
-  //  sprintf(title,"plots/TBHexaboard/module%d",ModuleNumber);
-  sprintf(title,"plots/NTU_Inj_Data/Injch_%d",Inj_ch);
-  string plotfolder_path(title);
-
-  TCanvas* c1 = new TCanvas();
-  //TCanvas* c2 = new TCanvas("c2","c2",6400,3600);
-  //c2->Divide(8,8);
-  gStyle->SetOptStat(0);
+  char pltTit[200], leg[50], img_title[50];
+  string Xtit, Ytit, Opt;
+  int MkSty, MkClr, MkSize, LClr, LWid, fitmin, fitmax;
+  bool Stat, Wait, SavePlot;
 
 
   // Define Fitting Parameter
@@ -204,7 +305,6 @@ void makePlots::PlotProducer(){
   double slope_h_Uncnct[NformatCH], slope_l_Uncnct[NformatCH], slope_tot_Uncnct[NformatCH];
   double slope_h_InjCh, slope_l_InjCh, slope_h_chip[NCHIP], slope_l_chip[NCHIP];
   double CnctID[NformatCH], UncnctID[NformatCH];
-  int fitmin, fitmax;
   
 
   for(int ch = 0; ch < NformatCH; ch++){
@@ -236,8 +336,8 @@ void makePlots::PlotProducer(){
   TGraph* gnoisy_h = new TGraph(Nevents,dac_ctrl,ADC_H_NoisyChannel);
   TGraph* gcorrelation_l = new TGraph(Nevents,ADC_L_InjCh,ADC_H_Cross[0]);
   TGraph** gratioRing1_Injch_l = new TGraph*[NCHIP];
-  //TMultiGraph* multig_cross_h = new TMultiGraph();
-  //TMultiGraph* multig_cross_l = new TMultiGraph();
+  TMultiGraph* multig_cross_h = new TMultiGraph();
+  TMultiGraph* multig_cross_l = new TMultiGraph();
   TMultiGraph* multig_InjCh_Chip_h = new TMultiGraph();
   TMultiGraph* multig_InjCh_Chip_l = new TMultiGraph();
   TMultiGraph* multig_InjCh_Chip_hltot = new TMultiGraph();
@@ -248,36 +348,31 @@ void makePlots::PlotProducer(){
 
 
   // ------------------------------ Fit ------------------------------ //
+
+  // UnconnectedCh
   
   for(int ch = 0; ch < NformatCH; ch++){    
 
     fitmin = 1300;
     fitmax = 3300;    
-    c1->cd();
+
     gh_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_H_AllCh[ch*2+1]);
-    sprintf(plot_title,"HG %d",ch);
-    gh_UnConnectedCh[ch]->SetTitle(plot_title);
-    gh_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gh_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gh_UnConnectedCh[ch]->SetMarkerStyle(7);
     gh_UnConnectedCh[ch]->Fit("pol1","","",1300,3300);
+    sprintf(pltTit,"HG_%d",ch);
+    Plot.TGraphPlotSetting(*gh_UnConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
     gl_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_L_AllCh[ch*2+1]);
-    sprintf(plot_title,"HG %d",ch);
-    gl_UnConnectedCh[ch]->SetTitle(plot_title);
-    gl_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gl_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gl_UnConnectedCh[ch]->SetMarkerStyle(7);
     gl_UnConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+    sprintf(pltTit,"LG_%d",ch);
+    Plot.TGraphPlotSetting(*gl_UnConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
     gtot_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,TOT_AllCh[ch*2+1]);
-    sprintf(plot_title,"HG %d",ch);
-    gtot_UnConnectedCh[ch]->SetTitle(plot_title);
-    gtot_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gtot_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gtot_UnConnectedCh[ch]->SetMarkerStyle(7);
     gtot_UnConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
-
+    sprintf(pltTit,"TOT_%d",ch);
+    Plot.TGraphPlotSetting(*gtot_UnConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
     TF1* Linear_fit_h_Uncnct = gh_UnConnectedCh[ch]->GetFunction("pol1");
     TF1* Linear_fit_l_Uncnct = gl_UnConnectedCh[ch]->GetFunction("pol1");
@@ -287,68 +382,44 @@ void makePlots::PlotProducer(){
     slope_tot_Uncnct[ch] = Linear_fit_h_Uncnct->GetParameter(1);
 
     if(ch%50==0){
-      sprintf(plot_title,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
-      gh_UnConnectedCh[ch]->SetTitle(plot_title);
-      gh_UnConnectedCh[ch]->Draw("AL");
-      c1->Update();
-      sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-      c1->SaveAs(title);
+      sprintf(pltTit,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
+      Plot.TGraphPlotSetting(*gh_UnConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
     }
   }
   
+  //...Slope vs Uncnct Channel
+  
   gh_Uncnct_Slope = new TGraph(NformatCH,UncnctID,slope_h_Uncnct);
-  multig_AllCh_Slope->Add(gh_Uncnct_Slope);
-  gh_Uncnct_Slope->SetMarkerStyle(22);
-  gh_Uncnct_Slope->SetMarkerColor(kRed);
-  sprintf(plot_title,"UnconnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
-  gh_Uncnct_Slope->SetTitle(plot_title);
-  gh_Uncnct_Slope->Draw("AP");
-  c1->Update();
-  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  c1->SaveAs(title);
-  //gPad->WaitPrimitive();
+  sprintf(pltTit,"UnconnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
+  Plot.TGraphPlotSetting(*gh_Uncnct_Slope, pltTit, Xtit = "CH", Ytit = "P1",
+		    MkSty = 22, MkClr = 2, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
+
+  //... ConnectedCh
 
   for(int ch = 0; ch < NformatCH; ch++){
     fitmin = 1000;
     fitmax = 4000;
-    c1->cd();
-    gh_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_H_ConnectedCh[ch]);
-    sprintf(plot_title,"HG %d",ch);
-    gh_ConnectedCh[ch]->SetTitle(plot_title);
-    gh_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gh_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gh_ConnectedCh[ch]->SetMarkerStyle(7);
+    
+    gh_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_H_AllCh[ch*2]);
     gh_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
-    gh_ConnectedCh[ch]->Draw("AL");
-    c1->Update();
-    //gPad->WaitPrimitive();
-    //gh_ConnectedCh[ch]->Fit("pol1");
-    //gh_ConnectedCh[ch]->Draw("AP");
-    
-    gl_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_L_ConnectedCh[ch]);
-    sprintf(plot_title,"LG ch = %d",ch);
-    gl_ConnectedCh[ch]->SetTitle(plot_title);
-    //gl_ConnectedCh[ch]->GetYaxis()->SetRangeUser(0,1500);
-    gl_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gl_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gl_ConnectedCh[ch]->SetMarkerStyle(7);
-    gl_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
-    //gl_ConnectedCh[ch]->Fit("pol1");
-    gl_ConnectedCh[ch]->Draw("AL");
+    sprintf(pltTit,"HG_%d",ch);
+    Plot.TGraphPlotSetting(*gh_ConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
-    gtot_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,TOT_ConnectedCh[ch]);
-    sprintf(plot_title,"tot ch = %d",ch);
-    gtot_ConnectedCh[ch]->SetTitle(plot_title);
-    //gtot_ConnectedCh[ch]->GetYaxis()->SetRangeUser(0,1500);
-    gtot_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gtot_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gtot_ConnectedCh[ch]->SetMarkerStyle(7);
-    //gtot_ConnectedCh[ch]->Fit("pol1","","",1000,4000);
-    gtot_ConnectedCh[ch]->Fit("pol1");
-    gtot_ConnectedCh[ch]->Draw("AL");
-    
-    
+    gl_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_L_AllCh[ch*2]);
+    gl_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+    sprintf(pltTit,"LG_%d",ch);
+    Plot.TGraphPlotSetting(*gl_ConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+
+    gtot_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,TOT_AllCh[ch*2]);
+    gtot_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+    sprintf(pltTit,"TOT_%d",ch);
+    Plot.TGraphPlotSetting(*gtot_ConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+
     TF1* Linear_fit_h = gh_ConnectedCh[ch]->GetFunction("pol1");
     TF1* Linear_fit_l = gl_ConnectedCh[ch]->GetFunction("pol1");
     TF1* Linear_fit_tot = gtot_ConnectedCh[ch]->GetFunction("pol1");
@@ -359,63 +430,46 @@ void makePlots::PlotProducer(){
     CnctID[ch] = ch*2;
 
     if(ch%50==0){
-      sprintf(plot_title,"CnctCh%d_InjCh%d_fit%d-%d",ch*2,Inj_ch,fitmin,fitmax);
-      gh_ConnectedCh[ch]->SetTitle(plot_title);
-      gh_ConnectedCh[ch]->Draw("AL");
-      c1->Update();
-      sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-      c1->SaveAs(title);
+      sprintf(pltTit,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
+      Plot.TGraphPlotSetting(*gh_ConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
     }
   }
+
+  //...Slope vs cnct Channel
+  
   gh_Cnct_Slope = new TGraph(NformatCH,CnctID,slope_h);
-  multig_AllCh_Slope->Add(gh_Cnct_Slope);      
-  gh_Cnct_Slope->SetMarkerStyle(22);
-  gh_Cnct_Slope->SetMarkerColor(kBlue);
-  sprintf(plot_title,"ConnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
-  gh_Cnct_Slope->SetTitle(plot_title);
-  gh_Cnct_Slope->Draw("AP");
-  c1->Update();
-  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  c1->SaveAs(title);
-  //gPad->WaitPrimitive();
-
-  multig_AllCh_Slope->Draw("AP");
-  c1->Update();
-  //gPad->WaitPrimitive();
-  //multig_AllCh_Slope->SetMarkerStyle(7);
+  sprintf(pltTit,"ConnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
+  Plot.TGraphPlotSetting(*gh_Cnct_Slope, pltTit, Xtit = "Ch", Ytit = "P1",
+		    MkSty = 22, MkClr = 3, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
 
-  //------------------------------ Change fitting Range ------------------------------//                               
+  //------------------------------ Change fitting Range ------------------------------//
 
-    for(int ch = 0; ch < NformatCH; ch++){    
+  //... UnconncetedCh
+
+  for(int ch = 0; ch < NformatCH; ch++){    
 
     fitmin = 3300;
     fitmax = 4000;    
-    c1->cd();
+
     gh_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_H_AllCh[ch*2+1]);
-    sprintf(plot_title,"HG %d",ch);
-    gh_UnConnectedCh[ch]->SetTitle(plot_title);
-    gh_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gh_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gh_UnConnectedCh[ch]->SetMarkerStyle(7);
-    gh_UnConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+    gh_UnConnectedCh[ch]->Fit("pol1","","",1300,3300);
+    sprintf(pltTit,"HG_%d",ch);
+    Plot.TGraphPlotSetting(*gh_UnConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
     gl_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_L_AllCh[ch*2+1]);
-    sprintf(plot_title,"HG %d",ch);
-    gl_UnConnectedCh[ch]->SetTitle(plot_title);
-    gl_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gl_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gl_UnConnectedCh[ch]->SetMarkerStyle(7);
     gl_UnConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+    sprintf(pltTit,"LG_%d",ch);
+    Plot.TGraphPlotSetting(*gl_UnConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
     gtot_UnConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,TOT_AllCh[ch*2+1]);
-    sprintf(plot_title,"HG %d",ch);
-    gtot_UnConnectedCh[ch]->SetTitle(plot_title);
-    gtot_UnConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gtot_UnConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gtot_UnConnectedCh[ch]->SetMarkerStyle(7);
     gtot_UnConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
-
+    sprintf(pltTit,"TOT_%d",ch);
+    Plot.TGraphPlotSetting(*gtot_UnConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
     TF1* Linear_fit_h_Uncnct = gh_UnConnectedCh[ch]->GetFunction("pol1");
     TF1* Linear_fit_l_Uncnct = gl_UnConnectedCh[ch]->GetFunction("pol1");
@@ -423,74 +477,45 @@ void makePlots::PlotProducer(){
     slope_h_Uncnct[ch] = Linear_fit_h_Uncnct->GetParameter(1);
     slope_l_Uncnct[ch] = Linear_fit_h_Uncnct->GetParameter(1);
     slope_tot_Uncnct[ch] = Linear_fit_h_Uncnct->GetParameter(1);
-    gh_UnConnectedCh[ch]->Draw("AL");
-    c1->Update();
-    //gPad->WaitPrimitive();
 
     if(ch%50==0){
-      sprintf(plot_title,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
-      gh_UnConnectedCh[ch]->SetTitle(plot_title);
-      gh_UnConnectedCh[ch]->Draw("AL");
-      c1->Update();
-      sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-      c1->SaveAs(title);
+      sprintf(pltTit,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
+      Plot.TGraphPlotSetting(*gh_UnConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
     }
   }
-      
-  gh_Uncnct_Slope = new TGraph(NformatCH,UncnctID,slope_h_Uncnct);
-  multig_AllCh_Slope->Add(gh_Uncnct_Slope);
-  gh_Uncnct_Slope->SetMarkerStyle(22);
-  gh_Uncnct_Slope->SetMarkerColor(kRed);
-  sprintf(plot_title,"UnconnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
-  gh_Uncnct_Slope->SetTitle(plot_title);
-  gh_Uncnct_Slope->Draw("AP");
-  c1->Update();
-  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  c1->SaveAs(title);
-  //gPad->WaitPrimitive();
 
+  //...Slope vs Uncnct Channel
+  
+  gh_Uncnct_Slope = new TGraph(NformatCH,UncnctID,slope_h_Uncnct);
+  sprintf(pltTit,"UnconnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
+  Plot.TGraphPlotSetting(*gh_Uncnct_Slope, pltTit, Xtit = "CH", Ytit = "P1",
+		    MkSty = 22, MkClr = 2, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+
+  //...ConnectedCh
 
   for(int ch = 0; ch < NformatCH; ch++){
-
     fitmin = 0;
     fitmax = 1000;
-    c1->cd();
-    gh_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_H_ConnectedCh[ch]);
-    sprintf(plot_title,"HG %d",ch);
-    gh_ConnectedCh[ch]->SetTitle(plot_title);
-    gh_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gh_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gh_ConnectedCh[ch]->SetMarkerStyle(7);
+    
+    gh_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_H_AllCh[ch*2]);
     gh_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
-    gh_ConnectedCh[ch]->Draw("AL");
-    c1->Update();
-    //gPad->WaitPrimitive();
-    //gh_ConnectedCh[ch]->Fit("pol1");
-    //gh_ConnectedCh[ch]->Draw("AP");
-    
-    gl_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_L_ConnectedCh[ch]);
-    sprintf(plot_title,"LG ch = %d",ch);
-    gl_ConnectedCh[ch]->SetTitle(plot_title);
-    //gl_ConnectedCh[ch]->GetYaxis()->SetRangeUser(0,1500);
-    gl_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gl_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gl_ConnectedCh[ch]->SetMarkerStyle(7);
-    gl_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
-    //gl_ConnectedCh[ch]->Fit("pol1");
-    gl_ConnectedCh[ch]->Draw("AL");
+    sprintf(pltTit,"HG_%d",ch);
+    Plot.TGraphPlotSetting(*gh_ConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
-    gtot_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,TOT_ConnectedCh[ch]);
-    sprintf(plot_title,"tot ch = %d",ch);
-    gtot_ConnectedCh[ch]->SetTitle(plot_title);
-    //gtot_ConnectedCh[ch]->GetYaxis()->SetRangeUser(0,1500);
-    gtot_ConnectedCh[ch]->GetXaxis()->SetTitle("DAC");
-    gtot_ConnectedCh[ch]->GetYaxis()->SetTitle("ADC");
-    gtot_ConnectedCh[ch]->SetMarkerStyle(7);
-    //gtot_ConnectedCh[ch]->Fit("pol1","","",1000,4000);
-    gtot_ConnectedCh[ch]->Fit("pol1");
-    gtot_ConnectedCh[ch]->Draw("AL");
-    
-    
+    gl_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,ADC_L_AllCh[ch*2]);
+    gl_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+    sprintf(pltTit,"LG_%d",ch);
+    Plot.TGraphPlotSetting(*gl_ConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+
+    gtot_ConnectedCh[ch] = new TGraph(Nevents,dac_ctrl,TOT_AllCh[ch*2]);
+    gtot_ConnectedCh[ch]->Fit("pol1","","",fitmin,fitmax);
+    sprintf(pltTit,"TOT_%d",ch);
+    Plot.TGraphPlotSetting(*gtot_ConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+
     TF1* Linear_fit_h = gh_ConnectedCh[ch]->GetFunction("pol1");
     TF1* Linear_fit_l = gl_ConnectedCh[ch]->GetFunction("pol1");
     TF1* Linear_fit_tot = gtot_ConnectedCh[ch]->GetFunction("pol1");
@@ -499,185 +524,94 @@ void makePlots::PlotProducer(){
     slope_tot[ch] = Linear_fit_tot->GetParameter(1);
 
     CnctID[ch] = ch*2;
+
     if(ch%50==0){
-      sprintf(plot_title,"CnctCh%d_InjCh%d_fit%d-%d",ch*2,Inj_ch,fitmin,fitmax);
-      gh_ConnectedCh[ch]->SetTitle(plot_title);
-      gh_ConnectedCh[ch]->Draw("AL");
-      c1->Update();
-      sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-      c1->SaveAs(title);
+      sprintf(pltTit,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
+      Plot.TGraphPlotSetting(*gh_ConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
+			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
     }
   }
+
+  //...Slope vs cnct Channel
   
   gh_Cnct_Slope = new TGraph(NformatCH,CnctID,slope_h);
-  multig_AllCh_Slope->Add(gh_Cnct_Slope);      
-  gh_Cnct_Slope->SetMarkerStyle(22);
-  gh_Cnct_Slope->SetMarkerColor(kBlue);
-  sprintf(plot_title,"ConnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
-  gh_Cnct_Slope->SetTitle(plot_title);
-  gh_Cnct_Slope->Draw("AP");
-  c1->Update();
-  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  c1->SaveAs(title);
-  //gPad->WaitPrimitive();
-
-  multig_AllCh_Slope->Draw("AP");
-  c1->Update();
-  //gPad->WaitPrimitive();
-  //multig_AllCh_Slope->SetMarkerStyle(7);
+  sprintf(pltTit,"ConnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
+  Plot.TGraphPlotSetting(*gh_Cnct_Slope, pltTit, Xtit = "Ch", Ytit = "P1",
+		    MkSty = 22, MkClr = 3, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
   
 
+  
 
   // ------------------------------ Plot HG_LG_TOT for Inj_ch all chip ------------------------------ //
 
   gh->Fit("pol1","","",0,200);
   TF1* Linear_fit_h_InjCh = gh->GetFunction("pol1");
   slope_h_InjCh = Linear_fit_h_InjCh->GetParameter(1);
-  sprintf(plot_title,"Inj_CH_AllChip_Channel%dTS%d_HG",Inj_ch,MaxTS);
-  gh->SetTitle(plot_title);
-  gh->GetXaxis()->SetTitle("DAC");
-  gh->GetYaxis()->SetTitle("ADC");
-  gh->SetMarkerStyle(7);
-  gh->Draw("AP");
-  c1->Update();
-  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  c1->SaveAs(title);
-  //gPad->WaitPrimitive();
-
+  sprintf(pltTit,"Inj_CH_AllChip_Channel%dTS%d_HG",Inj_ch,MaxTS);
+  Plot.TGraphPlotSetting(*gh, pltTit, Xtit = "DAC", Ytit = "ADC",
+		    MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
   
   gl->Fit("pol1","","",0,500);
   TF1* Linear_fit_l_InjCh = gl->GetFunction("pol1");
   slope_l_InjCh = Linear_fit_l_InjCh->GetParameter(1);
-  sprintf(plot_title,"Inj_CH_AllChip_Channel%dTS%d_LG",Inj_ch,MaxTS);
-  gl->SetTitle(plot_title);
-  gl->GetXaxis()->SetTitle("DAC");
-  gl->GetYaxis()->SetTitle("ADC");
-  gl->SetMarkerStyle(7);
-  gl->Draw("AP");
-  c1->Update();
-  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  c1->SaveAs(title);
-  //gPad->WaitPrimitive();
+  sprintf(pltTit,"Inj_CH_AllChip_Channel%dTS%d_LG",Inj_ch,MaxTS);
+  Plot.TGraphPlotSetting(*gl, pltTit, Xtit = "DAC", Ytit = "ADC",
+		    MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);  
 
-  sprintf(plot_title,"Low Gain correlation");
-  gcorrelation_l->SetTitle(plot_title);
-  gcorrelation_l->GetXaxis()->SetTitle("CH2");
-  gcorrelation_l->GetYaxis()->SetTitle("CH0");
-  gcorrelation_l->SetMarkerStyle(7);
-  gcorrelation_l->Draw("AP");
-  c1->Update();
-  //gPad->WaitPrimitive();
-
-
-  //... Plotting HG_LG_TOT for Inj_ch per chip ...
+  //------------------------------ Plotting HG_LG_TOT for Inj_ch per chip ------------------------------ //
+  
   TLegend *legend = new TLegend(0.7,0.4,0.85,0.6);
   for(int ichip = 0; ichip < NCHIP; ichip++){
     gh_chip[ichip] = new TGraph(Nevents,dac_ctrl,ADC_H_InjCh_Chip[ichip]);
-    sprintf(plot_title,"Chip%d",ichip);
-    gh_chip[ichip]->SetTitle(plot_title);
-    gh_chip[ichip]->GetXaxis()->SetTitle("DAC");
-    gh_chip[ichip]->GetYaxis()->SetTitle("ADC");
-    gh_chip[ichip]->SetMarkerStyle(24);
-    gh_chip[ichip]->SetMarkerColor(1+ichip);
-    gh_chip[ichip]->SetLineColor(1+ichip);
-    gh_chip[ichip]->SetLineWidth(4);
-    gh_chip[ichip]->SetMarkerSize(0.5);
-    gh_chip[ichip]->Fit("pol1","","",0,500);
+    sprintf(pltTit,"Chip%d",ichip);
+    Plot.TGraphPlotSetting(*gh_chip[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 24, MkClr = 1+ichip, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+    
     gl_chip[ichip] = new TGraph(Nevents,dac_ctrl,ADC_L_InjCh_Chip[ichip]);
-    sprintf(plot_title,"Chip%d",ichip);
-    gl_chip[ichip]->SetTitle(plot_title);
-    gl_chip[ichip]->GetXaxis()->SetTitle("DAC");
-    gl_chip[ichip]->GetYaxis()->SetTitle("ADC");
-    gl_chip[ichip]->SetMarkerStyle(25);
-    gl_chip[ichip]->SetMarkerColor(1+ichip);
-    gl_chip[ichip]->SetLineColor(1+ichip);
-    gl_chip[ichip]->SetLineWidth(4);
-    gl_chip[ichip]->SetMarkerSize(0.5);
-    gl_chip[ichip]->Fit("pol1","","",0,500);
+    sprintf(pltTit,"Chip%d",ichip);
+    Plot.TGraphPlotSetting(*gl_chip[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 24, MkClr = 1+ichip, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+
     gtot_chip[ichip] = new TGraph(Nevents,dac_ctrl,TOT_InjCh_Chip[ichip]);
-    sprintf(plot_title,"Chip%d",ichip);
-    gtot_chip[ichip]->SetTitle(plot_title);
-    gtot_chip[ichip]->GetXaxis()->SetTitle("DAC");
-    gtot_chip[ichip]->GetYaxis()->SetTitle("ADC");
-    gtot_chip[ichip]->SetMarkerStyle(26);
-    gtot_chip[ichip]->SetMarkerColor(1+ichip);
-    gtot_chip[ichip]->SetLineColor(1+ichip);
-    gtot_chip[ichip]->SetLineWidth(4);
-    gtot_chip[ichip]->SetMarkerSize(0.5);
+    sprintf(pltTit,"Chip%d",ichip);
+    Plot.TGraphPlotSetting(*gtot_chip[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
+		      MkSty = 24, MkClr = 1+ichip, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
 
-
-    multig_InjCh_Chip_h->Add(gh_chip[ichip]);
-    multig_InjCh_Chip_l->Add(gl_chip[ichip]);
     multig_InjCh_Chip_hltot->Add(gh_chip[ichip]);
     multig_InjCh_Chip_hltot->Add(gl_chip[ichip]);
     multig_InjCh_Chip_hltot->Add(gtot_chip[ichip]);
-
-    legend->AddEntry(gh_chip[ichip],plot_title,"L");
-    
-    TF1* Linear_fit_h_InjCh_Chip = gh_chip[ichip]->GetFunction("pol1");
-    TF1* Linear_fit_l_InjCh_Chip = gl_chip[ichip]->GetFunction("pol1");
-    slope_h_chip[ichip] = Linear_fit_h_InjCh_Chip->GetParameter(1);
-    slope_l_chip[ichip] = Linear_fit_l_InjCh_Chip->GetParameter(1); 
+    legend->AddEntry(gh_chip[ichip],pltTit,"L");    
   }
+
+  sprintf(pltTit,"HG_LG_TOT_InjCh%d",Inj_ch);
+  Plot.TMultiGraphPlotSetting(*multig_InjCh_Chip_hltot, *legend, pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+
+
   
-  sprintf(plot_title,"HG_LG_TOT_InjCh%d",Inj_ch);
-  multig_InjCh_Chip_hltot->SetTitle(plot_title);
-  multig_InjCh_Chip_hltot->Draw("AP");
-  multig_InjCh_Chip_hltot->GetXaxis()->SetTitle("DAC");
-  multig_InjCh_Chip_hltot->GetYaxis()->SetTitle("ADC");
-  legend->Draw();
-  c1->Update();
-  //gPad->WaitPrimitive();
-  sprintf(title,"%s/%s.png",plotfolder_path.c_str(),plot_title);
-  c1->SaveAs(title);
-
-
-
-  //... Plotting the First Ring around the Inj_Ch ...
-  TMultiGraph* multig_cross_h = new TMultiGraph();
-  TMultiGraph* multig_cross_l = new TMultiGraph();
+  //-------------------- Plotting the First Ring around the Inj_Ch -------------------- //
+  
+  TLegend *legendl = new TLegend(0.1,0.7,0.3,0.9);
+  TLegend *legendh = new TLegend(0.1,0.7,0.3,0.9);
   for(int ichip = 0; ichip < NCHIP; ichip++){
     for(int cross_n = 0; cross_n < cross_num; cross_n++){
-      if(cross_type_chip[cross_n][ichip] == false) break;
-      gcross_h[cross_n] = new TGraph(Nevents,dac_ctrl,ADC_H_Cross_Chip[ichip][cross_n]);
-      gcross_l[cross_n] = new TGraph(Nevents,dac_ctrl,ADC_L_Cross_Chip[ichip][cross_n]);
-      sprintf(plot_title,"CH %d High Gain",cross_ch_chip[cross_n][ichip]);
-      gcross_h[cross_n]->SetTitle(plot_title);
-      gcross_h[cross_n]->GetXaxis()->SetTitle("DAC");
-      gcross_h[cross_n]->GetYaxis()->SetTitle("ADC");
-      gcross_h[cross_n]->SetMarkerStyle(26);
-      gcross_h[cross_n]->SetMarkerSize(0.4);
-      gcross_h[cross_n]->SetMarkerColor(cross_n+1);
-      gcross_h[cross_n]->Draw("AP");
-      c1->Update();
-       //gPad->WaitPrimitive();
-      
-      sprintf(plot_title,"CH %d Low Gain",cross_ch_chip[cross_n][ichip]);
-      gcross_l[cross_n]->SetTitle(plot_title);
-      gcross_l[cross_n]->GetXaxis()->SetTitle("DAC");
-      gcross_l[cross_n]->GetYaxis()->SetTitle("ADC");
-      gcross_l[cross_n]->SetMarkerSize(0.4);
-      gcross_l[cross_n]->SetMarkerStyle(26);
-      gcross_l[cross_n]->SetMarkerColor(cross_n+1);
-      gcross_l[cross_n]->Draw("AP");      
-      c1->Update();
-      //gPad->WaitPrimitive();
-      multig_cross_h->Add(gcross_h[cross_n]);
-      multig_cross_l->Add(gcross_l[cross_n]);
-    }
-    sprintf(plot_title,"FirstRing_around_Chip%dChannel%dLG",ichip,Inj_ch);
-    multig_cross_l->SetTitle(plot_title);
-    multig_cross_l->Draw("AP");
-    multig_cross_l->GetXaxis()->SetTitle("DAC");
-    multig_cross_l->GetYaxis()->SetTitle("ADC");
-    c1->BuildLegend(0.1,0.7,0.3,0.9);
-    c1->Update();
-    sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-    //c1->SaveAs(title);
-    //gPad->WaitPrimitive();
+      if(cross_type_chip[cross_n][ichip] == true){
+	gcross_h[cross_n] = new TGraph(Nevents,dac_ctrl,ADC_H_Cross_Chip[ichip][cross_n]);
+	sprintf(pltTit,"CH %d High Gain",cross_ch_chip[cross_n][ichip]);
+	Plot.TGraphPlotSetting(*gcross_h[cross_n], pltTit, Xtit = "DAC", Ytit = "ADC",
+			  MkSty = 26, MkClr = cross_n+1, MkSize = 0.4, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+	legendh->AddEntry(gcross_h[cross_n],pltTit,"L");
+	multig_cross_h->Add(gcross_h[cross_n]);
 
-      //delete multig_cross_h;
-      //delete multig_cross_l;
+	gcross_l[cross_n] = new TGraph(Nevents,dac_ctrl,ADC_L_Cross_Chip[ichip][cross_n]);    
+	sprintf(pltTit,"CH %d Low Gain",cross_ch_chip[cross_n][ichip]);
+	Plot.TGraphPlotSetting(*gcross_l[cross_n], pltTit, Xtit = "DAC", Ytit = "ADC",
+			  MkSty = 26, MkClr = cross_n+1, MkSize = 0.4, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+	legendl->AddEntry(gcross_l[cross_n],pltTit,"L");    
+	multig_cross_l->Add(gcross_l[cross_n]);
+      }
+    }
+    sprintf(pltTit,"FirstRing_around_Chip%dChannel%dLG",ichip,Inj_ch);
+    Plot.TMultiGraphPlotSetting(*multig_cross_l, *legendl, pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
   }
   
 
@@ -685,16 +619,10 @@ void makePlots::PlotProducer(){
 
   for(int ichip = 0; ichip < NCHIP; ichip++){
     gratioRing1_Injch_l[ichip] = new TGraph(Nevents,ADC_L_InjCh_Chip_double[ichip],Ratio_L_FirstRing_InjCh[ichip]);
-    sprintf(plot_title,"Ratio_Ring1vsInjch%d_chip%d_L",Inj_ch,ichip);
-    gratioRing1_Injch_l[ichip]->SetTitle(plot_title);
-    gratioRing1_Injch_l[ichip]->GetXaxis()->SetTitle("LG_ADC");
+    sprintf(pltTit,"Ratio_Ring1vsInjch%d_chip%d_L",Inj_ch,ichip);
     gratioRing1_Injch_l[ichip]->GetYaxis()->SetRangeUser(-0.1,0.1);
-    gratioRing1_Injch_l[ichip]->GetYaxis()->SetTitle("EFirstRing/ETotal");
-    gratioRing1_Injch_l[ichip]->SetMarkerStyle(7);
-    gratioRing1_Injch_l[ichip]->Draw("AP");
-    c1->Update();
-    sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-    c1->SaveAs(title);
+    Plot.TGraphPlotSetting(*gratioRing1_Injch_l[ichip], pltTit, Xtit = "LG_ADC", Ytit = "EFirstRing/ETotal",
+			  MkSty = 26, MkClr = 1, MkSize = 0.4, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
   }
   
 
@@ -730,55 +658,16 @@ void makePlots::PlotProducer(){
       }
     }
   }
-  //  gStyle->SetPalette(58);
-  
-   
-  sprintf(plot_title,"Slope_HG_TS%dvsInjdac,Inj_ch=%d",MaxTS,Inj_ch);
-  polyh->SetTitle(plot_title);
-  polyh->Draw("colztext");
+  sprintf(pltTit,"Slope_HG_TS%dvsInjdac,Inj_ch=%d",MaxTS,Inj_ch);
   polyh->SetMaximum(0.2);
-  polyInj->SetMaximum(1);
-  polyInj->Draw("col0Same");
+  Plot.TH2PolyPlotSetting(*polyh, pltTit, Xtit = "X[cm]", Ytit = "Y[cm]", Opt = "colztext", Stat = 0, Wait = 0, SavePlot = 0); 
 
-  //  TExec *ex1 = new TExec("ex1","Pal2();");
-  //ex1->Draw();
-  //polyInj->Draw("col20Same");
-  c1->Update();
-  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  c1->SaveAs(title);
-  //gPad->WaitPrimitive();
-
-  sprintf(plot_title,"Slope_LG_TS%dvsInjdac,Inj_ch=%d",MaxTS,Inj_ch);
-  polyl->SetTitle(plot_title);
-  polyl->Draw("colztext");
+  sprintf(pltTit,"Slope_LG_TS%dvsInjdac,Inj_ch=%d",MaxTS,Inj_ch);
   polyl->SetMaximum(0.05);
-  polyInj->Draw("col0Same");
-  polyInj->SetMaximum(1);
-  c1->Update();
-  sprintf(title,"%s/%s.pdf",plotfolder_path.c_str(),plot_title);
-  c1->SaveAs(title);
-  //gPad->WaitPrimitive();
+  Plot.TH2PolyPlotSetting(*polyl, pltTit, Xtit = "X[cm]", Ytit = "Y[cm]", Opt = "colztext", Stat = 0, Wait = 0, SavePlot = 0); 
 
-  /*
-  InitTH2Poly(*polyh);
-p  InitTH2Poly(*polyl);
-  
-  for(int ch = 0; ch < NformatCH; ch++){
-    float X, Y;
-    X = CHmap[ch].first;
-    Y = CHmap[ch].second;    
-    if(ch%32==Inj_ch/2){
-      polyh->Fill(X,Y,0.8);
-      polyl->Fill(X,Y,0.2);
-    }
-    else {
-      polyh->Fill(X,Y,slope_h[ch]);
-      polyl->Fill(X,Y,slope_l[ch]);
-    }
-  }
-  */
-  
-  delete c1;  
+
+
 }
 
 
@@ -988,6 +877,7 @@ void makePlots::Crosstalk(Int_t ichip, Int_t CH){
     cout << cross_ch[i] << endl;
     cout << cross_type[i] << endl;
   }
+  getchar();
   /*
     TH2Poly *poly = new TH2Poly;
     InitTH2Poly(*poly);
@@ -1127,3 +1017,5 @@ void makePlots::InitTH2Poly(TH2Poly& poly)
   }
   file.close();
 }
+
+
