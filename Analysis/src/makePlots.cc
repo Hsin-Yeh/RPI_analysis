@@ -309,9 +309,6 @@ void makePlots::PlotProducer(){
     for(int ch = 0; ch < NformatCH/NCHIP; ch++){
       TOT_ConnectedCh[ch+chip*32][event] = tot_slow[ch*2];
     }
-
-
-    
   }
   
   //... ==================== End of Loop ==================== ...
@@ -919,7 +916,6 @@ void makePlots::Crosstalk(Int_t ichip, Int_t CH){
     cout << cross_ch[i] << endl;
     cout << cross_type[i] << endl;
   }
-  getchar();
   /*
     TH2Poly *poly = new TH2Poly;
     InitTH2Poly(*poly);
