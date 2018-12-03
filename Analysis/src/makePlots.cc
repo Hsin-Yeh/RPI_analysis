@@ -174,13 +174,16 @@ void makePlots::PlotProducer(){
   
   int ADC_H_InjCh[Nevents], ADC_L_InjCh[Nevents], TOTS_InjCh[Nevents];
   int ADC_H_InjCh_Chip[NCHIP][Nevents], ADC_L_InjCh_Chip[NCHIP][Nevents], TOT_InjCh_Chip[NCHIP][Nevents];
-  int ADC_H_Cross[cross_num][Nevents],ADC_L_Cross[cross_num][Nevents], ADC_H_Cross_Chip[NCHIP][cross_num][Nevents], ADC_L_Cross_Chip[NCHIP][cross_num][Nevents];
-  int ADC_H_FirstRing[NCHIP][Nevents],ADC_L_FirstRing[NCHIP][Nevents];
+  int ADC_H_Cross[cross_num][Nevents], ADC_L_Cross[cross_num][Nevents], ADC_H_Cross_Chip[NCHIP][cross_num][Nevents], ADC_L_Cross_Chip[NCHIP][cross_num][Nevents];
+  int ADC_H_FirstRing[NCHIP][Nevents], ADC_L_FirstRing[NCHIP][Nevents], TOT_FirstRing[NCHIP][Nevents];
   int ADC_H_ConnectedCh[NformatCH][Nevents],ADC_L_ConnectedCh[NformatCH][Nevents], TOT_ConnectedCh[NformatCH][Nevents];
   int ADC_H_AllCh[NCHANNEL][Nevents], ADC_L_AllCh[NCHANNEL][Nevents], TOT_AllCh[NCHANNEL][Nevents];
   int ADC_H_NoisyChannel[Nevents];
+  double InjCh_MIP[NCHIP][Nevents], FirstRing_MIP[NCHIP][Nevents];
+  double Ratio_FirstRing_InjCh[NCHIP][Nevents];
   double ADC_L_InjCh_Chip_double[NCHIP][Nevents], Ratio_L_FirstRing_InjCh[NCHIP][event], ADC_H_InjCh_Chip_double[NCHIP][Nevents], Ratio_H_FirstRing_InjCh[NCHIP][event];
   int dac_ctrl[Nevents];
+  double dac_ctrl_double[Nevents];
   int cross_ch_chip[cross_num][NCHIP];
   bool cross_type_chip[cross_num][NCHIP];
 
@@ -214,7 +217,9 @@ void makePlots::PlotProducer(){
     ADC_L_InjCh[i] = 0;
     dac_ctrl[i] = i;
     for(int ichip = 0; ichip < NCHIP; ichip++){
+      ADC_H_FirstRing[ichip][i] = 0;
       ADC_L_FirstRing[ichip][i] = 0;
+      TOT_FirstRing[ichip][i] = 0;
     }
     for (int cross_n = 0; cross_n < cross_num; cross_n++){
       ADC_H_Cross[cross_n][i] = 0;
@@ -238,6 +243,7 @@ void makePlots::PlotProducer(){
     if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }    
     Chain1 -> GetEntry(entry);
     dac_ctrl[event] = dacinj;
+    dac_ctrl_double[event] = dacinj;
     
     // Filling hg, lg data (with 13 SCA)
     int TS0_sca, MaxTS_sca;
@@ -254,6 +260,19 @@ void makePlots::PlotProducer(){
     ADC_L_InjCh_Chip[chip][event] = lg[MaxTS_sca][Inj_ch];
     ADC_H_InjCh_Chip_double[chip][event] = ( hg[MaxTS_sca][Inj_ch] - hg[TS0_sca][Inj_ch] );
     ADC_L_InjCh_Chip_double[chip][event] = ( lg[MaxTS_sca][Inj_ch] - lg[TS0_sca][Inj_ch] );
+    TOT_InjCh_Chip[chip][event] = tot_slow[Inj_ch];
+
+    if(ADC_H_InjCh_Chip_double[chip][event] < HGTP){
+      InjCh_MIP[chip][event] = ADC_H_InjCh_Chip_double[chip][event]*ADC2MIP;
+    }
+    else{
+      if(ADC_L_InjCh_Chip_double[chip][event] < LGTP){
+	InjCh_MIP[chip][event] = ADC_L_InjCh_Chip_double[chip][event]*LG2HG_Conversion[chip]*ADC2MIP;
+      }
+      else{
+	InjCh_MIP[chip][event] = TOT_InjCh_Chip[chip][event]*TOT2LG_Conversion[chip]*LG2HG_Conversion[chip]*ADC2MIP;
+      }
+    }
 	
     for(int ch = 0; ch < 32; ch++){
       ADC_H_ConnectedCh[ch+chip*32][event] = hg[MaxTS_sca][ch*2]; // Filling all the connected channels
@@ -270,9 +289,20 @@ void makePlots::PlotProducer(){
       ADC_L_Cross_Chip[chip][icross][event] = lg[MaxTS_sca][cross_ch_chip[chip][icross]];
       ADC_H_FirstRing[chip][event] += (hg[MaxTS_sca][cross_ch_chip[chip][icross]] - hg[TS0_sca][cross_ch_chip[chip][icross]]);
       ADC_L_FirstRing[chip][event] += (lg[MaxTS_sca][cross_ch_chip[chip][icross]] - lg[TS0_sca][cross_ch_chip[chip][icross]]);
+      TOT_FirstRing[chip][event] += tot_slow[cross_ch_chip[chip][icross]];
     }
-    Ratio_L_FirstRing_InjCh[chip][event] = ADC_L_FirstRing[chip][event]/(ADC_L_InjCh_Chip_double[chip][event]+ADC_L_FirstRing[chip][event]);
-    Ratio_H_FirstRing_InjCh[chip][event] = ADC_H_FirstRing[chip][event]/(ADC_H_InjCh_Chip_double[chip][event]+ADC_H_FirstRing[chip][event]);
+    if(ADC_H_InjCh_Chip_double[chip][event] < HGTP){
+      FirstRing_MIP[chip][event] = ADC_H_FirstRing[chip][event]*ADC2MIP;
+    }
+    else{
+      if(ADC_L_InjCh_Chip_double[chip][event] < LGTP){
+	FirstRing_MIP[chip][event] = ADC_L_FirstRing[chip][event]*LG2HG_Conversion[chip]*ADC2MIP;
+      }
+      else{
+	FirstRing_MIP[chip][event] = TOT_FirstRing[chip][event]*TOT2LG_Conversion[chip]*LG2HG_Conversion[chip]*ADC2MIP;
+      }
+    }
+    Ratio_FirstRing_InjCh[chip][event] = FirstRing_MIP[chip][event]/(InjCh_MIP[chip][event] + FirstRing_MIP[chip][event]);
 	
 
     // Filling tot, toa data (without SCA)
@@ -280,7 +310,7 @@ void makePlots::PlotProducer(){
       TOT_ConnectedCh[ch+chip*32][event] = tot_slow[ch*2];
     }
 
-    TOT_InjCh_Chip[chip][event] = tot_slow[Inj_ch];
+
     
   }
   
@@ -336,6 +366,7 @@ void makePlots::PlotProducer(){
   TGraph* gnoisy_h = new TGraph(Nevents,dac_ctrl,ADC_H_NoisyChannel);
   TGraph* gcorrelation_l = new TGraph(Nevents,ADC_L_InjCh,ADC_H_Cross[0]);
   TGraph** gratioRing1_Injch_l = new TGraph*[NCHIP];
+  TGraph** gInjch_mip = new TGraph*[NCHIP];
   TMultiGraph* multig_cross_h = new TMultiGraph();
   TMultiGraph* multig_cross_l = new TMultiGraph();
   TMultiGraph* multig_InjCh_Chip_h = new TMultiGraph();
@@ -613,15 +644,24 @@ void makePlots::PlotProducer(){
     sprintf(pltTit,"FirstRing_around_Chip%dChannel%dLG",ichip,Inj_ch);
     Plot.TMultiGraphPlotSetting(*multig_cross_l, *legendl, pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
   }
+
+  // ------------------------------ MIP Conversion Plot ------------------------------ //
+
+  
   
 
   // ------------------------------ Cross Talk Ratio ------------------------------ //
 
   for(int ichip = 0; ichip < NCHIP; ichip++){
-    gratioRing1_Injch_l[ichip] = new TGraph(Nevents,ADC_L_InjCh_Chip_double[ichip],Ratio_L_FirstRing_InjCh[ichip]);
-    sprintf(pltTit,"Ratio_Ring1vsInjch%d_chip%d_L",Inj_ch,ichip);
-    gratioRing1_Injch_l[ichip]->GetYaxis()->SetRangeUser(-0.1,0.1);
-    Plot.TGraphPlotSetting(*gratioRing1_Injch_l[ichip], pltTit, Xtit = "LG_ADC", Ytit = "EFirstRing/ETotal",
+    gInjch_mip[ichip] = new TGraph(Nevents,dac_ctrl_double,InjCh_MIP[ichip]);
+    sprintf(pltTit,"InjCh%d_chip%d_MIP",Inj_ch,ichip);
+    Plot.TGraphPlotSetting(*gInjch_mip[ichip], pltTit, Xtit = "DAC", Ytit = "MIP",
+			  MkSty = 26, MkClr = 1, MkSize = 0.4, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+    
+    gratioRing1_Injch_l[ichip] = new TGraph(Nevents,InjCh_MIP[ichip],Ratio_FirstRing_InjCh[ichip]);
+    sprintf(pltTit,"Ratio_Ring1vsInjch%d_chip%d",Inj_ch,ichip);
+    gratioRing1_Injch_l[ichip]->GetYaxis()->SetRangeUser(-0.2,0.2);
+    Plot.TGraphPlotSetting(*gratioRing1_Injch_l[ichip], pltTit, Xtit = "MIP", Ytit = "EFirstRing/ETotal",
 			  MkSty = 26, MkClr = 1, MkSize = 0.4, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
   }
   

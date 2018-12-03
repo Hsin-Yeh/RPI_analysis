@@ -49,7 +49,7 @@ class makePlots{
   int Inj_ch;
   int ModuleNumber;
   char plotfolder_path[100];
-  double HGTP = 1500, LGTP = 1500, TOTOffSet = 30;
+  double HGTP = 1500, LGTP = 1500, TOTOffSet = 30, ADC2MIP = 0.0227;
   double LG2HG_Conversion[NCHIP], TOT2LG_Conversion[NCHIP];
   PlotSetting Plot;
 
