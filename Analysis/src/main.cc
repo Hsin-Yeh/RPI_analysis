@@ -18,7 +18,7 @@ int main(){
   PlotSetting P;
   M.input_RUN = filename;
   M.Init();
-  sprintf(P.plotfolder_path,"plots/NTU_Inj_Data/Injch_%d",M.Inj_ch);
+  sprintf(P.plotfolder_path,"plots/TBHexaboard/Injch_%d",M.Inj_ch);
   //M.Gain_factor_producer();
   M.PlotProducer();
   //M.Evt_display();
