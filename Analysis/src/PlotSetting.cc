@@ -36,6 +36,7 @@ void PlotSetting::TGraphPlotSetting(TGraph& g, char* plot_title, string Xtitle, 
     char title[200];
     sprintf(title,"%s/%s.pdf",plotfolder_path,plot_title);
     c->SaveAs(title);
+    cout << plotfolder_path << endl;
   }
   delete c;  
 }
