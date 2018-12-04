@@ -313,7 +313,7 @@ void makePlots::PlotProducer(){
       TOT_ConnectedCh[ch+chip*32][event] = tot_slow[ch*2];
     }
   }
-  getchar();
+  
   //... ==================== End of Loop ==================== ...
 
   
