@@ -274,6 +274,8 @@ void makePlots::PlotProducer(){
 	InjCh_MIP[chip][event] = TOT_InjCh_Chip[chip][event]*TOT2LG_Conversion[chip]*LG2HG_Conversion[chip]*ADC2MIP;
       }
     }
+
+    cout << InjCh_MIP[chip][event] << endl;
 	
     for(int ch = 0; ch < 32; ch++){
       ADC_H_ConnectedCh[ch+chip*32][event] = hg[MaxTS_sca][ch*2]; // Filling all the connected channels
@@ -292,11 +294,11 @@ void makePlots::PlotProducer(){
       ADC_L_FirstRing[chip][event] += (lg[MaxTS_sca][cross_ch_chip[chip][icross]] - lg[TS0_sca][cross_ch_chip[chip][icross]]);
       TOT_FirstRing[chip][event] += tot_slow[cross_ch_chip[chip][icross]];
     }
-    if(ADC_H_InjCh_Chip_double[chip][event] < HGTP){
+    if(ADC_H_FirstRing[chip][event] < HGTP){
       FirstRing_MIP[chip][event] = ADC_H_FirstRing[chip][event]*ADC2MIP;
     }
     else{
-      if(ADC_L_InjCh_Chip_double[chip][event] < LGTP){
+      if(ADC_L_FirstRing[chip][event] < LGTP){
 	FirstRing_MIP[chip][event] = ADC_L_FirstRing[chip][event]*LG2HG_Conversion[chip]*ADC2MIP;
       }
       else{
@@ -311,7 +313,7 @@ void makePlots::PlotProducer(){
       TOT_ConnectedCh[ch+chip*32][event] = tot_slow[ch*2];
     }
   }
-  
+  getchar();
   //... ==================== End of Loop ==================== ...
 
   
@@ -791,7 +793,7 @@ void makePlots::yamlReader(){
     end = searchstr.find("]");
     searchstr = searchstr.erase(end);
     Inj_ch = atoi(searchstr.c_str());
-    cout << Inj_ch << endl;
+    cout << "InjCh = " << Inj_ch << endl;
 
     /*    for(int header = 0; header < 13; header++) {getline(yamlFile,searchstr);}
     start = searchstr.find("'");
@@ -914,8 +916,6 @@ void makePlots::Crosstalk(Int_t ichip, Int_t CH){
     }
     cross_ch[i] = (ch-ichip*32)*2;
     cross_type[i] = good_channel;
-    cout << cross_ch[i] << endl;
-    cout << cross_type[i] << endl;
   }
   /*
     TH2Poly *poly = new TH2Poly;
