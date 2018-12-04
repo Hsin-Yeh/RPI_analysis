@@ -241,7 +241,7 @@ void makePlots::PlotProducer(){
    
   for(int entry = 0; entry < TotalEntries ; ++entry){
     
-    if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }    
+    if(entry%1==0){ cout << "Now Processing entry = " << entry << endl; }    
     Chain1 -> GetEntry(entry);
     dac_ctrl[event] = dacinj;
     dac_ctrl_double[event] = dacinj;
@@ -275,8 +275,8 @@ void makePlots::PlotProducer(){
       }
     }
 
-    cout << InjCh_MIP[chip][event] << endl;
-	
+
+    
     for(int ch = 0; ch < 32; ch++){
       ADC_H_ConnectedCh[ch+chip*32][event] = hg[MaxTS_sca][ch*2]; // Filling all the connected channels
       ADC_L_ConnectedCh[ch+chip*32][event] = lg[MaxTS_sca][ch*2];
@@ -313,7 +313,7 @@ void makePlots::PlotProducer(){
       TOT_ConnectedCh[ch+chip*32][event] = tot_slow[ch*2];
     }
   }
-  
+
   //... ==================== End of Loop ==================== ...
 
   
@@ -366,6 +366,7 @@ void makePlots::PlotProducer(){
   TGraph* gnoisy_h = new TGraph(Nevents,dac_ctrl,ADC_H_NoisyChannel);
   TGraph* gcorrelation_l = new TGraph(Nevents,ADC_L_InjCh,ADC_H_Cross[0]);
   TGraph** gratioRing1_Injch_l = new TGraph*[NCHIP];
+  TGraph** gratioRing1_Injch = new TGraph*[NCHIP];
   TGraph** gInjch_mip = new TGraph*[NCHIP];
   TMultiGraph* multig_cross_h = new TMultiGraph();
   TMultiGraph* multig_cross_l = new TMultiGraph();
@@ -415,7 +416,7 @@ void makePlots::PlotProducer(){
     if(ch%50==0){
       sprintf(pltTit,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
       Plot.TGraphPlotSetting(*gh_UnConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
-			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
     }
   }
   
@@ -424,7 +425,7 @@ void makePlots::PlotProducer(){
   gh_Uncnct_Slope = new TGraph(NformatCH,UncnctID,slope_h_Uncnct);
   sprintf(pltTit,"UnconnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
   Plot.TGraphPlotSetting(*gh_Uncnct_Slope, pltTit, Xtit = "CH", Ytit = "P1",
-		    MkSty = 22, MkClr = 2, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+		    MkSty = 22, MkClr = 2, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
 
 
   //... ConnectedCh
@@ -463,7 +464,7 @@ void makePlots::PlotProducer(){
     if(ch%50==0){
       sprintf(pltTit,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
       Plot.TGraphPlotSetting(*gh_ConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
-			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
     }
   }
 
@@ -472,7 +473,7 @@ void makePlots::PlotProducer(){
   gh_Cnct_Slope = new TGraph(NformatCH,CnctID,slope_h);
   sprintf(pltTit,"ConnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
   Plot.TGraphPlotSetting(*gh_Cnct_Slope, pltTit, Xtit = "Ch", Ytit = "P1",
-		    MkSty = 22, MkClr = 3, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+		    MkSty = 22, MkClr = 3, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
 
 
   //------------------------------ Change fitting Range ------------------------------//
@@ -512,7 +513,7 @@ void makePlots::PlotProducer(){
     if(ch%50==0){
       sprintf(pltTit,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
       Plot.TGraphPlotSetting(*gh_UnConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
-			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
     }
   }
 
@@ -521,7 +522,7 @@ void makePlots::PlotProducer(){
   gh_Uncnct_Slope = new TGraph(NformatCH,UncnctID,slope_h_Uncnct);
   sprintf(pltTit,"UnconnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
   Plot.TGraphPlotSetting(*gh_Uncnct_Slope, pltTit, Xtit = "CH", Ytit = "P1",
-		    MkSty = 22, MkClr = 2, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+		    MkSty = 22, MkClr = 2, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
 
   //...ConnectedCh
 
@@ -559,7 +560,7 @@ void makePlots::PlotProducer(){
     if(ch%50==0){
       sprintf(pltTit,"NcnctCh%d_InjCh%d_fit%d-%d",ch*2+1,Inj_ch,fitmin,fitmax);
       Plot.TGraphPlotSetting(*gh_ConnectedCh[ch], pltTit, Xtit = "DAC", Ytit = "ADC",
-			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+			MkSty = 7, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
     }
   }
 
@@ -568,7 +569,7 @@ void makePlots::PlotProducer(){
   gh_Cnct_Slope = new TGraph(NformatCH,CnctID,slope_h);
   sprintf(pltTit,"ConnectedCh_InjCh%d_fit%d-%d",Inj_ch,fitmin,fitmax);
   Plot.TGraphPlotSetting(*gh_Cnct_Slope, pltTit, Xtit = "Ch", Ytit = "P1",
-		    MkSty = 22, MkClr = 3, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+		    MkSty = 22, MkClr = 3, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
   
 
   
@@ -615,7 +616,7 @@ void makePlots::PlotProducer(){
   }
 
   sprintf(pltTit,"HG_LG_TOT_InjCh%d",Inj_ch);
-  Plot.TMultiGraphPlotSetting(*multig_InjCh_Chip_hltot, *legend, pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+  Plot.TMultiGraphPlotSetting(*multig_InjCh_Chip_hltot, *legend, pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
 
 
   
@@ -642,7 +643,7 @@ void makePlots::PlotProducer(){
       }
     }
     sprintf(pltTit,"FirstRing_around_Chip%dChannel%dLG",ichip,Inj_ch);
-    Plot.TMultiGraphPlotSetting(*multig_cross_l, *legendl, pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+    Plot.TMultiGraphPlotSetting(*multig_cross_l, *legendl, pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
   }
 
 
@@ -660,10 +661,10 @@ void makePlots::PlotProducer(){
 			  MkSty = 26, MkClr = 1, MkSize = 0.4, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
     
     // ------------------------------ Cross Talk Ratio ------------------------------ //
-    gratioRing1_Injch_l[ichip] = new TGraph(Nevents,InjCh_MIP[ichip],Ratio_FirstRing_InjCh[ichip]);
+    gratioRing1_Injch[ichip] = new TGraph(Nevents,InjCh_MIP[ichip],Ratio_FirstRing_InjCh[ichip]);
     sprintf(pltTit,"Ratio_Ring1vsInjch%d_chip%d",Inj_ch,ichip);
-    gratioRing1_Injch_l[ichip]->GetYaxis()->SetRangeUser(-0.2,0.2);
-    Plot.TGraphPlotSetting(*gratioRing1_Injch_l[ichip], pltTit, Xtit = "MIP", Ytit = "EFirstRing/ETotal",
+    gratioRing1_Injch[ichip]->GetYaxis()->SetRangeUser(-0.2,0.2);
+    Plot.TGraphPlotSetting(*gratioRing1_Injch[ichip], pltTit, Xtit = "MIP", Ytit = "EFirstRing/ETotal",
 			  MkSty = 26, MkClr = 1, MkSize = 0.4, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
   }
   
