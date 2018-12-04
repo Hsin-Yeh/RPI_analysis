@@ -658,14 +658,14 @@ void makePlots::PlotProducer(){
     gInjch_mip[ichip] = new TGraph(Nevents,dac_ctrl_double,InjCh_MIP[ichip]);
     sprintf(pltTit,"InjCh%d_chip%d_MIP",Inj_ch,ichip);
     Plot.TGraphPlotSetting(*gInjch_mip[ichip], pltTit, Xtit = "DAC", Ytit = "MIP",
-			  MkSty = 26, MkClr = 1, MkSize = 0.4, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
+			  MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
     
     // ------------------------------ Cross Talk Ratio ------------------------------ //
     gratioRing1_Injch[ichip] = new TGraph(Nevents,InjCh_MIP[ichip],Ratio_FirstRing_InjCh[ichip]);
     sprintf(pltTit,"Ratio_Ring1vsInjch%d_chip%d",Inj_ch,ichip);
     gratioRing1_Injch[ichip]->GetYaxis()->SetRangeUser(-0.2,0.2);
     Plot.TGraphPlotSetting(*gratioRing1_Injch[ichip], pltTit, Xtit = "MIP", Ytit = "EFirstRing/ETotal",
-			  MkSty = 26, MkClr = 1, MkSize = 0.4, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
+			  MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
   }
   
 
