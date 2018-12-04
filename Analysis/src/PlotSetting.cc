@@ -1,6 +1,7 @@
 #include "PlotSetting.h"
 #include "TCanvas.h"
 #include "TGraph.h"
+#include "TImage.h"
 #include "TMultiGraph.h"
 
 //Constructo
@@ -34,8 +35,10 @@ void PlotSetting::TGraphPlotSetting(TGraph& g, char* plot_title, string Xtitle, 
   }
   if(SavePlot){
     char title[200];
-    sprintf(title,"%s/%s.pdf",plotfolder_path,plot_title);
-    c->SaveAs(title);
+    sprintf(title,"%s/%s.png",plotfolder_path,plot_title);
+    TImage *img = TImage::Create();
+   img->FromPad(c);
+   img->WriteImage(title);
   }
   delete c;  
 }
@@ -57,7 +60,9 @@ void PlotSetting::TMultiGraphPlotSetting(TMultiGraph& g, TLegend& legend, char* 
   if(SavePlot){
     char title[200];
     sprintf(title,"%s/%s.pdf",plotfolder_path,plot_title);
-    c->SaveAs(title);
+    TImage *img = TImage::Create();
+    img->FromPad(c);
+    img->WriteImage(title);
   }
   delete c;
 }
@@ -77,7 +82,9 @@ void PlotSetting::TH2PolyPlotSetting(TH2Poly& poly, char* plot_title, string Xti
   if(SavePlot){
     char title[200];
     sprintf(title,"%s/%s.pdf",plotfolder_path,plot_title);
-    c->SaveAs(title);
+    TImage *img = TImage::Create();
+    img->FromPad(c);
+    img->WriteImage(title);
   }
   delete c;
 }
