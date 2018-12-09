@@ -30,6 +30,7 @@ makePlots::~makePlots()
 
 void makePlots::Init(){
   yamlReader();
+  Plot.root_logon();
   sprintf(Plot.plotfolder_path,"plots/TBHexaboard/Injch_%d",Inj_ch);
   Chain1->SetBranchAddress("event",&event);
   Chain1->SetBranchAddress("chip",&chip);
@@ -54,7 +55,7 @@ void makePlots::Gain_factor_producer(){
 
   int TotalEntries = Chain1->GetEntries();
   int Nevents = TotalEntries/NCHIP;
-  int MaxTS = 2;
+  int MaxTS = 3;
 
   int ADC_H_InjCh_Chip[NCHIP][Nevents], ADC_L_InjCh_Chip[NCHIP][Nevents], TOT_InjCh_Chip[NCHIP][Nevents];
   int dac_ctrl[Nevents];
@@ -103,7 +104,7 @@ void makePlots::Gain_factor_producer(){
   }
 
   
-    
+  getchar();
   //==================== End Loop ====================
 
   //...
@@ -112,43 +113,46 @@ void makePlots::Gain_factor_producer(){
 
   char pltTit[100];
   string Xtit, Ytit, Opt;
-  int MkSty, MkClr, MkSize, LClr, LWid, fitmin, fitmax;
+  int MkSty, MkClr, LClr, fitmin, fitmax;
+  float MkSize, LWid;
   bool Stat, Wait, SavePlot;
 
+  TGraph** gh = new TGraph*[NCHIP];
   TGraph** gl = new TGraph*[NCHIP];
   TGraph** gtot = new TGraph*[NCHIP];
   TGraph** LG2HG = new TGraph*[NCHIP];
   TGraph** TOT2LG = new TGraph*[NCHIP];
 
   for(int ichip = 0; ichip < NCHIP; ichip++){
+    gh[ichip] = new TGraph(Nevents,dac_ctrl,ADC_H_InjCh_Chip[ichip]);
     gl[ichip] = new TGraph(Nevents,dac_ctrl,ADC_L_InjCh_Chip[ichip]);
     gtot[ichip] = new TGraph(Nevents,dac_ctrl,TOT_InjCh_Chip[ichip]);
     LG2HG[ichip] = new TGraph(Nevents,ADC_L_InjCh_Chip[ichip],ADC_H_InjCh_Chip[ichip]);
     TOT2LG[ichip] = new TGraph(Nevents,TOT_InjCh_Chip[ichip],ADC_L_InjCh_Chip[ichip]);
     
     LG2HG[ichip]->Fit("pol1","","",fitmin = 0,fitmax = HGLGfitmax[ichip]);
-    TOT2LG[ichip]->Fit("pol1","","",fitmin = TOTOffSet,fitmax = TOTLGfitmax[ichip]);
+    //TOT2LG[ichip]->Fit("pol1","","",fitmin = TOTOffSet,fitmax = TOTLGfitmax[ichip]);
+    TOT2LG[ichip]->Fit("pol1","","",fitmin = 400,fitmax = 500);
     
     TF1* Linear_fit_LG2HG = LG2HG[ichip]->GetFunction("pol1");
     TF1* Linear_fit_TOT2LG = TOT2LG[ichip]->GetFunction("pol1");
     LG2HG_Conversion[ichip] = Linear_fit_LG2HG->GetParameter(1);
     TOT2LG_Conversion[ichip] = Linear_fit_TOT2LG->GetParameter(1);
 
+    sprintf(pltTit,"HG_Chip%d",ichip);
+    Plot.TGraphPlotStandard(*gh[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
+
     sprintf(pltTit,"LG_Chip%d",ichip);
-    Plot.TGraphPlotSetting(*gl[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
-		      MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+    Plot.TGraphPlotStandard(*gl[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
 
     sprintf(pltTit,"TOT_Chip%d",ichip);
-    Plot.TGraphPlotSetting(*gtot[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
-		      MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+    Plot.TGraphPlotStandard(*gtot[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
     
     sprintf(pltTit,"LG2HG_Chip%d",ichip);
-    Plot.TGraphPlotSetting(*LG2HG[ichip], pltTit, Xtit = "LG", Ytit = "HG",
-		      MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+    Plot.TGraphPlotStandard(*LG2HG[ichip], pltTit, Xtit = "LG", Ytit = "HG", Opt = "AP", Wait = 1, SavePlot = 1);
     
     sprintf(pltTit,"TOT2LG_Chip%d",ichip);
-    Plot.TGraphPlotSetting(*TOT2LG[ichip], pltTit, Xtit = "TOT", Ytit = "LG",
-		      MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
+    Plot.TGraphPlotStandard(*TOT2LG[ichip], pltTit, Xtit = "TOT", Ytit = "LG", Opt = "AP", Wait = 1, SavePlot = 1);
   }
 }
 
@@ -268,10 +272,10 @@ void makePlots::PlotProducer(){
     }
     else{
       if(ADC_L_InjCh_Chip_double[chip][event] < LGTP){
-	InjCh_MIP[chip][event] = ADC_L_InjCh_Chip_double[chip][event]*LG2HG_Conversion[chip]*ADC2MIP;
+	InjCh_MIP[chip][event] = ( ADC_L_InjCh_Chip_double[chip][event] * LG2HG_Conversion[chip] * ADC2MIP);
       }
       else{
-	InjCh_MIP[chip][event] = TOT_InjCh_Chip[chip][event]*TOT2LG_Conversion[chip]*LG2HG_Conversion[chip]*ADC2MIP;
+	InjCh_MIP[chip][event] = ( (TOT_InjCh_Chip[chip][event]-TOTOffSet) * TOT2LG_Conversion[chip] * LG2HG_Conversion[chip] *  ADC2MIP); 
       }
     }
 
@@ -290,19 +294,17 @@ void makePlots::PlotProducer(){
       ADC_L_Cross[icross][event] = lg[MaxTS_sca][cross_ch_chip[chip][icross]];
       ADC_H_Cross_Chip[chip][icross][event] = hg[MaxTS_sca][cross_ch_chip[chip][icross]];
       ADC_L_Cross_Chip[chip][icross][event] = lg[MaxTS_sca][cross_ch_chip[chip][icross]];
-      ADC_H_FirstRing[chip][event] += (hg[MaxTS_sca][cross_ch_chip[chip][icross]] - hg[TS0_sca][cross_ch_chip[chip][icross]]);
-      ADC_L_FirstRing[chip][event] += (lg[MaxTS_sca][cross_ch_chip[chip][icross]] - lg[TS0_sca][cross_ch_chip[chip][icross]]);
-      TOT_FirstRing[chip][event] += tot_slow[cross_ch_chip[chip][icross]];
-    }
-    if(ADC_H_FirstRing[chip][event] < HGTP){
-      FirstRing_MIP[chip][event] = ADC_H_FirstRing[chip][event]*ADC2MIP;
-    }
-    else{
-      if(ADC_L_FirstRing[chip][event] < LGTP){
-	FirstRing_MIP[chip][event] = ADC_L_FirstRing[chip][event]*LG2HG_Conversion[chip]*ADC2MIP;
+
+      if((hg[MaxTS_sca][cross_ch_chip[chip][icross]] - hg[TS0_sca][cross_ch_chip[chip][icross]]) < HGTP){
+	FirstRing_MIP[chip][event] += (hg[MaxTS_sca][cross_ch_chip[chip][icross]] - hg[TS0_sca][cross_ch_chip[chip][icross]]) * ADC2MIP;
       }
       else{
-	FirstRing_MIP[chip][event] = TOT_FirstRing[chip][event]*TOT2LG_Conversion[chip]*LG2HG_Conversion[chip]*ADC2MIP;
+	if((lg[MaxTS_sca][cross_ch_chip[chip][icross]] - lg[TS0_sca][cross_ch_chip[chip][icross]]) < LGTP){
+	  FirstRing_MIP[chip][event] += (lg[MaxTS_sca][cross_ch_chip[chip][icross]] - lg[TS0_sca][cross_ch_chip[chip][icross]]) * LG2HG_Conversion[chip] * ADC2MIP;
+	}
+	else{
+	  FirstRing_MIP[chip][event] += TOT_InjCh_Chip[chip][event] * TOT2LG_Conversion[chip] * LG2HG_Conversion[chip] * ADC2MIP;
+	}
       }
     }
     Ratio_FirstRing_InjCh[chip][event] = FirstRing_MIP[chip][event]/(InjCh_MIP[chip][event] + FirstRing_MIP[chip][event]);
@@ -327,7 +329,8 @@ void makePlots::PlotProducer(){
   
   char pltTit[200], leg[50], img_title[50];
   string Xtit, Ytit, Opt;
-  int MkSty, MkClr, MkSize, LClr, LWid, fitmin, fitmax;
+  int MkSty, MkClr, LClr, fitmin, fitmax;
+  float MkSize, LWid;
   bool Stat, Wait, SavePlot;
 
 
@@ -384,7 +387,7 @@ void makePlots::PlotProducer(){
   // ------------------------------ Fit ------------------------------ //
 
   // UnconnectedCh
-
+  /*
   for(int ch = 0; ch < NformatCH; ch++){    
 
     fitmin = 1300;
@@ -651,7 +654,7 @@ void makePlots::PlotProducer(){
 
 
   //========================================//
-  
+  */
 
 
   for(int ichip = 0; ichip < NCHIP; ichip++){
@@ -660,14 +663,14 @@ void makePlots::PlotProducer(){
     gInjch_mip[ichip] = new TGraph(Nevents,dac_ctrl_double,InjCh_MIP[ichip]);
     sprintf(pltTit,"InjCh%d_chip%d_MIP",Inj_ch,ichip);
     Plot.TGraphPlotSetting(*gInjch_mip[ichip], pltTit, Xtit = "DAC", Ytit = "MIP",
-			  MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
+			  MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 1, SavePlot = 1);
     
     // ------------------------------ Cross Talk Ratio ------------------------------ //
     gratioRing1_Injch[ichip] = new TGraph(Nevents,InjCh_MIP[ichip],Ratio_FirstRing_InjCh[ichip]);
     sprintf(pltTit,"Ratio_Ring1vsInjch%d_chip%d",Inj_ch,ichip);
     gratioRing1_Injch[ichip]->GetYaxis()->SetRangeUser(-0.2,0.2);
-    Plot.TGraphPlotSetting(*gratioRing1_Injch[ichip], pltTit, Xtit = "MIP", Ytit = "EFirstRing/ETotal",
-			  MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 1);
+    Plot.TGraphPlotSetting(*gratioRing1_Injch[ichip], pltTit, Xtit = "InjCh_MIP", Ytit = "EFirstRing/ETotal",
+			  MkSty = 25, MkClr = 1+ichip, MkSize = 0.5, LClr = 1+ichip, LWid = 4, Opt = "AP", Stat = 1, Wait = 1, SavePlot = 1);
   }
   
 
@@ -809,6 +812,25 @@ void makePlots::yamlReader(){
     
   }
 
+}
+
+void makePlots::GainFactorReader(){
+  
+  string GainFileName("TPro_fittingoutput.txt");
+  ifstream GainFile(GainFileName.c_str());
+  char line[50];
+  string tmp;
+  int ichip, ich;
+  double HGTP_Test[NCHIP][NCHANNEL], LGTP_Test[NCHIP][NCHANNEL], HG2LG_Conversion_Test[NCHIP][NCHANNEL], TOT2LG_Conversion_Test[NCHIP][NCHANNEL], TOTOffSet_Test[NCHIP][NCHANNEL]; 
+  getline(GainFile,line);
+  while(!GainFile.eof()){
+    getline(GainFile,line);
+    line >> tmp >> tmp >> ichip >> ich >> tmp;
+    //    line >> HGTP_Test[ichip][ich] >> HG2LG_Conversion_Test[ichip][ich] >> LGTP_Test[ichip][ich] >> TOT2LG_Conversion_Test[ichip][ich] >> TOTOffSet_Test[ichip][ich];
+  }
+
+  
+  
 }
 
 

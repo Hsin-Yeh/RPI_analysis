@@ -41,6 +41,7 @@ class makePlots{
   void Evt_display();
   void Inj_Pulse_display();
   void IdentifyInjCh();
+  void GainFactorReader();
 
   //public parameter
   string         input_RUN;
@@ -48,7 +49,7 @@ class makePlots{
   int pedopt;
   int Inj_ch;
   int ModuleNumber;
-  double HGTP = 1500, LGTP = 1500, TOTOffSet = 30, ADC2MIP = 0.0227;
+  double HGTP = 1400, LGTP = 900, TOTOffSet = 200, ADC2MIP = 0.0227;
   double LG2HG_Conversion[NCHIP], TOT2LG_Conversion[NCHIP];
   PlotSetting Plot;
 
