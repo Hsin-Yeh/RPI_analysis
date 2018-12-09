@@ -5,7 +5,7 @@
 # please do "make" before run it
 
 #FILES="root_data/V2_BarePCB_Inj_Data/*"
-FILES="CMSSW_output_root/module120/unpack_output/*.root"
+FILES="CMSSW_output_root/TBHexaboard/module120/unpack_output/*.root"
 i = 0
 make
 for f in $FILES

@@ -707,7 +707,7 @@ void makePlots::yamlReader(){
 
 void makePlots::GainFactorReader(){
   
-  string GainFileName("TPro_fittingoutput.txt");
+  string GainFileName("src_txtfile/TPro_fittingoutput.txt");
   ifstream GainFile(GainFileName.c_str());
   string line;
   char tmp[50];
