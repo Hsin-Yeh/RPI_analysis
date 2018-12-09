@@ -11,6 +11,6 @@ make
 for f in $FILES
 do
     echo "Processing file $f ... "
-    ls $f > input.txt
+    ls $f > data_input.txt
     ./makePlots 
 done
