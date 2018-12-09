@@ -41,7 +41,7 @@ class makePlots{
   void Evt_display();
   void Inj_Pulse_display();
   void IdentifyInjCh();
-  void GainFactorReader();
+
 
   //public parameter
   string         input_RUN;
@@ -49,14 +49,15 @@ class makePlots{
   int pedopt;
   int Inj_ch;
   int ModuleNumber;
-  double HGTP = 1400, LGTP = 900, TOTOffSet = 200, ADC2MIP = 0.0227;
-  double LG2HG_Conversion[NCHIP], TOT2LG_Conversion[NCHIP];
+  double LG2HG_Conversion[NCHIP][NCH], TOT2LG_Conversion[NCHIP][NCH], HGTP[NCHIP][NCH], LGTP[NCHIP][NCH], TOTOffSet[NCHIP][NCH], ADC2MIP = 0.0227;
+  double LGTP_default = 900;
   PlotSetting Plot;
 
   
  private:
-
+  
   void yamlReader();
+  void GainFactorReader();
   virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
   void Crosstalk(Int_t ichip, Int_t ch);
   void Crosstalk_2ndRing(Int_t ch);
