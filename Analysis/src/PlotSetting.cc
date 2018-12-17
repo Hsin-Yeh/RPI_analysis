@@ -197,7 +197,7 @@ void PlotSetting::root_logon(){
   //
   atlasStyle->SetLegendFillColor(0);
   atlasStyle->SetLegendFont(62);
-  //  atlasStyle->SetLegendTextSize(0.03);
+  //atlasStyle->SetLegendTextSize(0.03);
 
   //get rid of X error bars and y error bar caps
   //atlasStyle->SetErrorX(0.001);
@@ -213,7 +213,7 @@ void PlotSetting::root_logon(){
   atlasStyle->SetPadTickX(1);
   atlasStyle->SetPadTickY(1);
 
-  gROOT->SetStyle("Plain");
+  //  gROOT->SetStyle("Plain");
 
   //gStyle->SetPadTickX(1);
   //gStyle->SetPadTickY(1);
