@@ -225,10 +225,11 @@ void PlotSetting::root_logon(){
 int PlotSetting::Color(int c)
 {
   if(c == 0){ return 633;}
-  if(c == 1){ return 600;}
-  if(c == 2){ return 800;}
-  if(c == 3){ return 419;}
-  if(c == 4){ return 880;}
-  if(c == 5){ return 803;}	    
+  else if(c == 1){ return 600;}
+  else if(c == 2){ return 800;}
+  else if(c == 3){ return 419;}
+  else if(c == 4){ return 880;}
+  else if(c == 5){ return 803;}
+  else{ return 0; }
 }
 
