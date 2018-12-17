@@ -59,7 +59,7 @@ class makePlots{
   void yamlReader();
   void GainFactorReader();
   virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
-  void Crosstalk(Int_t ichip, Int_t ch);
+  void Crosstalk(Int_t ch);
   void Crosstalk_2ndRing(Int_t ch);
   void P_and_N(int option,bool output);
   // P_and_N function:
@@ -80,8 +80,8 @@ class makePlots{
   float sigma_HG_SCA[NCHIP][NCH][NSCA];
   float avg_LG_SCA  [NCHIP][NCH][NSCA];
   float sigma_LG_SCA[NCHIP][NCH][NSCA];
-  int cross_ch[6];
-  bool cross_type[6];
+  int cross_ch_FirstRing[NCHIP][6];
+  bool cross_type[NCHIP][6];
   int cross_ch_2ndRing[12];
 
   ///////////////////////////////

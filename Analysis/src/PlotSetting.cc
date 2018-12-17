@@ -14,7 +14,7 @@ PlotSetting::~PlotSetting()
 }
 
 
-void PlotSetting::TGraphPlotStandard(TGraph& g, char* plot_title, string Xtitle, string Ytitle, string Option, bool Wait, bool SavePlot) 
+void PlotSetting::GStd(TGraph& g, char* plot_title, string Xtitle, string Ytitle, string Option, bool Wait, bool SavePlot) 
 {
   TCanvas* c = new TCanvas();
   g.SetTitle(plot_title);
@@ -32,12 +32,13 @@ void PlotSetting::TGraphPlotStandard(TGraph& g, char* plot_title, string Xtitle,
     TImage *img = TImage::Create();
     img->FromPad(c);
     img->WriteImage(title);
+    cout << title << " has been saved" << endl;
   }
   delete c;  
 }
 
-void PlotSetting::TGraphPlotSetting(TGraph& g, char* plot_title, string Xtitle, string Ytitle,int MarkerStyle,int MarkerColor,
-				    int MarkerSize, int LineColor, int LineWidth, string Option,bool OptStat, bool Wait, bool SavePlot) 
+void PlotSetting::G(TGraph& g, char* plot_title, string Xtitle, string Ytitle,int MarkerStyle,int MarkerColor,
+		    int MarkerSize, int LineColor, int LineWidth, string Option,bool OptStat, bool Wait, bool SavePlot) 
 {
   TCanvas* c = new TCanvas();
   gStyle->SetOptStat(OptStat);
@@ -61,20 +62,21 @@ void PlotSetting::TGraphPlotSetting(TGraph& g, char* plot_title, string Xtitle, 
     TImage *img = TImage::Create();
     img->FromPad(c);
     img->WriteImage(title);
+    cout << title << " has been saved" << endl;
   }
   delete c;  
 }
 
 
-void PlotSetting::TMultiGraphPlotSetting(TMultiGraph& g, TLegend& legend, char* plot_title, string Xtitle, string Ytitle, string Option,bool OptStat, bool Wait, bool SavePlot) 
+void PlotSetting::Multi(TMultiGraph& g, TLegend& legend, char* plot_title, string Xtitle, string Ytitle, string Option, bool Wait, bool SavePlot) 
 {
   TCanvas* c = new TCanvas();
-  gStyle->SetOptStat(OptStat);
   g.Draw(Option.c_str());
   g.SetTitle(plot_title);
   g.GetXaxis()->SetTitle(Xtitle.c_str());
   g.GetYaxis()->SetTitle(Ytitle.c_str());
-  g.GetYaxis()->SetTitleOffset(1.4);
+  g.GetYaxis()->SetTitleOffset(1.3);
+  legend.SetBorderSize(0);
   legend.Draw();
   c->Update();
   if(Wait){
@@ -82,22 +84,37 @@ void PlotSetting::TMultiGraphPlotSetting(TMultiGraph& g, TLegend& legend, char* 
   }
   if(SavePlot){
     char title[200];
-    sprintf(title,"%s/%s.pdf",plotfolder_path,plot_title);
+    sprintf(title,"%s/%s.png",plotfolder_path,plot_title);
     TImage *img = TImage::Create();
     img->FromPad(c);
     img->WriteImage(title);
+    cout << title << " has been saved" << endl;
   }
   delete c;
 }
 
-void PlotSetting::TH2PolyPlotSetting(TH2Poly& poly, char* plot_title, string Xtitle, string Ytitle, string Option,bool OptStat, bool Wait, bool SavePlot) 
+void PlotSetting::MultiAdd(TMultiGraph& multig, TGraph& g, TLegend& legend, char* plot_title, int MarkerStyle,int MarkerColor, int MarkerSize)
+{
+  g.SetTitle(plot_title);
+  g.SetMarkerStyle(MarkerStyle);
+  g.SetMarkerColor( Color(MarkerColor) );
+  g.SetMarkerSize(MarkerSize);
+  g.SetLineColor( Color(MarkerColor) );
+  g.SetLineWidth(4);
+  multig.Add(&g);
+  TLegendEntry* lentry = legend.AddEntry(&g, plot_title,"l");
+  //lentry->SetTextColor(MarkerColor);
+}
+
+void PlotSetting::Poly(TH2Poly& poly, char* plot_title, string Xtitle, string Ytitle, string Option,bool OptStat, bool Wait, bool SavePlot) 
 {
   TCanvas* c = new TCanvas();
   gStyle->SetOptStat(OptStat);
+  gStyle->SetPalette(55);
   poly.SetTitle(plot_title);
   poly.GetXaxis()->SetTitle(Xtitle.c_str());
   poly.GetYaxis()->SetTitle(Ytitle.c_str());
-  poly.GetYaxis()->SetTitleOffset(1.4);
+  poly.GetYaxis()->SetTitleOffset(1.);
   poly.Draw(Option.c_str());
   c->Update();
   if(Wait){
@@ -105,10 +122,11 @@ void PlotSetting::TH2PolyPlotSetting(TH2Poly& poly, char* plot_title, string Xti
   }
   if(SavePlot){
     char title[200];
-    sprintf(title,"%s/%s.pdf",plotfolder_path,plot_title);
+    sprintf(title,"%s/%s.png",plotfolder_path,plot_title);
     TImage *img = TImage::Create();
     img->FromPad(c);
     img->WriteImage(title);
+    cout << title << " has been saved" << endl;
   }
   delete c;
 }
@@ -138,7 +156,7 @@ void PlotSetting::root_logon(){
   atlasStyle->SetPaperSize(20,26);
   atlasStyle->SetPadTopMargin(0.05);
   atlasStyle->SetPadTopMargin(0.1);
-  atlasStyle->SetPadRightMargin(0.1);
+  atlasStyle->SetPadRightMargin(0.12);
   atlasStyle->SetPadBottomMargin(0.15);
   atlasStyle->SetPadLeftMargin(0.12);
 
@@ -176,6 +194,11 @@ void PlotSetting::root_logon(){
   atlasStyle->SetHistLineWidth(2.);
   atlasStyle->SetLineStyleString(2,"[12 12]"); // postscript dashes
 
+  //
+  atlasStyle->SetLegendFillColor(0);
+  atlasStyle->SetLegendFont(62);
+  atlasStyle->SetLegendTextSize(0.03);
+
   //get rid of X error bars and y error bar caps
   //atlasStyle->SetErrorX(0.001);
 
@@ -197,8 +220,15 @@ void PlotSetting::root_logon(){
 
   gROOT->SetStyle("ATLAS");
   gROOT->ForceStyle();
+}
 
-
-
+int PlotSetting::Color(int c)
+{
+  if(c == 0){ return 633;}
+  if(c == 1){ return 600;}
+  if(c == 2){ return 800;}
+  if(c == 3){ return 419;}
+  if(c == 4){ return 880;}
+  if(c == 5){ return 803;}	    
 }
 
