@@ -811,12 +811,13 @@ void makePlots::GainFactorReader(){
     for(ichip = 0; ichip < NCHIP; ichip++){
       for(ich = 0; ich < NCH; ich++){
 	HGTP[ichip][ich] = 1500;
-	LG2HG_Conversion[ichip][ich] = 8;
+	LG2HG_Conversion[ichip][ich] = 8.5;
 	LGTP[ichip][ich] = 1200;
-	TOT2LG_Conversion[ichip][ich] = 4;
+	TOT2LG_Conversion[ichip][ich] = 3.8;
 	TOTOffSet[ichip][ich] = 180;
       }
     }
+    Gain_factor_producer();
   }
   
   if(GainFile.is_open()){
@@ -1088,8 +1089,8 @@ void makePlots::InitTH2Poly(TH2Poly& poly)
 
 
 
-/*
-  void makePlots::Gain_factor_producer(){
+
+void makePlots::Gain_factor_producer(){
   
   //-------------------- Define Parameters --------------------
 
@@ -1118,33 +1119,32 @@ void makePlots::InitTH2Poly(TH2Poly& poly)
   //==================== Loop Over Events ====================
 
   for(int ev = 0; ev < TotalEntries; ev++){
-  if(ev%1000 == 0){ cout << "Now Processing = " << ev << endl;}
-  Chain1->GetEntry(ev);
-  dac_ctrl[event] = dacinj;
+    if(ev%1000 == 0){ cout << "Now Processing = " << ev << endl;}
+    Chain1->GetEntry(ev);
+    dac_ctrl[event] = dacinj;
     
-  int TS0_sca, MaxTS_sca;
-  for(int sca = 0 ; sca < NSCA ; sca++) {
-  TS[sca] = timesamp[sca];
-  if (timesamp[sca] == 0) { TS0_sca = sca ; }
-  if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
-  }
+    int TS0_sca, MaxTS_sca;
+    for(int sca = 0 ; sca < NSCA ; sca++) {
+      TS[sca] = timesamp[sca];
+      if (timesamp[sca] == 0) { TS0_sca = sca ; }
+      if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
+    }
     
-  ADC_H_InjCh_Chip[chip][event] = ( hg[MaxTS_sca][Inj_ch] - hg[TS0_sca][Inj_ch] );
-  ADC_L_InjCh_Chip[chip][event] = ( lg[MaxTS_sca][Inj_ch] - lg[TS0_sca][Inj_ch] );
-  TOT_InjCh_Chip[chip][event] = tot_slow[Inj_ch];
+    ADC_H_InjCh_Chip[chip][event] = ( hg[MaxTS_sca][Inj_ch] - hg[TS0_sca][Inj_ch] );
+    ADC_L_InjCh_Chip[chip][event] = ( lg[MaxTS_sca][Inj_ch] - lg[TS0_sca][Inj_ch] );
+    TOT_InjCh_Chip[chip][event] = tot_slow[Inj_ch];
 
-  if(ADC_H_InjCh_Chip[chip][event] > HGTP && HGTP_flag[chip] == false){
-  HGTP_flag[chip] = true;
-  HGLGfitmax[chip] = ADC_L_InjCh_Chip[chip][event];
-  }
-  if(ADC_L_InjCh_Chip[chip][event] > LGTP && LGTP_flag[chip] == false){
-  LGTP_flag[chip] = true;
-  TOTLGfitmax[chip] = TOT_InjCh_Chip[chip][event];
-  }
+    if(ADC_H_InjCh_Chip[chip][event] > HGTP[chip][Inj_ch] && HGTP_flag[chip] == false){
+      HGTP_flag[chip] = true;
+      HGLGfitmax[chip] = ADC_L_InjCh_Chip[chip][event];
+    }
+    if(ADC_L_InjCh_Chip[chip][event] > LGTP[chip][Inj_ch] && LGTP_flag[chip] == false){
+      LGTP_flag[chip] = true;
+      TOTLGfitmax[chip] = TOT_InjCh_Chip[chip][event];
+    }
   }
 
   
-  getchar();
   //==================== End Loop ====================
 
   //...
@@ -1176,25 +1176,25 @@ void makePlots::InitTH2Poly(TH2Poly& poly)
     
   TF1* Linear_fit_LG2HG = LG2HG[ichip]->GetFunction("pol1");
   TF1* Linear_fit_TOT2LG = TOT2LG[ichip]->GetFunction("pol1");
-  LG2HG_Conversion[ichip] = Linear_fit_LG2HG->GetParameter(1);
-  TOT2LG_Conversion[ichip] = Linear_fit_TOT2LG->GetParameter(1);
+  LG2HG_Conversion[ichip][Inj_ch] = Linear_fit_LG2HG->GetParameter(1);
+  TOT2LG_Conversion[ichip][Inj_ch] = Linear_fit_TOT2LG->GetParameter(1);
 
   sprintf(pltTit,"HG_Chip%d",ichip);
-  Plot.TGraphPlotStandard(*gh[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
+  Plot.GStd(*gh[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
 
   sprintf(pltTit,"LG_Chip%d",ichip);
-  Plot.TGraphPlotStandard(*gl[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
+  Plot.GStd(*gl[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
 
   sprintf(pltTit,"TOT_Chip%d",ichip);
-  Plot.TGraphPlotStandard(*gtot[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
+  Plot.GStd(*gtot[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
     
   sprintf(pltTit,"LG2HG_Chip%d",ichip);
-  Plot.TGraphPlotStandard(*LG2HG[ichip], pltTit, Xtit = "LG", Ytit = "HG", Opt = "AP", Wait = 1, SavePlot = 1);
+  Plot.GStd(*LG2HG[ichip], pltTit, Xtit = "LG", Ytit = "HG", Opt = "AP", Wait = 1, SavePlot = 1);
     
   sprintf(pltTit,"TOT2LG_Chip%d",ichip);
-  Plot.TGraphPlotStandard(*TOT2LG[ichip], pltTit, Xtit = "TOT", Ytit = "LG", Opt = "AP", Wait = 1, SavePlot = 1);
+  Plot.GStd(*TOT2LG[ichip], pltTit, Xtit = "TOT", Ytit = "LG", Opt = "AP", Wait = 1, SavePlot = 1);
   }
-  }
-*/
+}
+
 
 
