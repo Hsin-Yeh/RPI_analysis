@@ -60,13 +60,13 @@ void makePlots::PlotProducer(){
 
   
   //==================== Define Parameters ====================
-     
+
   char title[200];
   int TotalEntries = Chain1->GetEntries();
   int Nevents = TotalEntries/NCHIP;
+  int AverageEvents = 0;
   int cross_num = 6;
   int MaxTS = 2; //choose this time sample to be the peak  
-  int dac = -1; int test = 0;
   
   int ADC_H_InjCh[Nevents], ADC_L_InjCh[Nevents], TOTS_InjCh[Nevents];
   int ADC_H_InjCh_Chip[NCHIP][Nevents], ADC_L_InjCh_Chip[NCHIP][Nevents], TOT_InjCh_Chip[NCHIP][Nevents];
@@ -77,7 +77,7 @@ void makePlots::PlotProducer(){
   double InjCh_MIP[NCHIP][Nevents], FirstRing_MIP[NCHIP][Nevents];
   double XTalkRatio_FirstRing[NCHIP][Nevents];
   double XTalkRatio_FirstRingChannels[NCHIP][cross_num][Nevents];
-  double XTalkCoupling[NCHIP][NCH][Nevents];
+  double XTalkCoupling[NCHIP][NCH][Nevents], XTalkCoupling_Average[NCHIP][NCH];
   double ADC_L_InjCh_Chip_double[NCHIP][Nevents], Ratio_L_FirstRing_InjCh[NCHIP][event], ADC_H_InjCh_Chip_double[NCHIP][Nevents], Ratio_H_FirstRing_InjCh[NCHIP][event];
   double MIP[NCHIP][NCH][Nevents];
   int dac_ctrl[Nevents];
@@ -88,13 +88,13 @@ void makePlots::PlotProducer(){
   
   
   // Define Histograms 
-
+  /*
   TH1D *h = new TH1D("h","",100,150,250); //("title","",slice,star,end)
   TH1D *h_TOTS = new TH1D("h_TOTS","",100,5,500);
   TH1D *h_TOTF = new TH1D("h_TOTF","",100,1000,3000);
   TH1D *h_TOAR = new TH1D("h_TOAR","",100,1000,3000);
   TH1D *h_TOAF = new TH1D("h_TOAF","",100,1000,3000);
-    
+  */
   // Set Output Root File
   
   string Input_filename;
@@ -108,7 +108,11 @@ void makePlots::PlotProducer(){
 
 
   //==================== Initialize ====================
-
+  for(int ichip = 0; ichip < NCHIP; ichip++){
+    for(int ich = 0; ich < NCH; ich++){
+      XTalkCoupling_Average[ichip][ich] = 0;
+    }
+  }
 
   
   for (int ev = 0; ev < Nevents; ev++){
@@ -160,6 +164,7 @@ void makePlots::PlotProducer(){
       int tot_sig = tot_slow[ich];
       
       if( hg_sig < HGTP[chip][ich]){
+
 	MIP[chip][ich][event] = hg_sig * ADC2MIP;
       }
       else{
@@ -184,6 +189,10 @@ void makePlots::PlotProducer(){
     // XTalk coupling calculation
     for(int ich = 0; ich < NCH; ich++){
       XTalkCoupling[chip][ich][event] = MIP[chip][ich][event] / MIP[chip][Inj_ch][event];
+      if( event>50 && event<=700 ){
+	XTalkCoupling_Average[chip][ich] += XTalkCoupling[chip][ich][event];
+	AverageEvents++;
+      }
     }
 
 
@@ -210,7 +219,11 @@ void makePlots::PlotProducer(){
 
   //... ==================== End of Loop ==================== ...
 
-  
+  for(int ichip = 0; ichip < NCHIP; ichip++){
+    for(int ich = 0; ich < NCH; ich++){
+      XTalkCoupling_Average[ichip][ich] /= (AverageEvents/NCHANNEL);
+    }
+  }
   
   //... ==================== Fit & Plots ==================== ...
   
@@ -225,20 +238,20 @@ void makePlots::PlotProducer(){
 
 
   // Define Fitting Parameter
-
+  /*
   double slope_h[NformatCH], slope_l[NformatCH], slope_tot[NformatCH];
   double slope_h_Uncnct[NformatCH], slope_l_Uncnct[NformatCH], slope_tot_Uncnct[NformatCH];
   double slope_h_InjCh, slope_l_InjCh, slope_h_chip[NCHIP], slope_l_chip[NCHIP];
   double CnctID[NformatCH], UncnctID[NformatCH];
-  
+
 
   for(int ch = 0; ch < NformatCH; ch++){
     UncnctID[ch] = ch*2 + 1;
   }
-
+  */
 
   // Define TGraphs
-
+  /*
   TGraph* gh = new TGraph(Nevents,dac_ctrl,ADC_H_InjCh);
   TGraph* gl = new TGraph(Nevents,dac_ctrl,ADC_L_InjCh);
   TGraph* gTOT = new TGraph(Nevents,dac_ctrl,TOTS_InjCh);
@@ -269,7 +282,7 @@ void makePlots::PlotProducer(){
   TMultiGraph* multig_InjCh_Chip_l = new TMultiGraph();
   TMultiGraph* multig_InjCh_Chip_hltot = new TMultiGraph();
   TMultiGraph* multig_AllCh_Slope = new TMultiGraph();
-
+  */
 
   // Plots!!!!!
 
@@ -281,9 +294,9 @@ void makePlots::PlotProducer(){
   for(int ichip = 0; ichip < NCHIP; ichip++){
     
     // ------------------------------ MIP Conversion Plot ------------------------------ //
-    gInjch_mip[ichip] = new TGraph(Nevents,dac_ctrl_double,MIP[ichip][Inj_ch]);
+    TGraph* gInjch_mip = new TGraph(Nevents,dac_ctrl_double,MIP[ichip][Inj_ch]);
     sprintf(pltTit,"InjCh%d_chip%d_MIP",Inj_ch,ichip);
-    Plot.GStd(*gInjch_mip[ichip], pltTit, Xtit = "DAC", Ytit = "MIP", Opt = "AP", Wait = 0, SavePlot = 1);
+    Plot.GStd(*gInjch_mip, pltTit, Xtit = "DAC", Ytit = "MIP", Opt = "AP", Wait = 0, SavePlot = 1);
     
     // ------------------------------ Cross Talk Ratio ------------------------------ //
     gXTalkRatioRing1 = new TGraph(Nevents,MIP[ichip][Inj_ch],XTalkRatio_FirstRing[ichip]);
@@ -298,23 +311,28 @@ void makePlots::PlotProducer(){
     
     for(int icross = 0; icross < cross_num; icross++){
       if( cross_type[ichip][icross] == true) {
-	gXTalkRatioRing1Channels = new TGraph(Nevents, MIP[ichip][Inj_ch], XTalkRatio_FirstRingChannels[ichip][icross]);
+	TGraph* gXTalkRatioRing1Channels = new TGraph(Nevents, MIP[ichip][Inj_ch], XTalkRatio_FirstRingChannels[ichip][icross]);
 	sprintf(pltTit,"Pos_%d, Ch_%d", icross, cross_ch_FirstRing[ichip][icross]);
 	Plot.MultiAdd(*multig_XRatioRing1Channels, *gXTalkRatioRing1Channels, *legend_Ring1Channels, pltTit, MkSty = 25, MkClr = icross, MkSize = 0.5);
       }
     }
-    multig_XRatioRing1Channels->SetMaximum(0.2);
-    multig_XRatioRing1Channels->SetMinimum(-0.1);
+    multig_XRatioRing1Channels->SetMaximum(0.05);
+    multig_XRatioRing1Channels->SetMinimum(0.);
     sprintf(pltTit,"XTalkCoupling_FirstRing_InjCh%d_Chip%d",Inj_ch, ichip);
-    Plot.Multi(*multig_XRatioRing1Channels, *legend_Ring1Channels, pltTit, Xtit = "ETrue[MIP]", Ytit = "EFirstRing / ETrue", Opt = "AP", Wait = 0, SavePlot = 1);
+    Plot.Multi(*multig_XRatioRing1Channels, *legend_Ring1Channels, pltTit, Xtit = "EInj[MIP]", Ytit = "EFirstRing / EInj", Opt = "AP", Wait = 0, SavePlot = 1);
   }
 
   multig_XRatioRing1->SetMaximum(0.2);
   multig_XRatioRing1->SetMinimum(-0.1);
   sprintf(pltTit,"XTalkCoupling_FirstRing_InjCh%d",Inj_ch);
-  Plot.Multi(*multig_XRatioRing1, *legend_Ring1, pltTit, Xtit = "ETrue[MIP]", Ytit = "EFirstRing / ETrue", Opt = "AP", Wait = 0, SavePlot = 1);
-  
+  Plot.Multi(*multig_XRatioRing1, *legend_Ring1, pltTit, Xtit = "EInj[MIP]", Ytit = "EFirstRing / EInj", Opt = "AP", Wait = 0, SavePlot = 1);
 
+  TGraph* gexample = new TGraph(Nevents,MIP[0][Inj_ch],XTalkRatio_FirstRingChannels[0][0]);
+  sprintf(pltTit,"Chip%d_Ch%d_InjCh%d",0,0,Inj_ch);
+  gexample->GetYaxis()->SetRangeUser(-0.,0.05);
+  Plot.GStd(*gexample, pltTit, Xtit = "EInj[MIP]", Ytit = "E / EInj", Opt = "AP", Wait = 0, SavePlot = 1);
+    
+  
   // 2D Graph of XTalk coupling
 
   int NNoisy = 8;
@@ -322,7 +340,7 @@ void makePlots::PlotProducer(){
 
   TH2Poly *poly = new TH2Poly;
   InitTH2Poly(*poly);
-  poly->SetMinimum(0);
+  poly->SetMinimum(-0.005);
   for(int ichip = 0; ichip < NCHIP; ichip++){
     for(int ich = 0; ich < NCH; ich++){
       float X, Y;
@@ -331,24 +349,40 @@ void makePlots::PlotProducer(){
       X = CHmap[forCH].first;
       Y = CHmap[forCH].second;
       if(ich == Inj_ch){
-	poly->Fill(X,Y,-1);
+	poly->Fill(X,Y,-2);
       }
       if( ich != Inj_ch && ich%2 == 0){
-	for(int iNoisy = 0; iNoisy < NNoisy; iNoisy++){
+	/*	for(int iNoisy = 0; iNoisy < NNoisy; iNoisy++){
 	  if(forCH == NoisyChannel[iNoisy]/2) {NoisyBool = true;}
-	}
+	  }*/
 	if(!NoisyBool){
-	poly->Fill(X,Y,XTalkCoupling[ichip][ich][500]);
+	poly->Fill(X,Y,XTalkCoupling_Average[ichip][ich]);
 	//  poly->Fill(X,Y,ich);
 	}
       }
     }
   }
-  sprintf(pltTit,"XTalkCoupling_InjCh%d",Inj_ch);
-  Plot.Poly(*poly, pltTit, Xtit = "X[cm]", Ytit = "Y[cm]", Opt = "colztext", Stat = 0, Wait = 0, SavePlot = 1);
+  sprintf(pltTit,"InjCh%d",Inj_ch);
+  Plot.Poly(*poly, pltTit, Xtit = "X[cm]", Ytit = "Y[cm]", Opt = "colz", Stat = 0, Wait = 0, SavePlot = 1);
 
 
+  // Unconnect channels
+  
+  double LabelUncnct[NformatCH];
+  double XTalkCoupling_Uncnct[NformatCH];
+  for(int ichip = 0; ichip < NCHIP; ichip++){
+    for(int ich = 1; ich < NCH; ich = ich+2){
+      LabelUncnct[(ich+ichip*NCH)/2] = ich + ichip*NCH;
+      XTalkCoupling_Uncnct[(ich+ichip*NCH)/2] = XTalkCoupling_Average[ichip][ich];
+    }
+  }
+  TGraph* gXTalkCoupling_Uncnct = new TGraph(NformatCH, LabelUncnct , XTalkCoupling_Uncnct);
+  sprintf(pltTit,"XTalkCoupling_Uncnct_InjCh%d",Inj_ch);
+  Plot.GStd(*gXTalkCoupling_Uncnct, pltTit, Xtit = "UnconnectCh ID", Ytit = "E / EInj", Opt = "AP", Wait = 0, SavePlot = 1);
 
+  TGraph* gXTalkCoupling_Uncnct39 = new TGraph(Nevents, MIP[0][Inj_ch], MIP[0][39]);
+  sprintf(pltTit,"Uncnct39");
+  Plot.GStd(*gXTalkCoupling_Uncnct39, pltTit, Xtit = "EInj[MIP]", Ytit = "E / EInj", Opt = "AP", Wait = 0, SavePlot = 1);
 
 
   // ------------------------------ Fit ------------------------------ //
@@ -891,7 +925,7 @@ void makePlots::Crosstalk(Int_t CH){
     cross_posx[5] = X - Xdist;
     cross_posy[5] = Y - Ydist;
   
-  
+    cout << "Chip" << ichip << " FirstRing Channels = " ;
     for(int icross = 0; icross < 6; icross++){
       //cout << cross_posx[i] << " " << cross_posy[i] << endl;
       int ch = 0;
@@ -912,9 +946,10 @@ void makePlots::Crosstalk(Int_t CH){
       
       }
       cross_ch_FirstRing[ichip][icross] = ch * 2;
-      cross_type[ichip][icross] = good_channel;
-      cout << cross_ch_FirstRing[ichip][icross] << endl;
+      cross_type[ichip][icross] = good_channel;      
+      cout << cross_ch_FirstRing[ichip][icross] << " " ;
     }
+    cout << endl;
   }
   
   TH2Poly *poly = new TH2Poly;

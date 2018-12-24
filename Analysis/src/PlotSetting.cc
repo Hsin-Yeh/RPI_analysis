@@ -3,6 +3,7 @@
 #include "TGraph.h"
 #include "TImage.h"
 #include "TMultiGraph.h"
+#include "TLatex.h"
 
 //Constructo
 PlotSetting::PlotSetting()
@@ -16,6 +17,8 @@ PlotSetting::~PlotSetting()
 
 void PlotSetting::GStd(TGraph& g, char* plot_title, string Xtitle, string Ytitle, string Option, bool Wait, bool SavePlot) 
 {
+  if(!Wait){ gROOT->SetBatch(kTRUE); }
+  else { gROOT->SetBatch(kFALSE); }
   TCanvas* c = new TCanvas();
   g.SetTitle(plot_title);
   g.GetXaxis()->SetTitle(Xtitle.c_str());
@@ -23,9 +26,7 @@ void PlotSetting::GStd(TGraph& g, char* plot_title, string Xtitle, string Ytitle
   g.GetYaxis()->SetTitleOffset(1.3);
   g.Draw(Option.c_str());
   c->Update();
-  if(Wait){
-    gPad->WaitPrimitive();
-  }
+  if(Wait){ gPad->WaitPrimitive(); }
   if(SavePlot){
     char title[200];
     sprintf(title,"%s/%s.png",plotfolder_path,plot_title);
@@ -40,6 +41,8 @@ void PlotSetting::GStd(TGraph& g, char* plot_title, string Xtitle, string Ytitle
 void PlotSetting::G(TGraph& g, char* plot_title, string Xtitle, string Ytitle,int MarkerStyle,int MarkerColor,
 		    int MarkerSize, int LineColor, int LineWidth, string Option,bool OptStat, bool Wait, bool SavePlot) 
 {
+  if(!Wait){ gROOT->SetBatch(kTRUE); }
+  else { gROOT->SetBatch(kFALSE); }
   TCanvas* c = new TCanvas();
   gStyle->SetOptStat(OptStat);
   g.SetTitle(plot_title);
@@ -53,9 +56,7 @@ void PlotSetting::G(TGraph& g, char* plot_title, string Xtitle, string Ytitle,in
   g.SetMarkerSize(MarkerSize);
   g.Draw(Option.c_str());
   c->Update();
-  if(Wait){
-    gPad->WaitPrimitive();
-  }
+  if(Wait){ gPad->WaitPrimitive(); }
   if(SavePlot){
     char title[200];
     sprintf(title,"%s/%s.png",plotfolder_path,plot_title);
@@ -70,6 +71,8 @@ void PlotSetting::G(TGraph& g, char* plot_title, string Xtitle, string Ytitle,in
 
 void PlotSetting::Multi(TMultiGraph& g, TLegend& legend, char* plot_title, string Xtitle, string Ytitle, string Option, bool Wait, bool SavePlot) 
 {
+  if(!Wait){ gROOT->SetBatch(kTRUE); }
+  else { gROOT->SetBatch(kFALSE); }
   TCanvas* c = new TCanvas();
   g.Draw(Option.c_str());
   g.SetTitle(plot_title);
@@ -79,9 +82,8 @@ void PlotSetting::Multi(TMultiGraph& g, TLegend& legend, char* plot_title, strin
   legend.SetBorderSize(0);
   legend.Draw();
   c->Update();
-  if(Wait){
-    gPad->WaitPrimitive();
-  }
+  if(Wait){ gPad->WaitPrimitive(); }
+  
   if(SavePlot){
     char title[200];
     sprintf(title,"%s/%s.png",plotfolder_path,plot_title);
@@ -108,18 +110,24 @@ void PlotSetting::MultiAdd(TMultiGraph& multig, TGraph& g, TLegend& legend, char
 
 void PlotSetting::Poly(TH2Poly& poly, char* plot_title, string Xtitle, string Ytitle, string Option,bool OptStat, bool Wait, bool SavePlot) 
 {
+  if(!Wait){ gROOT->SetBatch(kTRUE); }
+  else { gROOT->SetBatch(kFALSE); }
   TCanvas* c = new TCanvas();
+  TLatex latex;
+  latex.SetTextSize(0.05);
+  latex.SetTextAlign(13);  //align at top
   gStyle->SetOptStat(OptStat);
-  gStyle->SetPalette(55);
+  gStyle->SetPalette(kRainBow);
   poly.SetTitle(plot_title);
   poly.GetXaxis()->SetTitle(Xtitle.c_str());
   poly.GetYaxis()->SetTitle(Ytitle.c_str());
   poly.GetYaxis()->SetTitleOffset(1.);
   poly.Draw(Option.c_str());
+  latex.DrawLatex(5.2,7.8,"<E / EInj>_{EInj=200}^{EInj=1000}");
   c->Update();
-  if(Wait){
-    gPad->WaitPrimitive();
-  }
+     
+  if(Wait){ gPad->WaitPrimitive(); }
+
   if(SavePlot){
     char title[200];
     sprintf(title,"%s/%s.png",plotfolder_path,plot_title);
@@ -155,8 +163,8 @@ void PlotSetting::root_logon(){
   // set the paper & margin sizes
   atlasStyle->SetPaperSize(20,26);
   atlasStyle->SetPadTopMargin(0.05);
-  atlasStyle->SetPadTopMargin(0.1);
-  atlasStyle->SetPadRightMargin(0.12);
+  atlasStyle->SetPadTopMargin(0.11);
+  atlasStyle->SetPadRightMargin(0.13);
   atlasStyle->SetPadBottomMargin(0.15);
   atlasStyle->SetPadLeftMargin(0.12);
 
