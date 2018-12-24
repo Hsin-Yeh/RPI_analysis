@@ -1125,10 +1125,9 @@ void makePlots::Gain_factor_producer(){
     
     int TS0_sca, MaxTS_sca;
     for(int sca = 0 ; sca < NSCA ; sca++) {
-      TS[sca] = timesamp[sca];
+      cout << timesamp[sca] << endl;
       if (timesamp[sca] == 0) { TS0_sca = sca ; }
       if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
-      cout << MaxTS_sca << endl;
     }
     
     
