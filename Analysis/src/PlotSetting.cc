@@ -117,7 +117,7 @@ void PlotSetting::Poly(TH2Poly& poly, char* plot_title, string Xtitle, string Yt
   latex.SetTextSize(0.05);
   latex.SetTextAlign(13);  //align at top
   gStyle->SetOptStat(OptStat);
-  gStyle->SetPalette(kRainBow);
+  gStyle->SetPalette(55);
   poly.SetTitle(plot_title);
   poly.GetXaxis()->SetTitle(Xtitle.c_str());
   poly.GetYaxis()->SetTitle(Ytitle.c_str());
