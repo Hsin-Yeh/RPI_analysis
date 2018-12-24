@@ -37,7 +37,6 @@ class makePlots{
   //public function
   void Init();
   void PlotProducer();
-  void Gain_factor_producer();
   void Evt_display();
   void Inj_Pulse_display();
   void IdentifyInjCh();
@@ -58,6 +57,7 @@ class makePlots{
   
   void yamlReader();
   void GainFactorReader();
+  void Gain_factor_producer();
   virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
   void Crosstalk(Int_t ch);
   void Crosstalk_2ndRing(Int_t ch);

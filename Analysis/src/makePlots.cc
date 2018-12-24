@@ -31,7 +31,6 @@ makePlots::~makePlots()
 void makePlots::Init(){
   yamlReader();
   Crosstalk(Inj_ch);
-  GainFactorReader();
   Plot.root_logon();
   sprintf(Plot.plotfolder_path,"plots/TBHexaboard/Injch_%d",Inj_ch);
   Chain1->SetBranchAddress("event",&event);
@@ -45,6 +44,7 @@ void makePlots::Init(){
   Chain1->SetBranchAddress("tot_slow",&tot_slow);
   Chain1->SetBranchAddress("toa_rise",&toa_rise);
   Chain1->SetBranchAddress("toa_fall",&toa_fall);
+  GainFactorReader();
   //outfile = new TFile("output.root","RECREATE");
   app = new TApplication("app",0,0);
 }
@@ -1111,8 +1111,8 @@ void makePlots::Gain_factor_producer(){
   //==================== Initialize ====================
 
   for(int ichip = 0; ichip < NCHIP; ichip++){
-  HGTP_flag[ichip] = false;
-  LGTP_flag[ichip] = false;
+    HGTP_flag[ichip] = false;
+    LGTP_flag[ichip] = false;
   }
 
 
@@ -1125,7 +1125,6 @@ void makePlots::Gain_factor_producer(){
     
     int TS0_sca, MaxTS_sca;
     for(int sca = 0 ; sca < NSCA ; sca++) {
-      cout << timesamp[sca] << endl;
       if (timesamp[sca] == 0) { TS0_sca = sca ; }
       if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
     }
