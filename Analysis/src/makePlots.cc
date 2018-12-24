@@ -1128,9 +1128,9 @@ void makePlots::Gain_factor_producer(){
       TS[sca] = timesamp[sca];
       if (timesamp[sca] == 0) { TS0_sca = sca ; }
       if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
+      cout << MaxTS_sca << endl;
     }
     
-    cout << hg[MaxTS_sca][Inj_ch] << endl;
     
     ADC_H_InjCh_Chip[chip][event] = ( hg[MaxTS_sca][Inj_ch] - hg[TS0_sca][Inj_ch] );
     ADC_L_InjCh_Chip[chip][event] = ( lg[MaxTS_sca][Inj_ch] - lg[TS0_sca][Inj_ch] );
