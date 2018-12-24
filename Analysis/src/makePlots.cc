@@ -1129,11 +1129,13 @@ void makePlots::Gain_factor_producer(){
       if (timesamp[sca] == 0) { TS0_sca = sca ; }
       if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
     }
-    getchar();
+
     
     ADC_H_InjCh_Chip[chip][event] = ( hg[MaxTS_sca][Inj_ch] - hg[TS0_sca][Inj_ch] );
     ADC_L_InjCh_Chip[chip][event] = ( lg[MaxTS_sca][Inj_ch] - lg[TS0_sca][Inj_ch] );
     TOT_InjCh_Chip[chip][event] = tot_slow[Inj_ch];
+
+    cout << ADC_H_InjCh_Chip[chip][event] << endl;
 
     if(ADC_H_InjCh_Chip[chip][event] > HGTP[chip][Inj_ch] && HGTP_flag[chip] == false){
       HGTP_flag[chip] = true;
