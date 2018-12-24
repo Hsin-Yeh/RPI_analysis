@@ -807,7 +807,7 @@ void makePlots::GainFactorReader(){
   int ichip, ich;
   if(!GainFile.is_open()){
     cout << "Did not find GainFactor file " << GainFileName
-	 << ".\n Take this run's GainFactor as default" << endl;
+	 << ".\n Take this run's GainFactor as default & calculate the Gainfactors " << endl;
     for(ichip = 0; ichip < NCHIP; ichip++){
       for(ich = 0; ich < NCH; ich++){
 	HGTP[ichip][ich] = 1500;
