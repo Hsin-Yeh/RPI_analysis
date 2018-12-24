@@ -32,7 +32,7 @@ void makePlots::Init(){
   yamlReader();
   Crosstalk(Inj_ch);
   Plot.root_logon();
-  sprintf(Plot.plotfolder_path,"plots/TBHexaboard/Injch_%d",Inj_ch);
+  sprintf(Plot.plotfolder_path,"plots/NTU_Inj_Data/V3PCB/Injch_%d",Inj_ch);
   Chain1->SetBranchAddress("event",&event);
   Chain1->SetBranchAddress("chip",&chip);
   Chain1->SetBranchAddress("roll",&roll);
@@ -1181,19 +1181,19 @@ void makePlots::Gain_factor_producer(){
   TOT2LG_Conversion[ichip][Inj_ch] = Linear_fit_TOT2LG->GetParameter(1);
 
   sprintf(pltTit,"HG_Chip%d",ichip);
-  Plot.GStd(*gh[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
+  Plot.GStd(*gh[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 0, SavePlot = 1);
 
   sprintf(pltTit,"LG_Chip%d",ichip);
-  Plot.GStd(*gl[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
+  Plot.GStd(*gl[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 0, SavePlot = 1);
 
   sprintf(pltTit,"TOT_Chip%d",ichip);
-  Plot.GStd(*gtot[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
+  Plot.GStd(*gtot[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 0, SavePlot = 1);
     
   sprintf(pltTit,"LG2HG_Chip%d",ichip);
-  Plot.GStd(*LG2HG[ichip], pltTit, Xtit = "LG", Ytit = "HG", Opt = "AP", Wait = 1, SavePlot = 1);
+  Plot.GStd(*LG2HG[ichip], pltTit, Xtit = "LG", Ytit = "HG", Opt = "AP", Wait = 0, SavePlot = 1);
     
   sprintf(pltTit,"TOT2LG_Chip%d",ichip);
-  Plot.GStd(*TOT2LG[ichip], pltTit, Xtit = "TOT", Ytit = "LG", Opt = "AP", Wait = 1, SavePlot = 1);
+  Plot.GStd(*TOT2LG[ichip], pltTit, Xtit = "TOT", Ytit = "LG", Opt = "AP", Wait = 0, SavePlot = 1);
   }
 }
 
