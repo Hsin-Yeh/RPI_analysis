@@ -19,6 +19,7 @@ class PlotSetting{
   char plotfolder_path[200];
 
   //public function
+  void HStd(TH1& h, char* plot_title, string Xtitle, string Ytitle, bool Wait, bool SavePlot); 
   void GStd(TGraph& g, char* plot_title, string Xtitle, string Ytitle, string Option, bool Wait, bool SavePlot); 
   void G(TGraph& g, char* plot_title, string Xtitle, string Ytitle,int MarkerStyle,int MarkerColor,
 		       int MarkerSize, int LineColor, int LineWidth, string Option,bool OptStat, bool Wait, bool SavePlot);

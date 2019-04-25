@@ -14,6 +14,28 @@ PlotSetting::~PlotSetting()
 {
 }
 
+void PlotSetting::HStd(TH1& h, char* plot_title, string Xtitle, string Ytitle, bool Wait, bool SavePlot) 
+{
+  if(!Wait){ gROOT->SetBatch(kTRUE); }
+  else { gROOT->SetBatch(kFALSE); }
+  TCanvas* c = new TCanvas();
+  h.SetTitle(plot_title);
+  h.GetXaxis()->SetTitle(Xtitle.c_str());
+  h.GetYaxis()->SetTitle(Ytitle.c_str());
+  h.GetYaxis()->SetTitleOffset(1.3);
+  h.Draw();
+  c->Update();
+  if(Wait){ gPad->WaitPrimitive(); }
+  if(SavePlot){
+    char title[200];
+    sprintf(title,"%s/%s.png",plotfolder_path,plot_title);
+    TImage *img = TImage::Create();
+    img->FromPad(c);
+    img->WriteImage(title);
+    cout << title << " has been saved" << endl;
+  }
+  delete c;  
+}
 
 void PlotSetting::GStd(TGraph& g, char* plot_title, string Xtitle, string Ytitle, string Option, bool Wait, bool SavePlot) 
 {
@@ -123,7 +145,8 @@ void PlotSetting::Poly(TH2Poly& poly, char* plot_title, string Xtitle, string Yt
   poly.GetYaxis()->SetTitle(Ytitle.c_str());
   poly.GetYaxis()->SetTitleOffset(1.);
   poly.Draw(Option.c_str());
-  latex.DrawLatex(5.2,7.8,"<E / EInj>_{EInj=200}^{EInj=1000}");
+  //  latex.DrawLatex(5.2,7.8,"<E / EInj>_{EInj=200}^{EInj=1000}");
+  latex.DrawLatex(6,7.5,"<E / EInj>");
   c->Update();
      
   if(Wait){ gPad->WaitPrimitive(); }
@@ -211,7 +234,7 @@ void PlotSetting::root_logon(){
   //atlasStyle->SetErrorX(0.001);
 
   //do not display any of the standard histogram decorations
-  //atlasStyle->SetOptTitle(0);
+  //  atlasStyle->SetOptTitle(0);
   //atlasStyle->SetOptStat(1111);
   atlasStyle->SetOptStat(0);
   //atlasStyle->SetOptFit(1111);

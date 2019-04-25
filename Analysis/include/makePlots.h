@@ -43,6 +43,7 @@ class makePlots{
 
 
   //public parameter
+  bool Is_TB;
   string         input_RUN;
   bool doTruth;
   int pedopt;

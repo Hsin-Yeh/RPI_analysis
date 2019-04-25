@@ -32,7 +32,12 @@ void makePlots::Init(){
   yamlReader();
   Crosstalk(Inj_ch);
   Plot.root_logon();
-  sprintf(Plot.plotfolder_path,"plots/NTU_Inj_Data/V3PCB/Injch_%d",Inj_ch);
+  if(Is_TB){
+    sprintf(Plot.plotfolder_path,"plots/TBHexaboard/Injch_%d",Inj_ch);
+  }
+  else {
+    sprintf(Plot.plotfolder_path,"plots/NTU_BarePCB/Injch_%d",Inj_ch);
+  }  
   Chain1->SetBranchAddress("event",&event);
   Chain1->SetBranchAddress("chip",&chip);
   Chain1->SetBranchAddress("roll",&roll);
@@ -84,10 +89,17 @@ void makePlots::PlotProducer(){
   double dac_ctrl_double[Nevents];
   bool cross_type_chip[cross_num][NCHIP];
 
+  // Define Histograms
+  TH1D *h_hgPedestal[NSCA];
+  TH1D *h_lgPedestal[NSCA];
 
-  
-  
-  // Define Histograms 
+  for(int sca = 0; sca < NSCA; ++sca){
+    char h_title[50];
+    sprintf(h_title,"h_hgPedestal%d",sca);
+    h_hgPedestal[sca] = new TH1D(h_title,"",100,0,500);
+    sprintf(h_title,"h_lgPedestal%d",sca);
+    h_lgPedestal[sca] = new TH1D(h_title,"",100,0,500);
+  }
   /*
   TH1D *h = new TH1D("h","",100,150,250); //("title","",slice,star,end)
   TH1D *h_TOTS = new TH1D("h_TOTS","",100,5,500);
@@ -102,9 +114,10 @@ void makePlots::PlotProducer(){
   int start = Input_filename.find_last_of("/");
   int end   = Input_filename.find(".root");
   string outf = Input_filename.substr(start+1,end-start-1);
+
   sprintf(title,"output_root/%s.root",outf.c_str());
   TFile *outfile = new TFile(title,"recreate");
-  TTree *outT1 = new TTree("Rechit_var","Rechit_var");
+  //TTree *outT1 = new TTree("Rechit_var","Rechit_var");
 
 
   //==================== Initialize ====================
@@ -137,34 +150,46 @@ void makePlots::PlotProducer(){
     if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }    
     Chain1 -> GetEntry(entry);
     dac_ctrl[event] = dacinj;
-    dac_ctrl_double[event] = dacinj;
+    dac_ctrl_double[event] = dacinj;    
     
-    // Filling hg, lg data (with 13 SCA)
+    
     int TS0_sca, MaxTS_sca;
     for(int sca = 0 ; sca < NSCA ; sca++) {
       TS[sca] = timesamp[sca];
       if (timesamp[sca] == 0) { TS0_sca = sca ; }
       if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
     }
-	
+
+    // -------------------- Pedestal Analysis -------------------- //
+    for(int sca = 0; sca < NSCA; ++sca){
+	  if ( chip != 3 ) continue;
+      h_hgPedestal[sca]->Fill(hg[sca][52]); // Fill histogram with TS0 readout 
+      h_lgPedestal[sca]->Fill(lg[sca][52]);
+    }
+
+    
+    // -------------------- Injection & Cross Talk Analysis -------------------- //
+
+    // Filling hg, lg data (with 13 SCA)	
     ADC_H_InjCh[event] = hg[MaxTS_sca][Inj_ch]; // Filling the Inj_ch
     ADC_L_InjCh[event] = lg[MaxTS_sca][Inj_ch];
 
     ADC_H_InjCh_Chip[chip][event] = hg[MaxTS_sca][Inj_ch];
     ADC_L_InjCh_Chip[chip][event] = lg[MaxTS_sca][Inj_ch];
-    ADC_H_InjCh_Chip_double[chip][event] = ( hg[MaxTS_sca][Inj_ch] - hg[TS0_sca][Inj_ch] );
-    ADC_L_InjCh_Chip_double[chip][event] = ( lg[MaxTS_sca][Inj_ch] - lg[TS0_sca][Inj_ch] );
+    ADC_H_InjCh_Chip_double[chip][event] = ( hg[MaxTS_sca][Inj_ch]  );
+    ADC_L_InjCh_Chip_double[chip][event] = ( lg[MaxTS_sca][Inj_ch]  );
     TOT_InjCh_Chip[chip][event] = tot_slow[Inj_ch];
 
+    
     
     // Calculate energy converted into mip 
     for(int ich = 0; ich < NCH; ich++){
       int hg_sig = hg[MaxTS_sca][ich] - hg[TS0_sca][ich];
       int lg_sig = lg[MaxTS_sca][ich] - lg[TS0_sca][ich];
       int tot_sig = tot_slow[ich];
+
       
       if( hg_sig < HGTP[chip][ich]){
-
 	MIP[chip][ich][event] = hg_sig * ADC2MIP;
       }
       else{
@@ -244,45 +269,8 @@ void makePlots::PlotProducer(){
   double slope_h_InjCh, slope_l_InjCh, slope_h_chip[NCHIP], slope_l_chip[NCHIP];
   double CnctID[NformatCH], UncnctID[NformatCH];
 
-
-  for(int ch = 0; ch < NformatCH; ch++){
-    UncnctID[ch] = ch*2 + 1;
-  }
   */
 
-  // Define TGraphs
-  /*
-  TGraph* gh = new TGraph(Nevents,dac_ctrl,ADC_H_InjCh);
-  TGraph* gl = new TGraph(Nevents,dac_ctrl,ADC_L_InjCh);
-  TGraph* gTOT = new TGraph(Nevents,dac_ctrl,TOTS_InjCh);
-  TGraph* ghlratio = new TGraph(Nevents,ADC_L_InjCh,ADC_H_InjCh);
-  TGraph* gltratio = new TGraph(Nevents,TOTS_InjCh,ADC_L_InjCh);
-  TGraph* gh_Uncnct_Slope;
-  TGraph* gh_Cnct_Slope;
-  TGraph** gh_chip = new TGraph*[NCHIP];
-  TGraph** gl_chip = new TGraph*[NCHIP];
-  TGraph** gtot_chip = new TGraph*[NCHIP];
-  TGraph** gh_UnConnectedCh = new TGraph*[NformatCH];
-  TGraph** gl_UnConnectedCh = new TGraph*[NformatCH];
-  TGraph** gtot_UnConnectedCh = new TGraph*[NformatCH];  
-  TGraph** gcross_h = new TGraph*[cross_num];
-  TGraph** gcross_l = new TGraph*[cross_num];
-  TGraph** gcross_tot = new TGraph*[cross_num];
-  TGraph** gh_ConnectedCh = new TGraph*[NformatCH];
-  TGraph** gl_ConnectedCh = new TGraph*[NformatCH];
-  TGraph** gtot_ConnectedCh = new TGraph*[NformatCH];
-  TGraph* gnoisy_h = new TGraph(Nevents,dac_ctrl,ADC_H_NoisyChannel);
-  TGraph** gratioRing1_Injch_l = new TGraph*[NCHIP];
-  TGraph** gratioRing1_Injch = new TGraph*[NCHIP];
-  TGraph* gXTalkRatioRing1Channels;
-  TGraph** gInjch_mip = new TGraph*[NCHIP];
-  TMultiGraph* multig_cross_h = new TMultiGraph();
-  TMultiGraph* multig_cross_l = new TMultiGraph();
-  TMultiGraph* multig_InjCh_Chip_h = new TMultiGraph();
-  TMultiGraph* multig_InjCh_Chip_l = new TMultiGraph();
-  TMultiGraph* multig_InjCh_Chip_hltot = new TMultiGraph();
-  TMultiGraph* multig_AllCh_Slope = new TMultiGraph();
-  */
 
   // Plots!!!!!
 
@@ -296,7 +284,7 @@ void makePlots::PlotProducer(){
     // ------------------------------ MIP Conversion Plot ------------------------------ //
     TGraph* gInjch_mip = new TGraph(Nevents,dac_ctrl_double,MIP[ichip][Inj_ch]);
     sprintf(pltTit,"InjCh%d_chip%d_MIP",Inj_ch,ichip);
-    Plot.GStd(*gInjch_mip, pltTit, Xtit = "DAC", Ytit = "MIP", Opt = "AP", Wait = 0, SavePlot = 1);
+    Plot.GStd(*gInjch_mip, pltTit, Xtit = "DAC", Ytit = "MIP", Opt = "AP", Wait = 0, SavePlot = 0);
     
     // ------------------------------ Cross Talk Ratio ------------------------------ //
     gXTalkRatioRing1 = new TGraph(Nevents,MIP[ichip][Inj_ch],XTalkRatio_FirstRing[ichip]);
@@ -319,18 +307,18 @@ void makePlots::PlotProducer(){
     multig_XRatioRing1Channels->SetMaximum(0.05);
     multig_XRatioRing1Channels->SetMinimum(0.);
     sprintf(pltTit,"XTalkCoupling_FirstRing_InjCh%d_Chip%d",Inj_ch, ichip);
-    Plot.Multi(*multig_XRatioRing1Channels, *legend_Ring1Channels, pltTit, Xtit = "EInj[MIP]", Ytit = "EFirstRing / EInj", Opt = "AP", Wait = 0, SavePlot = 1);
+    Plot.Multi(*multig_XRatioRing1Channels, *legend_Ring1Channels, pltTit, Xtit = "EInj[MIP]", Ytit = "EFirstRing / EInj", Opt = "AP", Wait = 0, SavePlot = 0);
   }
 
   multig_XRatioRing1->SetMaximum(0.2);
   multig_XRatioRing1->SetMinimum(-0.1);
   sprintf(pltTit,"XTalkCoupling_FirstRing_InjCh%d",Inj_ch);
-  Plot.Multi(*multig_XRatioRing1, *legend_Ring1, pltTit, Xtit = "EInj[MIP]", Ytit = "EFirstRing / EInj", Opt = "AP", Wait = 0, SavePlot = 1);
+  Plot.Multi(*multig_XRatioRing1, *legend_Ring1, pltTit, Xtit = "EInj[MIP]", Ytit = "EFirstRing / EInj", Opt = "AP", Wait = 0, SavePlot = 0);
 
   TGraph* gexample = new TGraph(Nevents,MIP[0][Inj_ch],XTalkRatio_FirstRingChannels[0][0]);
   sprintf(pltTit,"Chip%d_Ch%d_InjCh%d",0,0,Inj_ch);
   gexample->GetYaxis()->SetRangeUser(-0.,0.05);
-  Plot.GStd(*gexample, pltTit, Xtit = "EInj[MIP]", Ytit = "E / EInj", Opt = "AP", Wait = 0, SavePlot = 1);
+  Plot.GStd(*gexample, pltTit, Xtit = "EInj[MIP]", Ytit = "E / EInj", Opt = "AP", Wait = 0, SavePlot = 0);
     
   
   // 2D Graph of XTalk coupling
@@ -356,14 +344,16 @@ void makePlots::PlotProducer(){
 	  if(forCH == NoisyChannel[iNoisy]/2) {NoisyBool = true;}
 	  }*/
 	if(!NoisyBool){
-	poly->Fill(X,Y,XTalkCoupling_Average[ichip][ich]);
-	//  poly->Fill(X,Y,ich);
+	  //poly->Fill(X,Y,XTalkCoupling_Average[ichip][ich]);
+	  poly->Fill(X,Y,forCH);
 	}
       }
     }
   }
   sprintf(pltTit,"InjCh%d",Inj_ch);
-  Plot.Poly(*poly, pltTit, Xtit = "X[cm]", Ytit = "Y[cm]", Opt = "colz", Stat = 0, Wait = 0, SavePlot = 1);
+  Plot.Poly(*poly, pltTit, Xtit = "X[cm]", Ytit = "Y[cm]", Opt = "colz", Stat = 0, Wait = 0, SavePlot = 0);
+
+  // 1D Graph  
 
 
   // Unconnect channels
@@ -378,11 +368,61 @@ void makePlots::PlotProducer(){
   }
   TGraph* gXTalkCoupling_Uncnct = new TGraph(NformatCH, LabelUncnct , XTalkCoupling_Uncnct);
   sprintf(pltTit,"XTalkCoupling_Uncnct_InjCh%d",Inj_ch);
-  Plot.GStd(*gXTalkCoupling_Uncnct, pltTit, Xtit = "UnconnectCh ID", Ytit = "E / EInj", Opt = "AP", Wait = 0, SavePlot = 1);
+  Plot.GStd(*gXTalkCoupling_Uncnct, pltTit, Xtit = "UnconnectCh ID", Ytit = "E / EInj", Opt = "AP", Wait = 0, SavePlot = 0);
 
   TGraph* gXTalkCoupling_Uncnct39 = new TGraph(Nevents, MIP[0][Inj_ch], MIP[0][39]);
   sprintf(pltTit,"Uncnct39");
-  Plot.GStd(*gXTalkCoupling_Uncnct39, pltTit, Xtit = "EInj[MIP]", Ytit = "E / EInj", Opt = "AP", Wait = 0, SavePlot = 1);
+  Plot.GStd(*gXTalkCoupling_Uncnct39, pltTit, Xtit = "EInj[MIP]", Ytit = "E / EInj", Opt = "AP", Wait = 0, SavePlot = 0);
+
+
+
+  //------------------------------ Plotting HG_LG_TOT for Inj_ch per chip ------------------------------ //
+
+  TGraph **gh_chip = new TGraph*[NCHIP];
+  TGraph **gl_chip = new TGraph*[NCHIP];
+  TGraph **gtot_chip = new TGraph*[NCHIP];
+  
+  for(int ichip = 0; ichip < NCHIP; ichip++){
+    TLegend *legend = new TLegend(0.7,0.4,0.85,0.6);
+    TMultiGraph *multig_InjCh_Chip_hltot = new TMultiGraph();
+    gh_chip[ichip] = new TGraph(Nevents,dac_ctrl,ADC_H_InjCh_Chip[ichip]);
+    sprintf(pltTit,"Chip%d_inj%d",ichip,Inj_ch);
+    Plot.G(*gh_chip[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
+	   MkSty = 24, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 1, SavePlot = 0);
+    legend->AddEntry(gh_chip[ichip],"HG","L");
+    
+    gl_chip[ichip] = new TGraph(Nevents,dac_ctrl,ADC_L_InjCh_Chip[ichip]);
+    sprintf(pltTit,"Chip%d_inj%d",ichip,Inj_ch);
+    Plot.G(*gl_chip[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
+	   MkSty = 24, MkClr = 2, MkSize = 0.5, LClr = 2, LWid = 4, Opt = "AP", Stat = 1, Wait = 1, SavePlot = 0);
+    legend->AddEntry(gl_chip[ichip],"LG","L");
+
+    gtot_chip[ichip] = new TGraph(Nevents,dac_ctrl,TOT_InjCh_Chip[ichip]);
+    sprintf(pltTit,"Chip%d_inj%d",ichip,Inj_ch);
+    Plot.G(*gtot_chip[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
+	   MkSty = 24, MkClr = 3, MkSize = 0.5, LClr = 3, LWid = 4, Opt = "AP", Stat = 1, Wait = 1, SavePlot = 0);
+    legend->AddEntry(gtot_chip[ichip],"TOT","L");
+
+    multig_InjCh_Chip_hltot->Add(gh_chip[ichip]);
+    multig_InjCh_Chip_hltot->Add(gl_chip[ichip]);
+    multig_InjCh_Chip_hltot->Add(gtot_chip[ichip]);
+    sprintf(pltTit,"HG_LG_TOT_InjCh%d_Chip%d",Inj_ch,ichip);
+    Plot.Multi(*multig_InjCh_Chip_hltot, *legend, pltTit, Xtit = "Injection DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
+    delete multig_InjCh_Chip_hltot;
+    delete legend;
+  }
+
+  // ------------------------------ Pedestal Plots ------------------------------ //
+
+  for(int sca = 0; sca < NSCA; ++sca){
+    sprintf(pltTit,"hgPedestal[%d]",sca);
+    Plot.HStd(*h_hgPedestal[sca], pltTit, Xtit = "ADC", Ytit = "", Wait = 0, SavePlot = 0);
+	h_hgPedestal[sca]->Write();
+  }
+
+
+  outfile->Write();
+  outfile->Close();
 
 
   // ------------------------------ Fit ------------------------------ //
@@ -755,7 +795,6 @@ void makePlots::PlotProducer(){
   }
 */
 
-
 //****************************************************************************************************//
 //****************************************************************************************************//
 
@@ -763,15 +802,20 @@ void makePlots::PlotProducer(){
 
 void makePlots::yamlReader(){
 
-  int start, end;
-  string rootFileName(input_RUN);
-  start = rootFileName.find("/unpack");
-  string temp = rootFileName.replace(start+1,13,"yaml");
-  start = temp.find("_pedestal.root");
-  string yamlFileName = temp.replace(start,14,".yaml");
+
+  int start = input_RUN.find_last_of("/");
+  int end = input_RUN.find("_pedestal.root");
+  string f_substr = input_RUN.substr(start+1,end-start-1);
+  string rootFileName(f_substr);
+  end = input_RUN.find("ana_output");
+  cout << end << endl;
+  f_substr = input_RUN.substr(0,end-1);
+  string yamlPath(f_substr);
+  char yamlFileName[100];
+  sprintf(yamlFileName,"%s/yaml/%s.yaml",yamlPath.c_str(), rootFileName.c_str());
   
   string searchstr;
-  ifstream yamlFile(yamlFileName.c_str());
+  ifstream yamlFile(yamlFileName);
   if(!yamlFile.is_open()){
     cout << "Did not find injection file " << yamlFileName
 	 << ".\n Take this run as pedestal.(Inj_dac = 0)" << endl;
@@ -799,8 +843,14 @@ void makePlots::yamlReader(){
 }
 
 void makePlots::GainFactorReader(){
+
+  string GainFileName;
+  string TB_GainFactors("src_txtfile/TPro_fittingoutput.txt");
+  if(Is_TB){
+    GainFileName = TB_GainFactors;}
+  else{
+    string GainFileName("src_txtfile/TPro_NTU_Inj.txt");}
   
-  string GainFileName("src_txtfile/TPro_fittingoutput.txt");
   ifstream GainFile(GainFileName.c_str());
   string line;
   char tmp[50];
@@ -812,7 +862,7 @@ void makePlots::GainFactorReader(){
       for(ich = 0; ich < NCH; ich++){
 	HGTP[ichip][ich] = 1500;
 	LG2HG_Conversion[ichip][ich] = 8.5;
-	LGTP[ichip][ich] = 1200;
+	LGTP[ichip][ich] = 900;
 	TOT2LG_Conversion[ichip][ich] = 3.8;
 	TOTOffSet[ichip][ich] = 180;
       }
@@ -846,7 +896,7 @@ void makePlots::Inj_Pulse_display(){
   int lg_transpose[64][13];
   
   for(int ev = 0; ev < Nevents ; ++ev){
-    if(ev % 1 != 0) continue;
+    if(ev % 50 != 0) continue;
     Chain1 -> GetEntry(ev);
     for(int i = 0 ; i < NSCA ; ++i) TS[i] = timesamp[i];
     
@@ -1096,7 +1146,7 @@ void makePlots::Gain_factor_producer(){
 
   int TotalEntries = Chain1->GetEntries();
   int Nevents = TotalEntries/NCHIP;
-  int MaxTS = 3;
+  int MaxTS = 2;
 
   int ADC_H_InjCh_Chip[NCHIP][Nevents], ADC_L_InjCh_Chip[NCHIP][Nevents], TOT_InjCh_Chip[NCHIP][Nevents];
   int dac_ctrl[Nevents];
@@ -1157,6 +1207,7 @@ void makePlots::Gain_factor_producer(){
   int MkSty, MkClr, LClr, fitmin, fitmax;
   float MkSize, LWid;
   bool Stat, Wait, SavePlot;
+  TCanvas *c1 = new TCanvas();
 
   TGraph** gh = new TGraph*[NCHIP];
   TGraph** gl = new TGraph*[NCHIP];
@@ -1165,35 +1216,41 @@ void makePlots::Gain_factor_producer(){
   TGraph** TOT2LG = new TGraph*[NCHIP];
 
   for(int ichip = 0; ichip < NCHIP; ichip++){
-  gh[ichip] = new TGraph(Nevents,dac_ctrl,ADC_H_InjCh_Chip[ichip]);
-  gl[ichip] = new TGraph(Nevents,dac_ctrl,ADC_L_InjCh_Chip[ichip]);
-  gtot[ichip] = new TGraph(Nevents,dac_ctrl,TOT_InjCh_Chip[ichip]);
-  LG2HG[ichip] = new TGraph(Nevents,ADC_L_InjCh_Chip[ichip],ADC_H_InjCh_Chip[ichip]);
-  TOT2LG[ichip] = new TGraph(Nevents,TOT_InjCh_Chip[ichip],ADC_L_InjCh_Chip[ichip]);
+    gh[ichip] = new TGraph(Nevents,dac_ctrl,ADC_H_InjCh_Chip[ichip]);
+    gl[ichip] = new TGraph(Nevents,dac_ctrl,ADC_L_InjCh_Chip[ichip]);
+    gtot[ichip] = new TGraph(Nevents,dac_ctrl,TOT_InjCh_Chip[ichip]);
+    LG2HG[ichip] = new TGraph(Nevents,ADC_L_InjCh_Chip[ichip],ADC_H_InjCh_Chip[ichip]);
+    TOT2LG[ichip] = new TGraph(Nevents,TOT_InjCh_Chip[ichip],ADC_L_InjCh_Chip[ichip]);
     
-  LG2HG[ichip]->Fit("pol1","","",fitmin = 0,fitmax = HGLGfitmax[ichip]);
-  //TOT2LG[ichip]->Fit("pol1","","",fitmin = TOTOffSet,fitmax = TOTLGfitmax[ichip]);
-  TOT2LG[ichip]->Fit("pol1","","",fitmin = 400,fitmax = 500);
+    LG2HG[ichip]->Fit("pol1","","",fitmin = 0,fitmax = HGLGfitmax[ichip]);
+    //TOT2LG[ichip]->Fit("pol1","","",fitmin = TOTOffSet,fitmax = TOTLGfitmax[ichip]);
+    TOT2LG[ichip]->Fit("pol1","","",fitmin = 200,fitmax = 300);
     
-  TF1* Linear_fit_LG2HG = LG2HG[ichip]->GetFunction("pol1");
-  TF1* Linear_fit_TOT2LG = TOT2LG[ichip]->GetFunction("pol1");
-  LG2HG_Conversion[ichip][Inj_ch] = Linear_fit_LG2HG->GetParameter(1);
-  TOT2LG_Conversion[ichip][Inj_ch] = Linear_fit_TOT2LG->GetParameter(1);
+    TF1* Linear_fit_LG2HG = LG2HG[ichip]->GetFunction("pol1");
+    TF1* Linear_fit_TOT2LG = TOT2LG[ichip]->GetFunction("pol1");
+    LG2HG_Conversion[ichip][Inj_ch] = Linear_fit_LG2HG->GetParameter(1);
+    TOT2LG_Conversion[ichip][Inj_ch] = Linear_fit_TOT2LG->GetParameter(1);
+    TOTOffSet[ichip][Inj_ch] = -Linear_fit_TOT2LG->GetParameter(0)/Linear_fit_TOT2LG->GetParameter(1);
+    cout << LG2HG_Conversion[ichip][Inj_ch] << " " <<  TOT2LG_Conversion[ichip][Inj_ch] << " " << TOTOffSet[ichip][Inj_ch] << endl;
+    /*
+      TOT2LG[ichip]->Draw("AP");
+      c1->Update();
+      gPad->WaitPrimitive();
+    */
+    sprintf(pltTit,"HG_Chip%d",ichip);
+    Plot.GStd(*gh[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 0, SavePlot = 1);
 
-  sprintf(pltTit,"HG_Chip%d",ichip);
-  Plot.GStd(*gh[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 0, SavePlot = 1);
+    sprintf(pltTit,"LG_Chip%d",ichip);
+    Plot.GStd(*gl[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 0, SavePlot = 1);
 
-  sprintf(pltTit,"LG_Chip%d",ichip);
-  Plot.GStd(*gl[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 0, SavePlot = 1);
-
-  sprintf(pltTit,"TOT_Chip%d",ichip);
-  Plot.GStd(*gtot[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 0, SavePlot = 1);
+    sprintf(pltTit,"TOT_Chip%d",ichip);
+    Plot.GStd(*gtot[ichip], pltTit, Xtit = "DAC", Ytit = "ADC", Opt = "AP", Wait = 0, SavePlot = 1);
     
-  sprintf(pltTit,"LG2HG_Chip%d",ichip);
-  Plot.GStd(*LG2HG[ichip], pltTit, Xtit = "LG", Ytit = "HG", Opt = "AP", Wait = 0, SavePlot = 1);
+    sprintf(pltTit,"LG2HG_Chip%d",ichip);
+    Plot.GStd(*LG2HG[ichip], pltTit, Xtit = "LG", Ytit = "HG", Opt = "AP", Wait = 0, SavePlot = 1);
     
-  sprintf(pltTit,"TOT2LG_Chip%d",ichip);
-  Plot.GStd(*TOT2LG[ichip], pltTit, Xtit = "TOT", Ytit = "LG", Opt = "AP", Wait = 0, SavePlot = 1);
+    sprintf(pltTit,"TOT2LG_Chip%d",ichip);
+    Plot.GStd(*TOT2LG[ichip], pltTit, Xtit = "TOT", Ytit = "LG", Opt = "AP", Wait = 0, SavePlot = 1);
   }
 }
 
