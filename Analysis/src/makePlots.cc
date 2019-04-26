@@ -119,6 +119,8 @@ void makePlots::PlotProducer(){
   TFile *outfile = new TFile(title,"recreate");
   //TTree *outT1 = new TTree("Rechit_var","Rechit_var");
 
+  sprintf(title,"hgPedestal.txt");
+
 
   //==================== Initialize ====================
   for(int ichip = 0; ichip < NCHIP; ichip++){
@@ -388,26 +390,26 @@ void makePlots::PlotProducer(){
     gh_chip[ichip] = new TGraph(Nevents,dac_ctrl,ADC_H_InjCh_Chip[ichip]);
     sprintf(pltTit,"Chip%d_inj%d",ichip,Inj_ch);
     Plot.G(*gh_chip[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
-	   MkSty = 24, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 1, SavePlot = 0);
+	   MkSty = 24, MkClr = 1, MkSize = 0.5, LClr = 1, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
     legend->AddEntry(gh_chip[ichip],"HG","L");
     
     gl_chip[ichip] = new TGraph(Nevents,dac_ctrl,ADC_L_InjCh_Chip[ichip]);
     sprintf(pltTit,"Chip%d_inj%d",ichip,Inj_ch);
     Plot.G(*gl_chip[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
-	   MkSty = 24, MkClr = 2, MkSize = 0.5, LClr = 2, LWid = 4, Opt = "AP", Stat = 1, Wait = 1, SavePlot = 0);
+	   MkSty = 24, MkClr = 2, MkSize = 0.5, LClr = 2, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
     legend->AddEntry(gl_chip[ichip],"LG","L");
 
     gtot_chip[ichip] = new TGraph(Nevents,dac_ctrl,TOT_InjCh_Chip[ichip]);
     sprintf(pltTit,"Chip%d_inj%d",ichip,Inj_ch);
     Plot.G(*gtot_chip[ichip], pltTit, Xtit = "DAC", Ytit = "ADC",
-	   MkSty = 24, MkClr = 3, MkSize = 0.5, LClr = 3, LWid = 4, Opt = "AP", Stat = 1, Wait = 1, SavePlot = 0);
+	   MkSty = 24, MkClr = 3, MkSize = 0.5, LClr = 3, LWid = 4, Opt = "AP", Stat = 1, Wait = 0, SavePlot = 0);
     legend->AddEntry(gtot_chip[ichip],"TOT","L");
 
     multig_InjCh_Chip_hltot->Add(gh_chip[ichip]);
     multig_InjCh_Chip_hltot->Add(gl_chip[ichip]);
     multig_InjCh_Chip_hltot->Add(gtot_chip[ichip]);
     sprintf(pltTit,"HG_LG_TOT_InjCh%d_Chip%d",Inj_ch,ichip);
-    Plot.Multi(*multig_InjCh_Chip_hltot, *legend, pltTit, Xtit = "Injection DAC", Ytit = "ADC", Opt = "AP", Wait = 1, SavePlot = 1);
+    Plot.Multi(*multig_InjCh_Chip_hltot, *legend, pltTit, Xtit = "Injection DAC", Ytit = "ADC", Opt = "AP", Wait = 0, SavePlot = 1);
     delete multig_InjCh_Chip_hltot;
     delete legend;
   }
@@ -418,6 +420,11 @@ void makePlots::PlotProducer(){
     sprintf(pltTit,"hgPedestal[%d]",sca);
     Plot.HStd(*h_hgPedestal[sca], pltTit, Xtit = "ADC", Ytit = "", Wait = 0, SavePlot = 0);
 	h_hgPedestal[sca]->Write();
+
+	sprintf(pltTit,"lgPedestal[%d]",sca);
+    Plot.HStd(*h_lgPedestal[sca], pltTit, Xtit = "ADC", Ytit = "", Wait = 0, SavePlot = 0);
+	h_lgPedestal[sca]->Write();
+
   }
 
 
