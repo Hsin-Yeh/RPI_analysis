@@ -77,10 +77,10 @@ class makePlots{
   TApplication *app;
   TTree          *Chain1;
   int            TS[NSCA];
-  float avg_HG_SCA  [NCHIP][NCH][NSCA];
-  float sigma_HG_SCA[NCHIP][NCH][NSCA];
-  float avg_LG_SCA  [NCHIP][NCH][NSCA];
-  float sigma_LG_SCA[NCHIP][NCH][NSCA];
+  float avg_HG[NCHIP][NCH][NSCA];
+  float sigma_HG[NCHIP][NCH][NSCA];
+  float avg_LG[NCHIP][NCH][NSCA];
+  float sigma_LG[NCHIP][NCH][NSCA];
   int cross_ch_FirstRing[NCHIP][6];
   bool cross_type[NCHIP][6];
   int cross_ch_2ndRing[12];
