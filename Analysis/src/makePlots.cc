@@ -516,7 +516,7 @@ void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int
 
   TGraph *gr;
   int Nevents = Chain1->GetEntries();
-  cout << " Total Events = " << Nevents << endl;
+  cout << "Total Events = " << Nevents << endl;
   char plot_title[50];
 
   // define array;
