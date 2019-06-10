@@ -24,7 +24,7 @@ makePlots::makePlots(TChain* inchain):Chain1(inchain)
 //Destructor
 makePlots::~makePlots()
 {
-  delete c;
+  delete c; // delete canvas first before deleting app
   delete app;
   cout << "\n\n";
   cout << "Destructor of makePlot ... " << endl;
@@ -200,7 +200,7 @@ void makePlots::PlotProducer(){
 	  double energy_mip = mipConverter( hg_SubPed, lg_SubPed, tot, channel);
 	  mip_allCh[channel][event] = energy_mip;
 
-	  // Injection XTalk coupling calculation
+	  // Injection XTalk calculation
 	  XTalkCoupling[channel][event] = mip_allCh[channel][event] / mip_allCh[inj_channel][event];
       if( event>50 && event<=700 ){
 		XTalkCoupling_Average[channel] += XTalkCoupling[channel][event];
@@ -261,7 +261,7 @@ void makePlots::PlotProducer(){
 	multig_InjCh_hltot->SetName(title);
 	multig_InjCh_hltot->Write();
 
-	
+	/*
 	// ------------------------------ Xtalk vs dac_ctrl ------------------------------ //	
 	TMultiGraph *multig_XTalkCoupling_ring = new TMultiGraph();
 	for(int iring = 1; iring < NRings; iring++){
@@ -281,9 +281,10 @@ void makePlots::PlotProducer(){
 	c->Update();
 	multig_XTalkCoupling_ring->GetYaxis()->SetRangeUser(-0.01,0.1);
 	multig_XTalkCoupling_ring->Write();
+	*/
   }
 
-
+  /*
   // ------------------------------ 2D Average Xtalk ------------------------------ //	  
   int NNoisy = 8;
   int NoisyChannel[8] = {248,186,214,120,126,42,254,190};
@@ -337,7 +338,7 @@ void makePlots::PlotProducer(){
   gXTalkCoupling_UnCnct->SetTitle(title);
   gXTalkCoupling_UnCnct->SetName(title);
   gXTalkCoupling_UnCnct->Write();
-
+	*/
   outfile->Write();
   outfile->Close();
 
