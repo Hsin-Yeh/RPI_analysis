@@ -33,7 +33,6 @@ int main(int argc, char** argv){
   int iarg = 1;
   if ( argc > 1 ) {
 	while ( iarg < argc ) {
-	  cout << arg_list[iarg] << endl;
 	  if ( arg_list[iarg] == "-p" ) {
 		if ( isNumber( arg_list[iarg+1] ) ) {
 		  displayChannel = atoi(arg_list[iarg+1].c_str());

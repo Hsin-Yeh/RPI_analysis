@@ -569,8 +569,7 @@ void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int
 	else if ( acq_type == 2 ) {  // find signal and display
 	  for( int ich =0; ich < 64; ich+=2){
 		if ( mipSigCheck( hg_transpose[ich], TS ) ) {
-		  if ( ich != injCh )
-			pulsePlotter( hg_transpose[ich], TS, ev, chip, ich, lowerR, upperR );
+		  pulsePlotter( hg_transpose[ich], TS, ev, chip, ich, lowerR, upperR );
 		}
 	  }
 	}		  
