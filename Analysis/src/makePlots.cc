@@ -464,14 +464,14 @@ void makePlots::yamlReader(){
 		start = line.find("[");
 		end   = line.find("]");
 		searchstr = line.substr( start+1, end-start-1 );
-		injCh = std::stoi(searchstr);
-		//injCh = 38;
+		injCh = std::atoi(searchstr.c_str());
 		cout << "InjCh = " << injCh << endl;
 		break;
 	  }
     }
   }
 }
+
 
 
 void makePlots::GainFactorReader( string gainfile ){
