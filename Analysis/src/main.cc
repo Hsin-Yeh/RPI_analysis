@@ -80,7 +80,7 @@ void main_makePlots() {
   
   makePlots M(chain);
   M.input_fileName = filename;
-  M.Init( pedfile, gainfile);
+  M.Init( pedfile, gainfile );
   M.PlotProducer();
 }
 

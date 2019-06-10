@@ -24,8 +24,8 @@ makePlots::makePlots(TChain* inchain):Chain1(inchain)
 //Destructor
 makePlots::~makePlots()
 {
-  delete app;
   delete c;
+  delete app;
   cout << "\n\n";
   cout << "Destructor of makePlot ... " << endl;
 }
@@ -60,7 +60,6 @@ void makePlots::Init( string pedfile, string gainfile ){
 void makePlots::PlotProducer(){
 
   char title[200];
-  TCanvas* c1 = new TCanvas();
 
   // Set Output Root File
   int start = input_fileName.find_last_of("/");
@@ -179,7 +178,6 @@ void makePlots::PlotProducer(){
 		}
 	  }
 	}
-
 	
     // -------------------- Injection & Cross Talk Analysis -------------------- //
 	int inj_channel = injCh + chip*64;
@@ -228,7 +226,7 @@ void makePlots::PlotProducer(){
 	XTalkCoupling_Average[ichannel] /= (AverageEvents/NCHANNEL);
   }
   
- 
+
   // Plots!!!!!
   for(int ichip = 0; ichip < NCHIP; ichip++){
 	int inj_channel = (ichip*64) + injCh;
@@ -280,7 +278,7 @@ void makePlots::PlotProducer(){
 	multig_XTalkCoupling_ring->SetTitle(title);
 	multig_XTalkCoupling_ring->SetName(title);
 	multig_XTalkCoupling_ring->Draw("AP");
-	c1->Update();
+	c->Update();
 	multig_XTalkCoupling_ring->GetYaxis()->SetRangeUser(-0.01,0.1);
 	multig_XTalkCoupling_ring->Write();
   }
@@ -462,9 +460,12 @@ void makePlots::yamlReader(){
 	  if ( yamlFile.eof() ) break;
 	  getline (yamlFile, line);
 	  if ( line.find("channelIds:") != -1 ){
-		start = line.find("[");
-		end   = line.find("]");
-		searchstr = line.substr( start+1, end-start-1 );
+		//getline(yamlFile, line);
+		start = line.find("-");
+		//end   = line.find("]");
+		//searchstr = line.substr( start+1 );
+		string tmp;
+		yamlFile >> tmp >> searchstr;
 		injCh = std::atoi(searchstr.c_str());
 		cout << "InjCh = " << injCh << endl;
 		break;
@@ -665,8 +666,8 @@ void makePlots::read_P_and_N(string ped_file){
   ifstream inHG(HG_name);
   ifstream inLG(LG_name);
   if( !inHG.is_open() || !inLG.is_open()){
-    cout << "File not found! Either" << HG_name << " or " << LG_name
-		 << "doesn't exist!" << endl;
+    cout << "File not found! Neither " << HG_name << " or " << LG_name
+		 << " exist!" << endl;
     return;}
   else{
     cout << "Input ped file is :" << endl;
