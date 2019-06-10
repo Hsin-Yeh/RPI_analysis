@@ -7,7 +7,7 @@
 // default Setup
 string main_outpath = "./";
 string main_datainput = "./data_input.txt";
-string pedfile  = "./CMSSW_output_root/TBHexaboard/module120/ana_output/pedestal";
+string pedfile  = "./pedestal";
 string gainfile = "./src_txtfile/TPro_fittingoutput.txt";
 
 // Utility

@@ -566,9 +566,16 @@ void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int
 	else if ( acq_type == 1 ) {  // injCh display
 	  pulsePlotter( lg_transpose[injCh], TS, ev, chip, injCh, lowerR, upperR);
 	}
-	else if ( acq_type == 2 ) {  // signal display ( including signal finder )
-	  mipSigCheck(hg_transpose[injCh]);
-	}
+	else if ( acq_type == 2 ) {  // find signal and display
+	  for( int ich =0; ich < 64; ich+=2){
+		if ( mipSigCheck( hg_transpose[ich], TS ) ) {
+		  if ( ich != injCh )
+			pulsePlotter( hg_transpose[ich], TS, ev, chip, ich, lowerR, upperR );
+		}
+	  }
+	}		  
+		  
+
 	else {  // selected channel display
 	  int ichip = displayChannel / 64;
 	  int ich   = displayChannel % 64;
@@ -604,14 +611,19 @@ double makePlots::CMCalculator( double **sig_subPed, int *TS ) {
 }
 
 
-bool makePlots::mipSigCheck( double *sig ) {
+bool makePlots::mipSigCheck( double *sig, int *TS ) {
   double noisy_cut    = 2000;
   double noSignal_cut = 50;
+  bool sig_flag = false;
+  double sig_ts[NSCA];
   
   for( int sca = 0; sca < NSCA; sca++) {
-	if ( sig[sca] > noisy_cut || sig[sca] < noSignal_cut ) return false;
+	sig_ts[ TS[sca] ] = sig[sca];
+	if ( TS[sca] > 1 && TS[sca] < 5 && sig[sca] < noisy_cut && sig[sca] > noSignal_cut ) sig_flag = true;
   }
-  return true;
+  if ( sig_ts[0] > sig_ts[2] && sig_ts[0] > sig_ts[3] ) sig_flag = false;
+  
+  return sig_flag;
 }
 
 void makePlots::pulsePlotter( double *sig, int *TS, int ev, int ichip, int ich, int lowerR, int upperR ) {
@@ -638,10 +650,15 @@ void makePlots::pulsePlotter( double *sig, int *TS, int ev, int ichip, int ich, 
 
 
 void makePlots::read_P_and_N(string ped_file){
-  
+
+  int end = input_fileName.find("ana_output");
+  string pedPath = input_fileName.substr(0,end-1);
+  char pedFileName[100];
+  sprintf(pedFileName,"%s/pedestal",pedPath.c_str());
+
   char HG_name[100],LG_name[100];
-  sprintf(HG_name,"%sHG.txt",ped_file.c_str());
-  sprintf(LG_name,"%sLG.txt",ped_file.c_str());
+  sprintf(HG_name,"%sHG.txt",pedFileName);
+  sprintf(LG_name,"%sLG.txt",pedFileName);
   ifstream inHG(HG_name);
   ifstream inLG(LG_name);
   if( !inHG.is_open() || !inLG.is_open()){

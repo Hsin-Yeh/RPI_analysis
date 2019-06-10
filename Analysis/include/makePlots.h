@@ -53,7 +53,7 @@ class makePlots{
   double  mipConverter( double hg_SubPed, double lg_SubPed, double tot , int channel);
   int     ringPositionFinder( int inj_channel, int channel);
   double  CMCalculator( double **sig_SubPed, int *TS );
-  bool    mipSigCheck(double *sig );
+  bool    mipSigCheck( double *sig, int *TS );
   void    pulsePlotter( double *sig, int *TS, int ev, int ichip, int ich, int lowerR, int upperR );
   void    Gain_factor_producer();
   virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
