@@ -49,6 +49,7 @@ void makePlots::Init( string pedfile, string gainfile ){
   Chain1->SetBranchAddress("toa_fall",&toa_fall);
   app = new TApplication("app",0,0);
   c = new TCanvas();
+  cout << " Init complete " << endl;
 }
 
 
@@ -532,7 +533,6 @@ void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int
 	lg_SubPed[i] = new double[NCH];
   }
 	
-  cout << "hi " << endl;
   // Loop Over Events
   for(int ev = 0; ev < Nevents ; ++ev){
 	//if(ev % 30 != 0) continue;
