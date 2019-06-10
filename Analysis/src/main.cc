@@ -27,8 +27,6 @@ int main(int argc, char** argv){
   for(int i = 0 ; i < argc ; ++i){
 	arg_string = argv[i];
 	arg_list.push_back(arg_string);
-	cout << arg_list[i] << endl;
-	cout << argc << endl;
   }
 
   if ( argc == 1 ) { main_makePlots(); }
