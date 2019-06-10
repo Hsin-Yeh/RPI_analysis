@@ -25,7 +25,7 @@ makePlots::makePlots(TChain* inchain):Chain1(inchain)
 makePlots::~makePlots()
 {
   delete app;
-  //delete c;
+  delete c;
   cout << "\n\n";
   cout << "Destructor of makePlot ... " << endl;
 }
@@ -48,7 +48,7 @@ void makePlots::Init( string pedfile, string gainfile ){
   Chain1->SetBranchAddress("toa_rise",&toa_rise);
   Chain1->SetBranchAddress("toa_fall",&toa_fall);
   app = new TApplication("app",0,0);
-  //c = new TCanvas();
+  c = new TCanvas();
   cout << " Init complete " << endl;
 }
 
@@ -516,7 +516,6 @@ void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int
 
   TGraph *gr;
   int Nevents = Chain1->GetEntries();
-  TCanvas *c1 = new TCanvas();
   cout << " Total Events = " << Nevents << endl;
   char plot_title[50];
 
@@ -557,7 +556,7 @@ void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int
 		lg_transpose[ch][sca] = lg_SubPed[sca][ch] - lgCM;
 	  }
 	}
-	/*
+
 	// Pulse Plots 
 	if ( acq_type == 0 && displayChannel == -1) { // Loop over every channel
 	  for( int ich =0; ich < 64; ich+=2){
@@ -581,7 +580,6 @@ void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int
 	  if ( chip != ichip ) continue;
 	  pulsePlotter( hg_transpose[ich], TS, ev, ichip, ich, lowerR, upperR);
 	}
-	*/
   }
 
 }
