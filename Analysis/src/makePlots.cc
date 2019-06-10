@@ -532,7 +532,7 @@ void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int
 	lg_SubPed[i] = new double[NCH];
   }
 	
-
+  cout << "hi " << endl;
   // Loop Over Events
   for(int ev = 0; ev < Nevents ; ++ev){
 	//if(ev % 30 != 0) continue;
