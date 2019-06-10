@@ -24,8 +24,8 @@ makePlots::makePlots(TChain* inchain):Chain1(inchain)
 //Destructor
 makePlots::~makePlots()
 {
-  delete c;
   delete app;
+  delete c;
   cout << "\n\n";
   cout << "Destructor of makePlot ... " << endl;
 }
