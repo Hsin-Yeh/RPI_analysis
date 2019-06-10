@@ -3,27 +3,69 @@
 #include <fstream>
 #include <iostream>
 
+
+// default Setup
+string main_outpath = "./";
+string main_datainput = "./data_input.txt";
+string pedfile  = "./CMSSW_output_root/TBHexaboard/module120/ana_output/pedestal";
+string gainfile = "./src_txtfile/TPro_fittingoutput.txt";
+
+// Utility
+void main_plotPulseDisplay( int displayChannel, int acq_type, int lowerR, int upperR);
+void main_makePlots();
+bool isNumber(string s);
+
+
 int main(int argc, char** argv){
   
-  int arg_tmp = -1;
-  bool Is_TB = false;
-  if(argc == 2){
-    std::string tmp_str(argv[1]);
-    arg_tmp = (int)argv[1][0] - int('0');
-    
-    if(arg_tmp == 0){
-      Is_TB = true;
-      cout << "Run TB Module\n" << endl;}
-    if(arg_tmp == 1){
-      cout << "Run NTU Bare PCB\n" << endl;}  }
-  else if(argc == 1){
-    Is_TB = true;
-    cout << "Run TB Module\n" << endl;}
-  else{
-    cout << "wrong argument! EXIT!!" << endl;
-    exit(-1);
+  int displayChannel = -1;
+  int acq_type = 0;
+  int lowerR = -1, upperR = -1;
+
+  string arg_string;
+  vector<string> arg_list;
+  for(int i = 0 ; i < argc ; ++i){
+	arg_string = argv[i];
+	arg_list.push_back(arg_string);
+	cout << arg_list[i] << endl;
+	cout << argc << endl;
   }
 
+  if ( argc == 1 ) { main_makePlots(); }
+  int iarg = 1;
+  if ( argc > 1 ) {
+	while ( iarg < argc ) {
+	  cout << arg_list[iarg] << endl;
+	  if ( arg_list[iarg] == "-p" ) {
+		if ( isNumber( arg_list[iarg+1] ) ) {
+		  displayChannel = atoi(arg_list[iarg+1].c_str());
+		  iarg+=2;
+		}
+		else iarg++;
+	  }
+	  else if ( arg_list[iarg] == "-i" ) {
+		acq_type = 1; 
+		iarg++;
+	  }
+	  else if ( arg_list[iarg] == "-s" ) {
+		acq_type = 2;
+		iarg++;
+	  }
+	  else if ( arg_list[iarg] == "-r" ) {
+		lowerR =  atoi(arg_list[iarg+1].c_str());
+		upperR =  atoi(arg_list[iarg+2].c_str());
+		iarg+=3;
+	  }
+	  else {
+		std::cout << "Unknown option... print usage" << std::endl;
+	  }
+	}
+	main_plotPulseDisplay( displayChannel, acq_type, lowerR, upperR );
+  }
+  return (0);
+}
+
+void main_makePlots() {
   TChain *chain = new TChain("treeproducer/sk2cms");
   string filename;
   ifstream infile("data_input.txt");
@@ -33,17 +75,36 @@ int main(int argc, char** argv){
     chain->Add(filename.c_str());}
   else
     cout << "There is no input root file written in the input.txt!" << endl;
-
-  makePlots M(chain);
-  M.Is_TB = Is_TB; 
-  M.input_RUN = filename;
-  M.Init();
-  //M.PlotProducer();
-  //M.Evt_display();
-  M.Inj_Pulse_display();
-  //  M.IdentifyInjCh();
-
-		      
   
-  return(0);
+  makePlots M(chain);
+  M.input_fileName = filename;
+  M.Init( pedfile, gainfile);
+  M.PlotProducer();
 }
+
+void main_plotPulseDisplay( int displayChannel, int acq_type, int lowerR, int upperR ) {
+  TChain *chain = new TChain("treeproducer/sk2cms");
+  string filename;
+  ifstream infile("data_input.txt");
+  infile >> filename;
+  infile.close();
+  if( filename.length() > 2){
+    chain->Add(filename.c_str());}
+  else
+    cout << "There is no input root file written in the input.txt!" << endl;
+  
+  makePlots M(chain);
+  M.input_fileName = filename;
+  M.Init( pedfile, gainfile );
+  M.Pulse_display( displayChannel, acq_type, lowerR, upperR );
+		      
+}
+
+ bool isNumber(string s) { 
+   for (int i = 0; i < s.length(); i++) 
+	 if (isdigit(s[i]) == false) 
+	   return false; 
+
+   return true; 
+ } 
+

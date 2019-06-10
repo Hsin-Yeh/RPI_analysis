@@ -1,7 +1,5 @@
-/////////////////////////////////////////////////////////
-// Arthor: Chia-hung Chien  chchien521@gmail.com       
-// Just use the same class name as we used to.         
-/////////////////////////////////////////////////////////
+// Arthor: Hsin-Yeh Wu
+// Email : thankyouyou06@gmail.com
 
 
 #ifndef makePlots_h
@@ -27,6 +25,7 @@ const int NCH = 64;
 const int NSCA = 13;
 const int NformatCH = 128;
 const int NCHANNEL = 256;
+const int NRings = 5;
 
 class makePlots{
  public:
@@ -35,56 +34,51 @@ class makePlots{
   ~makePlots();
 
   //public function
-  void Init();
+  void Init( string pedfile, string gainfile );
   void PlotProducer();
-  void Evt_display();
-  void Inj_Pulse_display();
-  void IdentifyInjCh();
-
+  void Pulse_display( int displayChannel = -1 , int acq_type = 0, int lowerR = -1, int upperR = -1 );
 
   //public parameter
-  bool Is_TB;
-  string         input_RUN;
-  bool doTruth;
-  int pedopt;
-  int Inj_ch;
+  string input_fileName;
+  int injCh;
   int ModuleNumber;
-  double LG2HG_Conversion[NCHIP][NCH], TOT2LG_Conversion[NCHIP][NCH], HGTP[NCHIP][NCH], LGTP[NCHIP][NCH], TOTOffSet[NCHIP][NCH], ADC2MIP = 0.0227;
-  double LGTP_default = 900;
-  PlotSetting Plot;
+  double LG2HG_Conversion[NCHIP][NCH], TOT2LG_Conversion[NCHIP][NCH], HGTP[NCHIP][NCH], LGTP[NCHIP][NCH], TOTOffSet[NCHIP][NCH], ADC2MIP = 0.0227, LGTP_default = 900;
+  PlotSetting P;
 
   
  private:
   
-  void yamlReader();
-  void GainFactorReader();
-  void Gain_factor_producer();
+  void    yamlReader();
+  void    GainFactorReader( string gainfile );
+  double  mipConverter( double hg_SubPed, double lg_SubPed, double tot , int channel);
+  int     ringPositionFinder( int inj_channel, int channel);
+  double  CMCalculator( double **sig_SubPed, int *TS );
+  bool    mipSigCheck(double *sig );
+  void    pulsePlotter( double *sig, int *TS, int ev, int ichip, int ich, int lowerR, int upperR );
+  void    Gain_factor_producer();
   virtual Int_t    Cut(Long64_t entry, Long64_t sigma);
-  void Crosstalk(Int_t ch);
-  void Crosstalk_2ndRing(Int_t ch);
-  void P_and_N(int option,bool output);
+  void    Crosstalk(Int_t ch);
+  void    P_and_N(int option,bool output);
   // P_and_N function:
   // option 0 can be used for pedestal run.
   // option 1 is an informal way that can deal with signal runs,
   // similar method is applied in test beam framework.
   double sigmaCal(int N, int sum, double sqsum);
-  void read_P_and_N(string ped_file);
-  void readmap();
-  void InitTH2Poly(TH2Poly& poly); //Give frame to TH2Poly
+  void   read_P_and_N(string ped_file);
+  void   readmap();
+  void   InitTH2Poly(TH2Poly& poly); //Give frame to TH2Poly
   
 
-  TFile* outfile;
-  TApplication *app;
+  TApplication   *app;
+  TCanvas        *c;
   TTree          *Chain1;
-  int            TS[NSCA];
-  float avg_HG[NCHIP][NCH][NSCA];
-  float sigma_HG[NCHIP][NCH][NSCA];
-  float avg_LG[NCHIP][NCH][NSCA];
-  float sigma_LG[NCHIP][NCH][NSCA];
-  int cross_ch_FirstRing[NCHIP][6];
-  bool cross_type[NCHIP][6];
-  int cross_ch_2ndRing[12];
+  float          avg_HG[NCHIP][NCH][NSCA];
+  float          sigma_HG[NCHIP][NCH][NSCA];
+  float          avg_LG[NCHIP][NCH][NSCA];
+  float          sigma_LG[NCHIP][NCH][NSCA];
+  int            cross_ch_FirstRing[NCHIP][6];
 
+  
   ///////////////////////////////
   // Declaration of leaf types //
   ///////////////////////////////
