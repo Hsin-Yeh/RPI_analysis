@@ -47,8 +47,8 @@ void makePlots::Init( string pedfile, string gainfile ){
   Chain1->SetBranchAddress("tot_slow",&tot_slow);
   Chain1->SetBranchAddress("toa_rise",&toa_rise);
   Chain1->SetBranchAddress("toa_fall",&toa_fall);
-  app = new TApplication("app",0,0);
-  c = new TCanvas();
+  //app = new TApplication("app",0,0);
+  //c = new TCanvas();
   cout << " Init complete " << endl;
 }
 
