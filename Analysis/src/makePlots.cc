@@ -512,7 +512,7 @@ void makePlots::GainFactorReader( string gainfile ){
 
 
 
-void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int upperR ){
+void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int upperR, bool subPed_flag ){
 
   TGraph *gr;
   int Nevents = Chain1->GetEntries();
@@ -551,9 +551,15 @@ void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int
 	double lgCM = CMCalculator( lg_SubPed, TS );
 		
 	for (int sca = 0; sca < NSCA; sca++){
-	  for(int ch = 0; ch < 64; ch++){
-		hg_transpose[ch][sca] = hg_SubPed[sca][ch] - hgCM; // CM subtraction 
-		lg_transpose[ch][sca] = lg_SubPed[sca][ch] - lgCM;
+	  for(int ich = 0; ich < 64; ich++){
+		if ( subPed_flag ){
+		  hg_transpose[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
+		  lg_transpose[ich][sca] = lg_SubPed[sca][ich] - lgCM;
+		}
+		else {
+		  hg_transpose[ich][sca] = hg[sca][ich];
+		  lg_transpose[ich][sca] = lg[sca][ich];
+		}
 	  }
 	}
 

@@ -11,7 +11,7 @@ string pedfile  = "./pedestal";
 string gainfile = "./src_txtfile/TPro_fittingoutput.txt";
 
 // Utility
-void main_plotPulseDisplay( int displayChannel, int acq_type, int lowerR, int upperR);
+void main_plotPulseDisplay( int displayChannel, int acq_type, int lowerR, int upperR, bool subPed_flag );
 void main_makePlots();
 bool isNumber(string s);
 
@@ -21,6 +21,7 @@ int main(int argc, char** argv){
   int displayChannel = -1;
   int acq_type = 0;
   int lowerR = -1, upperR = -1;
+  bool subPed_flag = true;
 
   string arg_string;
   vector<string> arg_list;
@@ -53,11 +54,15 @@ int main(int argc, char** argv){
 		upperR =  atoi(arg_list[iarg+2].c_str());
 		iarg+=3;
 	  }
+	  else if ( arg_list[iarg] == "-n" || arg_list[iarg] == "-noSubPed" ) {
+		subPed_flag = false;
+		iarg++;
+	  }
 	  else {
 		std::cout << "Unknown option... print usage" << std::endl;
 	  }
 	}
-	main_plotPulseDisplay( displayChannel, acq_type, lowerR, upperR );
+	main_plotPulseDisplay( displayChannel, acq_type, lowerR, upperR, subPed_flag );
   }
   return (0);
 }
@@ -79,7 +84,7 @@ void main_makePlots() {
   M.PlotProducer();
 }
 
-void main_plotPulseDisplay( int displayChannel, int acq_type, int lowerR, int upperR ) {
+void main_plotPulseDisplay( int displayChannel, int acq_type, int lowerR, int upperR, bool subPed_flag ) {
   TChain *chain = new TChain("treeproducer/sk2cms");
   string filename;
   ifstream infile("data_input.txt");
@@ -93,7 +98,7 @@ void main_plotPulseDisplay( int displayChannel, int acq_type, int lowerR, int up
   makePlots M(chain);
   M.input_fileName = filename;
   M.Init( pedfile, gainfile );
-  M.Pulse_display( displayChannel, acq_type, lowerR, upperR );
+  M.Pulse_display( displayChannel, acq_type, lowerR, upperR, subPed_flag );
 		      
 }
 
