@@ -14,10 +14,10 @@ string gainfile = "./src_txtfile/TPro_fittingoutput.txt";
 void main_plotPulseDisplay(); 
 void main_makePlots();
 bool isNumber(string s);
-int displayChannel = -1;
-int acq_type = 0;
-int lowerR = -1, upperR = -1;
-bool subPed_flag = false;
+int  displayChannel = -1;
+int  acq_type = 0;
+int  lowerR = -1, upperR = -1;
+bool subPed_flag = true;
 bool maskCh_flag = false;
 bool pulseDisplay_flag = false;
 
@@ -36,6 +36,7 @@ int main(int argc, char** argv){
   while ( iarg < argc ) {
 	if ( arg_list[iarg] == "-p" ) {
 	  pulseDisplay_flag = true;
+	  cout << arg_list[iarg+1] << endl;
 	  if ( isNumber( arg_list[iarg+1] ) ) {
 		displayChannel = atoi(arg_list[iarg+1].c_str());
 		iarg+=2;
@@ -119,9 +120,9 @@ void main_plotPulseDisplay() {
 
  bool isNumber(string s) { 
    for (int i = 0; i < s.length(); i++) 
-	 if (isdigit(s[i]) == false) 
-	   return false; 
+	 if (isdigit(s[i]) == true) 
+	   return true; 
 
-   return true; 
+   return false; 
  } 
 
