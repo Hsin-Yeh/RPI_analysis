@@ -682,14 +682,18 @@ double makePlots::CMCalculator( double **sig_subPed, int *TS ) {
 
 
 bool makePlots::mipSigCheck( double *sig, int *TS ) {
-  double noisy_cut    = 2000;
+  int p_noisy_cut  = 2000;
+  int n_noisy_cut  = -1000;
   double noSignal_cut = 50;
   bool sig_flag = false;
   double sig_ts[NSCA];
   
   for( int sca = 0; sca < NSCA; sca++) {
 	sig_ts[ TS[sca] ] = sig[sca];
-	if ( TS[sca] > 1 && TS[sca] < 5 && sig[sca] < noisy_cut && sig[sca] > noSignal_cut ) sig_flag = true;
+	if ( TS[sca] > 1 && TS[sca] < 5 && sig[sca] < p_noisy_cut && sig[sca] > noSignal_cut ) sig_flag = true;
+  }
+  for( int sca = 0; sca < NSCA; sca++) {
+	if ( sig[sca] < n_noisy_cut ) sig_flag = false;
   }
   if ( sig_ts[0] > sig_ts[2] && sig_ts[0] > sig_ts[3] ) sig_flag = false;
   
