@@ -36,11 +36,14 @@ class makePlots{
   //public function
   void Init( string pedfile, string gainfile );
   void PlotProducer();
-  void Pulse_display( int displayChannel = -1 , int acq_type = 0, int lowerR = -1, int upperR = -1, bool subPed_flag = true );
+  void Pulse_display( int displayChannel = -1 , int acq_type = 0, int lowerR = -1, int upperR = -1 );
 
   //public parameter
   string input_fileName;
   int injCh;
+  int injChip;
+  bool subPed_flag;
+  bool maskCh_flag;
   int ModuleNumber;
   double LG2HG_Conversion[NCHIP][NCH], TOT2LG_Conversion[NCHIP][NCH], HGTP[NCHIP][NCH], LGTP[NCHIP][NCH], TOTOffSet[NCHIP][NCH], ADC2MIP = 0.0227, LGTP_default = 900;
   PlotSetting P;

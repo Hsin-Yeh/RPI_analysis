@@ -100,6 +100,10 @@ void makePlots::PlotProducer(){
 	  XTalkCoupling_Ring_4Chip[i][j] = new double[Nevents];
 	}
   }
+  double **mip_Ring_1Chip = new double*[NRings];
+  for(int i = 0; i < NRings; i++){
+	mip_Ring_1Chip[i] = new double[Nevents];
+  }
   double *XTalkCoupling_Average    = new double[NCHANNEL];
   double *dac_ctrl                 = new double[Nevents];
   double *hg_NoisyChannel          = new double[Nevents];
@@ -107,6 +111,8 @@ void makePlots::PlotProducer(){
   // Declare directories
   sprintf(title,"injCh%d",injCh);
   TDirectory *cdinjCh = outfile->mkdir(title);
+  sprintf(title,"allCh");
+  TDirectory *cdallCh = cdinjCh->mkdir(title);
   cdinjCh->cd();
 
   
@@ -180,42 +186,58 @@ void makePlots::PlotProducer(){
 	}
 	
     // -------------------- Injection & Cross Talk Analysis -------------------- //
-	int inj_channel = injCh + chip*64;
-	double inj_hg_SubPed = hg[MaxTS_sca][injCh] - avg_HG[chip][injCh][MaxTS_sca];
-	double inj_lg_SubPed = lg[MaxTS_sca][injCh] - avg_LG[chip][injCh][MaxTS_sca];
-	double inj_tot = tot_slow[injCh];
-	mip_allCh[inj_channel][event] = mipConverter( inj_hg_SubPed, inj_lg_SubPed, inj_tot, inj_channel );
-
     for(int ich = 0; ich < NCH; ich++){
 	  int channel      = ich + chip*64;
-	  double hg_SubPed = hg[MaxTS_sca][ich] - avg_HG[chip][ich][MaxTS_sca];
-	  double lg_SubPed = lg[MaxTS_sca][ich] - avg_LG[chip][ich][MaxTS_sca];
+	  double hg_sig, lg_sig;
+	  if(subPed_flag) {
+		hg_sig = hg[MaxTS_sca][ich] - avg_HG[chip][ich][MaxTS_sca];
+		lg_sig = lg[MaxTS_sca][ich] - avg_LG[chip][ich][MaxTS_sca];
+	  }
+	  else {
+		hg_sig = hg[MaxTS_sca][ich];
+		lg_sig = lg[MaxTS_sca][ich];
+	  }
 	  double tot = tot_slow[ich];
 
-      hg_allCh[channel][event]  = hg_SubPed;
-      lg_allCh[channel][event]  = lg_SubPed;
+      hg_allCh[channel][event]  = hg_sig;
+      lg_allCh[channel][event]  = lg_sig;
 	  tot_allCh[channel][event] = tot;
 
 	  // mip conversion
-	  double energy_mip = mipConverter( hg_SubPed, lg_SubPed, tot, channel);
+	  double energy_mip = mipConverter( hg_sig, lg_sig, tot, channel);
 	  mip_allCh[channel][event] = energy_mip;
-
-	  // Injection XTalk calculation
-	  XTalkCoupling[channel][event] = mip_allCh[channel][event] / mip_allCh[inj_channel][event];
-      if( event>50 && event<=700 ){
-		XTalkCoupling_Average[channel] += XTalkCoupling[channel][event];
-		AverageEvents++;
-      }
-	  // Calulate ring Energy
-	  int iring;
-	  iring = ringPositionFinder( inj_channel, channel );
-	  //cout << " injCh = " << injCh << " ich = " << ich << " ring = " << iring << endl;
-	  if( iring > -1 ) { mip_Ring_4Chip[iring][chip][event] += energy_mip; }
     }
 
-	
-	for(int iring = 1; iring < NRings; iring++) {
-	  XTalkCoupling_Ring_4Chip[iring][chip][event] = mip_Ring_4Chip[iring][chip][event] / mip_Ring_4Chip[0][chip][event];
+	if ( chip == 3 ) {
+	  for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
+		// Injection XTalk calculation
+		int ichip = ichannel / NCH;
+		int inj_channel;
+		if ( maskCh_flag )
+		  inj_channel = ( injChip * NCH ) + injCh;
+		else
+		  inj_channel = ( ichip * NCH ) + injCh;
+
+		XTalkCoupling[ichannel][event] = mip_allCh[ichannel][event] / mip_allCh[inj_channel][event];
+		// cout << " event = " << event << " channel = " << ichannel << " energy = " << mip_allCh[ichannel][event] << " Xtalk = " << XTalkCoupling[ichannel][event] << endl;
+		if( event>50 && event<=700 ){
+		  XTalkCoupling_Average[ichannel] += XTalkCoupling[ichannel][event];
+		  AverageEvents++;
+		}
+		// Calulate ring Energy
+		int iring;
+		iring = ringPositionFinder( inj_channel, ichannel );
+		if( iring > -1 ) {
+		  if ( maskCh_flag )
+			mip_Ring_1Chip[iring][event] += mip_allCh[ichannel][event];
+		  else
+			mip_Ring_4Chip[iring][chip][event] += mip_allCh[ichannel][event];
+		}
+	  }
+
+	  for(int iring = 1; iring < NRings; iring++) {
+		XTalkCoupling_Ring_4Chip[iring][chip][event] = mip_Ring_4Chip[iring][chip][event] / mip_Ring_4Chip[0][chip][event];
+	  }
 	}
 	
   }
@@ -224,6 +246,7 @@ void makePlots::PlotProducer(){
   
   for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
 	XTalkCoupling_Average[ichannel] /= (AverageEvents/NCHANNEL);
+	cout << " ichannel = " << ichannel << " Xtalk average = " << XTalkCoupling_Average[ichannel] << endl;
   }
   
 
@@ -232,17 +255,17 @@ void makePlots::PlotProducer(){
 	int inj_channel = (ichip*64) + injCh;
 	
 	TGraph* ginjCh_hg  = new TGraph( Nevents, dac_ctrl, hg_allCh[inj_channel] );
-	sprintf(title,"hg", injCh, ichip);
+	sprintf(title,"hg");
 	ginjCh_hg->SetTitle(title);
 	ginjCh_hg->SetName(title);
 	ginjCh_hg->SetMarkerColor(P.Color(0));
 	TGraph* ginjCh_lg  = new TGraph( Nevents, dac_ctrl, lg_allCh[inj_channel] );
-    sprintf(title,"lg", injCh, ichip);
+    sprintf(title,"lg");
 	ginjCh_lg->SetTitle(title);
 	ginjCh_lg->SetName(title);
 	ginjCh_lg->SetMarkerColor(P.Color(1));
 	TGraph* ginjCh_tot = new TGraph( Nevents, dac_ctrl, tot_allCh[inj_channel] );
-	sprintf(title,"tot", injCh, ichip);
+	sprintf(title,"tot");
 	ginjCh_tot->SetTitle(title);
 	ginjCh_tot->SetName(title);
 	ginjCh_tot->SetMarkerColor(P.Color(2));
@@ -261,7 +284,7 @@ void makePlots::PlotProducer(){
 	multig_InjCh_hltot->SetName(title);
 	multig_InjCh_hltot->Write();
 
-	/*
+
 	// ------------------------------ Xtalk vs dac_ctrl ------------------------------ //	
 	TMultiGraph *multig_XTalkCoupling_ring = new TMultiGraph();
 	for(int iring = 1; iring < NRings; iring++){
@@ -281,10 +304,10 @@ void makePlots::PlotProducer(){
 	c->Update();
 	multig_XTalkCoupling_ring->GetYaxis()->SetRangeUser(-0.01,0.1);
 	multig_XTalkCoupling_ring->Write();
-	*/
+	
   }
 
-  /*
+
   // ------------------------------ 2D Average Xtalk ------------------------------ //	  
   int NNoisy = 8;
   int NoisyChannel[8] = {248,186,214,120,126,42,254,190};
@@ -338,7 +361,42 @@ void makePlots::PlotProducer(){
   gXTalkCoupling_UnCnct->SetTitle(title);
   gXTalkCoupling_UnCnct->SetName(title);
   gXTalkCoupling_UnCnct->Write();
-	*/
+
+
+  cdallCh->cd();
+  for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
+	TGraph* ginjCh_hg  = new TGraph( Nevents, dac_ctrl, hg_allCh[ichannel] );
+	sprintf(title,"hg");
+	ginjCh_hg->SetTitle(title);
+	ginjCh_hg->SetName(title);
+	ginjCh_hg->SetMarkerColor(P.Color(0));
+	TGraph* ginjCh_lg  = new TGraph( Nevents, dac_ctrl, lg_allCh[ichannel] );
+    sprintf(title,"lg");
+	ginjCh_lg->SetTitle(title);
+	ginjCh_lg->SetName(title);
+	ginjCh_lg->SetMarkerColor(P.Color(1));
+	TGraph* ginjCh_tot = new TGraph( Nevents, dac_ctrl, tot_allCh[ichannel] );
+	sprintf(title,"tot");
+	ginjCh_tot->SetTitle(title);
+	ginjCh_tot->SetName(title);
+	ginjCh_tot->SetMarkerColor(P.Color(2));
+    TGraph* ginjCh_mip = new TGraph( Nevents, dac_ctrl, mip_allCh[ichannel] );
+    sprintf(title,"mip_Ch%d", ichannel);
+	ginjCh_mip->SetTitle(title);
+	ginjCh_mip->SetName(title);
+	ginjCh_mip->Write();
+	
+	TMultiGraph *multig_InjCh_hltot = new TMultiGraph();
+	multig_InjCh_hltot->Add(ginjCh_hg);
+    multig_InjCh_hltot->Add(ginjCh_lg);
+    multig_InjCh_hltot->Add(ginjCh_tot);
+	sprintf(title,"hglgtot_Ch%d", ichannel);
+	multig_InjCh_hltot->SetTitle(title);
+	multig_InjCh_hltot->SetName(title);
+	multig_InjCh_hltot->Write();
+  }
+
+
   outfile->Write();
   outfile->Close();
 
@@ -460,16 +518,25 @@ void makePlots::yamlReader(){
     while( true ) {
 	  if ( yamlFile.eof() ) break;
 	  getline (yamlFile, line);
+	  
 	  if ( line.find("channelIds:") != -1 ){
-		//getline(yamlFile, line);
-		start = line.find("-");
-		//end   = line.find("]");
-		//searchstr = line.substr( start+1 );
 		string tmp;
 		yamlFile >> tmp >> searchstr;
 		injCh = std::atoi(searchstr.c_str());
 		cout << "InjCh = " << injCh << endl;
-		break;
+	  }
+	  else if ( maskCh_flag == true && line.find("channelIdsToMask:") != -1 ) {
+		getline(yamlFile, line);
+		int count = 3; 
+		while ( line.find("[]") == -1) {
+		  getline(yamlFile, line);
+		  count--;
+		  if ( count < 0 ) break;
+		}
+		if ( count > -1 ) {
+		  injChip = count;
+		  cout << "1 channel injection = " << injChip << endl;
+		}
 	  }
     }
   }
@@ -514,12 +581,10 @@ void makePlots::GainFactorReader( string gainfile ){
 
 
 
-void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int upperR, bool subPed_flag ){
+void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int upperR ){
 
-  TGraph *gr;
   int Nevents = Chain1->GetEntries();
   cout << "Total Events = " << Nevents << endl;
-  char plot_title[50];
 
   // define array;
   double **hg_transpose = new double*[NCH];
