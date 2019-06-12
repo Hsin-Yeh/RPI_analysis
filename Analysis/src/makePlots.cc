@@ -431,6 +431,135 @@ void makePlots::PlotProducer(){
 
 }
 
+void makePlots::cosmicAnalyzer(){
+    char title[200];
+
+  // Set Output Root File
+  int start = input_fileName.find_last_of("/");
+  int end   = input_fileName.find(".root");
+  string outf = input_fileName.substr(start+1,end-start-1);
+
+  sprintf(title,"cosmicAnalysis/plot_%s.root",outf.c_str());
+  TFile *outfile = new TFile(title,"recreate");
+  cout << "output file = " << title << endl;
+
+  
+  // Define Parameters
+  int TotalEntries = Chain1->GetEntries();
+  int Nevents = TotalEntries/NCHIP;
+  cout << "Total Events = " << Nevents << endl;
+  int MaxTS = 2; //choose this time sample to be the peak
+
+  double **hg_allCh       = new double*[NCHANNEL];
+  double **lg_allCh       = new double*[NCHANNEL];
+  double **tot_allCh      = new double*[NCHANNEL];
+  double **mip_allCh      = new double*[NCHANNEL];
+  for(int i = 0; i < NCHANNEL; i++){
+	hg_allCh[i]      = new double[Nevents];
+	lg_allCh[i]      = new double[Nevents];
+	tot_allCh[i]     = new double[Nevents];
+	mip_allCh[i]     = new double[Nevents];
+  }
+  double *dac_ctrl   = new double[Nevents];
+  
+  double **hg_SubPed = new double*[NSCA];
+  double **lg_SubPed = new double*[NSCA];
+  for(int i = 0; i < NSCA; i++){
+	hg_SubPed[i] = new double[NCH];
+	lg_SubPed[i] = new double[NCH];
+  }
+  double **hg_sig = new double*[NCH];
+  double **lg_sig = new double*[NCH];
+  for(int i = 0; i < NCH; i++){
+	hg_sig[i] = new double[NSCA];
+	lg_sig[i] = new double[NSCA];
+  }
+  
+  // Declare directories
+  
+  // Define Histograms
+  TH1D *h_mipAllCh = new TH1D("h_mipAllCh","",50,0,400);
+  
+  // Initialize
+  
+  //==================== Loop over the events ====================
+   
+  for(int entry = 0; entry < TotalEntries ; ++entry){
+    
+    if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }
+    Chain1 -> GetEntry(entry);
+	dac_ctrl[event] = dacinj;
+
+	int TS[NSCA];
+    int TS0_sca, MaxTS_sca;
+    for(int sca = 0 ; sca < NSCA ; sca++) {
+      TS[sca] = timesamp[sca];
+      if (timesamp[sca] == 0) { TS0_sca = sca ; }
+      if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
+    }
+
+	for(int ich = 0; ich < NCH; ich++ ){
+	  for(int sca = 0; sca < NSCA; sca++ ){
+		hg_SubPed[sca][ich] = hg[sca][ich] - avg_HG[chip][ich][sca]; // Pedestal Subtraction
+		lg_SubPed[sca][ich] = lg[sca][ich] - avg_LG[chip][ich][sca];
+	  }
+	}
+	double hgCM = CMCalculator( hg_SubPed, TS ); // Calculate CM for the chip
+	double lgCM = CMCalculator( lg_SubPed, TS );
+		
+	int hit = 0;
+	for(int ich = 0; ich < NCH; ich++){
+	  for (int sca = 0; sca < NSCA; sca++){
+		if ( subPed_flag ){
+		  hg_sig[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
+		  lg_sig[ich][sca] = lg_SubPed[sca][ich] - lgCM;
+		}
+		else {
+		  hg_sig[ich][sca] = hg[sca][ich];
+		  lg_sig[ich][sca] = lg[sca][ich];
+		}
+	  }
+	  if ( mipSigCheck(hg_sig[ich], TS ) ) hit++;
+	}
+
+	for (int ich = 0; ich < NCH; ich+=2) {
+	  if ( ich + chip*NCH == 44 ) continue;
+	  if ( mipSigCheck(hg_sig[ich], TS ) && hit < 2) {
+		h_mipAllCh->Fill( hg_sig[ich][MaxTS_sca] );
+
+		if ( hg_sig[ich][MaxTS_sca] < 200 && hg_sig[ich][MaxTS_sca] > 160 ) 
+		  pulsePlotter( hg_sig[ich], TS, event, chip, ich, -1, -1);
+	  }
+	}
+
+	// mip conversion
+	//double energy_mip = mipConverter( hg_sig, lg_sig, tot, channel);
+	//mip_allCh[channel][event] = energy_mip;
+  }
+
+  //... ==================== End of Loop ==================== ...
+ 
+  // Plots!!!!!
+
+  outfile->Write();
+  outfile->Close();
+
+
+  // deallocate 
+  for (int i = 0; i < NCHANNEL; i++){
+	delete[] hg_allCh[i];       
+	delete[] lg_allCh[i];       
+	delete[] tot_allCh[i];      
+	delete[] mip_allCh[i];      
+  }
+  delete[] hg_allCh;       
+  delete[] lg_allCh;       
+  delete[] tot_allCh;      
+  delete[] mip_allCh;      
+  delete[] dac_ctrl;                
+  
+}
+
 
 //****************************************************************************************************//
 //****************************************************************************************************//
@@ -666,7 +795,7 @@ double makePlots::CMCalculator( double **sig_subPed, int *TS ) {
   double meanChipPedestal = 0;
   
   for(int ich = 0; ich < NCH; ich+=2){
-	for( int timesample = 5; timesample <= 9; timesample++){
+	for( int timesample = 0; timesample <= 10; timesample++){
 	  int sca = 0;
 	  while(true){
 		if ( TS[sca] == timesample ) break;
@@ -684,7 +813,7 @@ double makePlots::CMCalculator( double **sig_subPed, int *TS ) {
 bool makePlots::mipSigCheck( double *sig, int *TS ) {
   int p_noisy_cut  = 2000;
   int n_noisy_cut  = -1000;
-  double noSignal_cut = 50;
+  double noSignal_cut = 30;
   bool sig_flag = false;
   double sig_ts[NSCA];
   
@@ -695,7 +824,10 @@ bool makePlots::mipSigCheck( double *sig, int *TS ) {
   for( int sca = 0; sca < NSCA; sca++) {
 	if ( sig[sca] < n_noisy_cut ) sig_flag = false;
   }
-  if ( sig_ts[0] > sig_ts[2] && sig_ts[0] > sig_ts[3] ) sig_flag = false;
+  if ( sig_ts[0] > sig_ts[2] || sig_ts[0] > sig_ts[3] ) sig_flag = false;
+  if ( sig_ts[0] < -200 || sig_ts[0] > 150 ) sig_flag = false;
+  if ( sig_ts[11] < -200 || sig_ts[11] > 150 ) sig_flag = false;
+  if ( sig_ts[2] < 15 ) sig_flag = false;
   
   return sig_flag;
 }

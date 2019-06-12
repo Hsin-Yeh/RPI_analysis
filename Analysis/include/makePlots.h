@@ -36,8 +36,9 @@ class makePlots{
   //public function
   void Init( string pedfile, string gainfile );
   void PlotProducer();
+  void cosmicAnalyzer();
   void Pulse_display( int displayChannel = -1 , int acq_type = 0, int lowerR = -1, int upperR = -1 );
-
+  
   //public parameter
   string input_fileName;
   int injCh;

@@ -19,7 +19,7 @@ int  acq_type = 0;
 int  lowerR = -1, upperR = -1;
 bool subPed_flag = true;
 bool maskCh_flag = false;
-bool pulseDisplay_flag = false;
+int  anaType = 0;
 
 
 int main(int argc, char** argv){
@@ -35,7 +35,7 @@ int main(int argc, char** argv){
   int iarg = 1;
   while ( iarg < argc ) {
 	if ( arg_list[iarg] == "-p" ) {
-	  pulseDisplay_flag = true;
+	  anaType = 1;
 	  cout << arg_list[iarg+1] << endl;
 	  if ( isNumber( arg_list[iarg+1] ) ) {
 		displayChannel = atoi(arg_list[iarg+1].c_str());
@@ -44,12 +44,12 @@ int main(int argc, char** argv){
 	  else iarg++;
 	}
 	else if ( arg_list[iarg] == "-i" ) {
-	  pulseDisplay_flag = true;
+	  anaType = 1;
 	  acq_type = 1; 
 	  iarg++;
 	}
 	else if ( arg_list[iarg] == "-s" ) {
-	  pulseDisplay_flag = true;
+	  anaType = 1;
 	  acq_type = 2;
 	  iarg++;
 	}
@@ -66,16 +66,16 @@ int main(int argc, char** argv){
 	  maskCh_flag = true;
 	  iarg++;
 	}
+	else if ( arg_list[iarg] == "-c" || arg_list[iarg] == "-cosmic" ) {
+	  anaType = 2;
+	  iarg++;
+	}
 	else {
 	  std::cout << "Unknown option... print usage" << std::endl;
 	}
   }
-	
-  if ( pulseDisplay_flag )
-	main_plotPulseDisplay();
-  else
-	main_makePlots();
-
+  main_makePlots();
+  
   return (0);
 }
 
@@ -95,30 +95,15 @@ void main_makePlots() {
   M.maskCh_flag = maskCh_flag;
   M.subPed_flag = subPed_flag;
   M.Init( pedfile, gainfile );
-  M.PlotProducer();
-}
-
-void main_plotPulseDisplay() {
-  TChain *chain = new TChain("treeproducer/sk2cms");
-  string filename;
-  ifstream infile("data_input.txt");
-  infile >> filename;
-  infile.close();
-  if( filename.length() > 2){
-    chain->Add(filename.c_str());}
+  if ( anaType == 0 )
+	M.PlotProducer();
+  else if ( anaType == 1 )
+	M.Pulse_display();
   else
-    cout << "There is no input root file written in the input.txt!" << endl;
-  
-  makePlots M(chain);
-  M.input_fileName = filename;
-  M.maskCh_flag = maskCh_flag;
-  M.subPed_flag = subPed_flag;
-  M.Init( pedfile, gainfile );
-  M.Pulse_display( displayChannel, acq_type, lowerR, upperR );
-		      
+	M.cosmicAnalyzer();
 }
 
- bool isNumber(string s) { 
+bool isNumber(string s) { 
    for (int i = 0; i < s.length(); i++) 
 	 if (isdigit(s[i]) == true) 
 	   return true; 
