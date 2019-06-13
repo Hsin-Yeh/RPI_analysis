@@ -609,8 +609,10 @@ void makePlots::Pulse_display( int displayChannel, int pulseDisplay_type, int lo
 	for (int sca = 0; sca < NSCA; sca++){
 	  for(int ich = 0; ich < 64; ich++){
 		if ( subPed_flag ){
-		  hg_transpose[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
-		  lg_transpose[ich][sca] = lg_SubPed[sca][ich] - lgCM;
+		  //hg_transpose[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
+		  //lg_transpose[ich][sca] = lg_SubPed[sca][ich] - lgCM;
+		  hg_transpose[ich][sca] = hg_SubPed[sca][ich]; 
+		  lg_transpose[ich][sca] = lg_SubPed[sca][ich]; 
 		}
 		else {
 		  hg_transpose[ich][sca] = hg[sca][ich];
