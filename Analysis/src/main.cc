@@ -15,7 +15,8 @@ void main_plotPulseDisplay();
 void main_makePlots();
 bool isNumber(string s);
 int  displayChannel = -1;
-int  acq_type = 0;
+int  anatype = 0;
+int  pulseDisplay_type = 0;
 int  lowerR = -1, upperR = -1;
 bool subPed_flag = true;
 bool maskCh_flag = false;
@@ -44,12 +45,12 @@ int main(int argc, char** argv){
 	}
 	else if ( arg_list[iarg] == "-i" ) {
 	  anaType = 1;
-	  acq_type = 1; 
+	  pulseDisplay_type = 1; 
 	  iarg++;
 	}
 	else if ( arg_list[iarg] == "-s" ) {
-	  anaType = 1;
-	  acq_type = 2;
+	  anatype = 1;
+	  pulseDisplay_type = 2;
 	  iarg++;
 	}
 	else if ( arg_list[iarg] == "-r" ) {
@@ -101,7 +102,7 @@ void main_makePlots() {
   }
   else if ( anaType == 1 ) {
 	cout << "Processing Pulse Displayer  " << endl << endl;
-	M.Pulse_display( displayChannel, 0, lowerR, upperR );
+	M.Pulse_display( displayChannel, pulseDisplay_type, lowerR, upperR );
   }
   else{
 	cout << "Processing Cosmic Analyzer   " << endl << endl;

@@ -570,7 +570,7 @@ void makePlots::cosmicAnalyzer(){
   
 }
 
-void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int upperR ){
+void makePlots::Pulse_display( int displayChannel, int pulseDisplay_type, int lowerR, int upperR ){
 
   int Nevents = Chain1->GetEntries();
   cout << "Total Events = " << Nevents << endl;
@@ -620,15 +620,15 @@ void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int
 	}
 
 	// Pulse Plots 
-	if ( acq_type == 0 && displayChannel == -1) { // Loop over every channel
+	if ( pulseDisplay_type == 0 && displayChannel == -1) { // Loop over every channel
 	  for( int ich =0; ich < 64; ich+=2){
 		pulsePlotter( hg_transpose[ich], TS, ev, chip, ich, lowerR, upperR);
 	  }
 	}
-	else if ( acq_type == 1 ) {  // injCh display
+	else if ( pulseDisplay_type == 1 ) {  // injCh display
 	  pulsePlotter( lg_transpose[injCh], TS, ev, chip, injCh, lowerR, upperR);
 	}
-	else if ( acq_type == 2 ) {  // find signal and display
+	else if ( pulseDisplay_type == 2 ) {  // find signal and display
 	  for( int ich =0; ich < 64; ich+=2){
 		if ( mipSigCheck( hg_transpose[ich], TS ) ) {
 		  pulsePlotter( hg_transpose[ich], TS, ev, chip, ich, lowerR, upperR );
