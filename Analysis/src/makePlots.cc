@@ -15,8 +15,8 @@
 #include "TStyle.h"
 #include "TExec.h"
 
-//Constructo
-makePlots::makePlots(TChain* inchain):Chain1(inchain)
+//Constructor
+makePlots::makePlots(TChain* inchain):Chain1(inchain) 
 {
   readmap();
   cout << "Constructor of makePlot ... \n\n" << endl;
@@ -49,7 +49,7 @@ void makePlots::Init( string pedfile, string gainfile ){
   Chain1->SetBranchAddress("toa_fall",&toa_fall);
   app = new TApplication("app",0,0);
   c = new TCanvas();
-  cout << "Init complete " << endl;
+  cout << "Init complete " << endl << endl;
 }
 
 
@@ -77,6 +77,7 @@ void makePlots::PlotProducer(){
   cout << "Total Events = " << Nevents << endl;
   int MaxTS = 2; //choose this time sample to be the peak
   int AverageEvents = 0;
+
 
   double **hg_allCh       = new double*[NCHANNEL];
   double **lg_allCh       = new double*[NCHANNEL];
@@ -107,34 +108,53 @@ void makePlots::PlotProducer(){
   double *XTalkCoupling_Average    = new double[NCHANNEL];
   double *dac_ctrl                 = new double[Nevents];
   double *hg_NoisyChannel          = new double[Nevents];
+  
+  double **hg_SubPed = new double*[NSCA];
+  double **lg_SubPed = new double*[NSCA];
+  for(int i = 0; i < NSCA; i++){
+	hg_SubPed[i] = new double[NCH/2];
+	lg_SubPed[i] = new double[NCH/2];
+  }
+  double **hg_SubPedCM = new double*[NCH/2];
+  double **lg_SubPedCM = new double*[NCH/2];
+  for(int i = 0; i < NCH/2; i++){
+	hg_SubPedCM[i] = new double[NSCA];
+	lg_SubPedCM[i] = new double[NSCA];
+  }
+
 
   // Declare directories
   sprintf(title,"injCh%d",injCh);
   TDirectory *cdinjCh = outfile->mkdir(title);
   sprintf(title,"allCh");
   TDirectory *cdallCh = cdinjCh->mkdir(title);
+  sprintf(title,"Pedestal");
+  TDirectory *cdPedestal = cdinjCh->mkdir(title);
   cdinjCh->cd();
 
   
   // Define Histograms
-  TH1D *h_hgPedestal[NSCA];
-  TH1D *h_lgPedestal[NSCA];
+  TH1D *h_hgPedestal[NSCA][NCHANNEL/2];
+  TH1D *h_lgPedestal[NSCA][NCHANNEL/2];
 
   // Initialize
   for(int ich = 0; ich < NCHANNEL; ich++){
 	XTalkCoupling_Average[ich] = 0;
   }
-  
+
   for(int sca = 0; sca < NSCA; ++sca){
-	char h_title[50];
-	sprintf(h_title,"h_hgPedestal%d", sca);
-	h_hgPedestal[sca]  = new TH1D(h_title,"",100,-250,250);
-	sprintf(h_title,"h_lgPedestal%d", sca);
-	h_lgPedestal[sca] = new TH1D(h_title,"",100,-250,250);
+	for(int ichannel = 0; ichannel < NCHANNEL/2; ichannel++){
+	  char h_title[50];
+	  cdPedestal->cd();
+	  sprintf(h_title,"h_hgPedestal_Ch%d_SCA%d", ichannel*2, sca);
+	  h_hgPedestal[sca][ichannel] = new TH1D(h_title,h_title,100,-250,250);
+	  sprintf(h_title,"h_lgPedestal_Ch%d_SCA%d", ichannel*2, sca);
+	  h_lgPedestal[sca][ichannel] = new TH1D(h_title,h_title,100,-250,250);
+	}
   }
 
   
-  //==================== Loop over the events ====================
+  //==================== Loop over the events ==================== //
    
   for(int entry = 0; entry < TotalEntries ; ++entry){
     
@@ -142,6 +162,7 @@ void makePlots::PlotProducer(){
     Chain1 -> GetEntry(entry);
 	dac_ctrl[event] = dacinj;
 
+	// Timesamle 
 	int TS[NSCA];
     int TS0_sca, MaxTS_sca;
     for(int sca = 0 ; sca < NSCA ; sca++) {
@@ -150,38 +171,23 @@ void makePlots::PlotProducer(){
       if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
     }
 
-    // -------------------- Pedestal Analysis -------------------- //
-
-	// Common mode calculation
-	double hg_meanChipPedestal = 0;
-	double lg_meanChipPedestal = 0;
-	
-	for(int ich = 0; ich < NCH; ich+=2){
-	  double hg_SubPed = hg[ TS[0] ][ ich ] - avg_HG [ chip ][ ich ][ TS[0] ];
-	  double lg_SubPed = lg[ TS[0] ][ ich ] - avg_LG [ chip ][ ich ][ TS[0] ];
-	  //cout << hgSubPed << endl;
-	  hg_meanChipPedestal += hg_SubPed;
-	  lg_meanChipPedestal += lg_SubPed;
-	  
+    // Pedestal histograms 
+	for(int ich = 0; ich < NCH; ich+=2 ){
+	  for(int sca = 0; sca < NSCA; sca++ ){
+		hg_SubPed[sca][ich/2] = hg[sca][ich] - avg_HG[chip][ich][sca]; // Pedestal Subtraction
+		lg_SubPed[sca][ich/2] = lg[sca][ich] - avg_LG[chip][ich][sca];
+	  }
 	}
-	hg_meanChipPedestal /= (NCH/2);
-	lg_meanChipPedestal /= (NCH/2);
+	double hgCM = CMCalculator( hg_SubPed, TS ); // Calculate CM for the chip
+	double lgCM = CMCalculator( lg_SubPed, TS );
+		
+	for(int ich = 0; ich < NCH/2; ich++){
+	  for (int sca = 0; sca < NSCA; sca++){
+		hg_SubPedCM[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
+		lg_SubPedCM[ich][sca] = lg_SubPed[sca][ich] - lgCM;
 
-	// Fill Histogram
-	// Pedestal Subtraction & Common mode subtraction
-	
-	for(int ich = 0; ich < NCH; ich+=2){
-	  for(int sca = 0; sca < NSCA; ++sca){
-		double hg_SubPed_SubCommon = hg[sca][ich] - avg_HG[chip][ich][sca] - hg_meanChipPedestal;
-		double lg_SubPed_SubCommon = lg[sca][ich] - avg_LG[chip][ich][sca] - lg_meanChipPedestal;
-		double hg_SubPed = hg[sca][ich] - avg_HG[chip][ich][sca];
-		double lg_SubPed = lg[sca][ich] - avg_LG[chip][ich][sca];
-
-		if ( chip==3 && ich==52){
-		  //cout << hg_SubPed_SubCommon << endl;
-		  h_hgPedestal[sca]->Fill( hg_SubPed_SubCommon ); // Fill histogram with TS0 readout 
-		  h_lgPedestal[sca]->Fill( lg_SubPed_SubCommon );
-		}
+		h_hgPedestal[sca][ich]->Fill( hg_SubPedCM[ich][sca] );
+		h_lgPedestal[sca][ich]->Fill( lg_SubPedCM[ich][sca] );
 	  }
 	}
 	
@@ -251,6 +257,7 @@ void makePlots::PlotProducer(){
   
 
   // Plots!!!!!
+  cdinjCh->cd();
   for(int ichip = 0; ichip < NCHIP; ichip++){
 	int inj_channel = (ichip*64) + injCh;
 	
@@ -448,7 +455,8 @@ void makePlots::cosmicAnalyzer(){
   int TotalEntries = Chain1->GetEntries();
   int Nevents = TotalEntries/NCHIP;
   cout << "Total Events = " << Nevents << endl;
-  int MaxTS = 2; //choose this time sample to be the peak
+  int MaxTS = 2;              //choose this time sample to be the peak
+  int mipCount = 0;
 
   double **hg_allCh       = new double*[NCHANNEL];
   double **lg_allCh       = new double*[NCHANNEL];
@@ -526,9 +534,8 @@ void makePlots::cosmicAnalyzer(){
 	  if ( ich + chip*NCH == 44 ) continue;
 	  if ( mipSigCheck(hg_sig[ich], TS ) && hit < 2) {
 		h_mipAllCh->Fill( hg_sig[ich][MaxTS_sca] );
-
-		if ( hg_sig[ich][MaxTS_sca] < 200 && hg_sig[ich][MaxTS_sca] > 160 ) 
-		  pulsePlotter( hg_sig[ich], TS, event, chip, ich, -1, -1);
+		pulsePlotter( hg_sig[ich], TS , event, chip, ich, -1, -1);
+		mipCount++;
 	  }
 	}
 
@@ -538,6 +545,9 @@ void makePlots::cosmicAnalyzer(){
   }
 
   //... ==================== End of Loop ==================== ...
+
+  cout << endl << "totalEvent# = " << Nevents << " signal# = " << mipCount << endl;
+  cout << "efficiency = " << (float)mipCount / Nevents << endl;
  
   // Plots!!!!!
 
@@ -560,9 +570,80 @@ void makePlots::cosmicAnalyzer(){
   
 }
 
+void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int upperR ){
 
-//****************************************************************************************************//
-//****************************************************************************************************//
+  int Nevents = Chain1->GetEntries();
+  cout << "Total Events = " << Nevents << endl;
+
+  // define array;
+  double **hg_transpose = new double*[NCH];
+  double **lg_transpose = new double*[NCH];
+  for(int i = 0; i < NCH; i++){
+	hg_transpose[i] = new double[NSCA];
+	lg_transpose[i] = new double[NSCA];
+  }
+  double **hg_SubPed = new double*[NSCA];
+  double **lg_SubPed = new double*[NSCA];
+  for(int i = 0; i < NSCA; i++){
+	hg_SubPed[i] = new double[NCH];
+	lg_SubPed[i] = new double[NCH];
+  }
+	
+  // Loop Over Events
+  for(int ev = 0; ev < Nevents ; ++ev){
+	//if(ev % 30 != 0) continue;
+    Chain1 -> GetEntry(ev);
+	int TS[NSCA];
+    for(int i = 0 ; i < NSCA ; ++i)  TS[i] = timesamp[i];
+
+
+	for(int ich = 0; ich < NCH; ich++ ){
+	  for(int sca = 0; sca < NSCA; sca++ ){
+		hg_SubPed[sca][ich] = hg[sca][ich] - avg_HG[chip][ich][sca]; // Pedestal Subtraction
+		lg_SubPed[sca][ich] = lg[sca][ich] - avg_LG[chip][ich][sca];
+	  }
+	}
+	double hgCM = CMCalculator( hg_SubPed, TS ); // Calculate CM for the chip
+	double lgCM = CMCalculator( lg_SubPed, TS );
+		
+	for (int sca = 0; sca < NSCA; sca++){
+	  for(int ich = 0; ich < 64; ich++){
+		if ( subPed_flag ){
+		  hg_transpose[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
+		  lg_transpose[ich][sca] = lg_SubPed[sca][ich] - lgCM;
+		}
+		else {
+		  hg_transpose[ich][sca] = hg[sca][ich];
+		  lg_transpose[ich][sca] = lg[sca][ich];
+		}
+	  }
+	}
+
+	// Pulse Plots 
+	if ( acq_type == 0 && displayChannel == -1) { // Loop over every channel
+	  for( int ich =0; ich < 64; ich+=2){
+		pulsePlotter( hg_transpose[ich], TS, ev, chip, ich, lowerR, upperR);
+	  }
+	}
+	else if ( acq_type == 1 ) {  // injCh display
+	  pulsePlotter( lg_transpose[injCh], TS, ev, chip, injCh, lowerR, upperR);
+	}
+	else if ( acq_type == 2 ) {  // find signal and display
+	  for( int ich =0; ich < 64; ich+=2){
+		if ( mipSigCheck( hg_transpose[ich], TS ) ) {
+		  pulsePlotter( hg_transpose[ich], TS, ev, chip, ich, lowerR, upperR );
+		}
+	  }
+	}		  
+	else {  // selected channel display
+	  int ichip = displayChannel / 64;
+	  int ich   = displayChannel % 64;
+	  if ( chip != ichip ) continue;
+	  pulsePlotter( hg_transpose[ich], TS, ev, ichip, ich, lowerR, upperR);
+	}
+  }
+
+}
 
 
 double makePlots::mipConverter( double hg_SubPed, double lg_SubPed, double tot , int channel){
@@ -651,7 +732,7 @@ void makePlots::yamlReader(){
 	  if ( line.find("channelIds:") != -1 ){
 		string tmp;
 		yamlFile >> tmp >> searchstr;
-		injCh = std::atoi(searchstr.c_str());
+		injCh = atoi(searchstr.c_str());
 		cout << "InjCh = " << injCh << endl;
 	  }
 	  else if ( maskCh_flag == true && line.find("channelIdsToMask:") != -1 ) {
@@ -709,81 +790,20 @@ void makePlots::GainFactorReader( string gainfile ){
 
 
 
+/*
+double pulseShape_fcn_v2(double t, double tmax, double amp, double amp0 = 0., double tau = 22., int n_ord = 3){
 
-void makePlots::Pulse_display( int displayChannel, int acq_type, int lowerR, int upperR ){
+    const double ampl_norm = 1.608;
+    const double alpha = 0.931;
 
-  int Nevents = Chain1->GetEntries();
-  cout << "Total Events = " << Nevents << endl;
-
-  // define array;
-  double **hg_transpose = new double*[NCH];
-  double **lg_transpose = new double*[NCH];
-  for(int i = 0; i < NCH; i++){
-	hg_transpose[i] = new double[NSCA];
-	lg_transpose[i] = new double[NSCA];
-  }
-  double **hg_SubPed = new double*[NSCA];
-  double **lg_SubPed = new double*[NSCA];
-  for(int i = 0; i < NSCA; i++){
-	hg_SubPed[i] = new double[NCH];
-	lg_SubPed[i] = new double[NCH];
-  }
-	
-  // Loop Over Events
-  for(int ev = 0; ev < Nevents ; ++ev){
-	//if(ev % 30 != 0) continue;
-    Chain1 -> GetEntry(ev);
-	int TS[NSCA];
-    for(int i = 0 ; i < NSCA ; ++i)  TS[i] = timesamp[i];
-
-
-	for(int ich = 0; ich < NCH; ich++ ){
-	  for(int sca = 0; sca < NSCA; sca++ ){
-		hg_SubPed[sca][ich] = hg[sca][ich] - avg_HG[chip][ich][sca]; // Pedestal Subtraction
-		lg_SubPed[sca][ich] = lg[sca][ich] - avg_LG[chip][ich][sca];
-	  }
-	}
-	double hgCM = CMCalculator( hg_SubPed, TS ); // Calculate CM for the chip
-	double lgCM = CMCalculator( lg_SubPed, TS );
-		
-	for (int sca = 0; sca < NSCA; sca++){
-	  for(int ich = 0; ich < 64; ich++){
-		if ( subPed_flag ){
-		  hg_transpose[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
-		  lg_transpose[ich][sca] = lg_SubPed[sca][ich] - lgCM;
-		}
-		else {
-		  hg_transpose[ich][sca] = hg[sca][ich];
-		  lg_transpose[ich][sca] = lg[sca][ich];
-		}
-	  }
-	}
-
-	// Pulse Plots 
-	if ( acq_type == 0 && displayChannel == -1) { // Loop over every channel
-	  for( int ich =0; ich < 64; ich+=2){
-		pulsePlotter( hg_transpose[ich], TS, ev, chip, ich, lowerR, upperR);
-	  }
-	}
-	else if ( acq_type == 1 ) {  // injCh display
-	  pulsePlotter( lg_transpose[injCh], TS, ev, chip, injCh, lowerR, upperR);
-	}
-	else if ( acq_type == 2 ) {  // find signal and display
-	  for( int ich =0; ich < 64; ich+=2){
-		if ( mipSigCheck( hg_transpose[ich], TS ) ) {
-		  pulsePlotter( hg_transpose[ich], TS, ev, chip, ich, lowerR, upperR );
-		}
-	  }
-	}		  
-	else {  // selected channel display
-	  int ichip = displayChannel / 64;
-	  int ich   = displayChannel % 64;
-	  if ( chip != ichip ) continue;
-	  pulsePlotter( hg_transpose[ich], TS, ev, ichip, ich, lowerR, upperR);
-	}
-  }
+    if( t>tmax-_trise )
+        return (amp*ampl_norm * (1 - ((t-(tmax-_trise))/tau)/(n_ord+1)) * std::pow((t-(tmax-_trise))/tau, n_ord) * std::exp(-alpha*(t-(tmax-_trise))/tau)) + amp0;
+    else return 0;
 
 }
+*/
+  
+
 
 
 double makePlots::CMCalculator( double **sig_subPed, int *TS ) {
@@ -794,7 +814,7 @@ double makePlots::CMCalculator( double **sig_subPed, int *TS ) {
   int scaCount = 0;
   double meanChipPedestal = 0;
   
-  for(int ich = 0; ich < NCH; ich+=2){
+  for(int ich = 0; ich < NCH/2; ich++){
 	for( int timesample = 0; timesample <= 10; timesample++){
 	  int sca = 0;
 	  while(true){
@@ -852,7 +872,7 @@ void makePlots::pulsePlotter( double *sig, int *TS, int ev, int ichip, int ich, 
   
 }
 
-  
+
 
 
 void makePlots::read_P_and_N(string ped_file){

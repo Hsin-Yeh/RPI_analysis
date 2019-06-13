@@ -36,7 +36,6 @@ int main(int argc, char** argv){
   while ( iarg < argc ) {
 	if ( arg_list[iarg] == "-p" ) {
 	  anaType = 1;
-	  cout << arg_list[iarg+1] << endl;
 	  if ( isNumber( arg_list[iarg+1] ) ) {
 		displayChannel = atoi(arg_list[iarg+1].c_str());
 		iarg+=2;
@@ -59,6 +58,7 @@ int main(int argc, char** argv){
 	  iarg+=3;
 	}
 	else if ( arg_list[iarg] == "-n" || arg_list[iarg] == "-noSubPed" ) {
+	  cout << "disable pedestal subtraction" << endl << endl;
 	  subPed_flag = false;
 	  iarg++;
 	}
@@ -95,12 +95,18 @@ void main_makePlots() {
   M.maskCh_flag = maskCh_flag;
   M.subPed_flag = subPed_flag;
   M.Init( pedfile, gainfile );
-  if ( anaType == 0 )
+  if ( anaType == 0 ) {
+	cout << "Processing PlotProducer " << endl << endl;
 	M.PlotProducer();
-  else if ( anaType == 1 )
-	M.Pulse_display();
-  else
+  }
+  else if ( anaType == 1 ) {
+	cout << "Processing Pulse Displayer  " << endl << endl;
+	M.Pulse_display( displayChannel, 0, lowerR, upperR );
+  }
+  else{
+	cout << "Processing Cosmic Analyzer   " << endl << endl;
 	M.cosmicAnalyzer();
+  }
 }
 
 bool isNumber(string s) { 
