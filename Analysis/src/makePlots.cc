@@ -78,7 +78,9 @@ void makePlots::PlotProducer(){
   int MaxTS = 2; //choose this time sample to be the peak
   int AverageEvents = 0;
 
-
+  double *XTalkCoupling_Average    = new double[NCHANNEL];
+  double *dac_ctrl                 = new double[Nevents];
+  double *hg_NoisyChannel          = new double[Nevents];
   double **hg_allCh       = new double*[NCHANNEL];
   double **lg_allCh       = new double*[NCHANNEL];
   double **tot_allCh      = new double*[NCHANNEL];
@@ -91,24 +93,10 @@ void makePlots::PlotProducer(){
 	mip_allCh[i]     = new double[Nevents];
 	XTalkCoupling[i] = new double[Nevents];
   }
-  double ***mip_Ring_4Chip           = new double**[NRings];
-  double ***XTalkCoupling_Ring_4Chip = new double**[NRings];
-  for(int i = 0; i < NRings; i++){
-	mip_Ring_4Chip[i]           = new double*[NCHIP];
-	XTalkCoupling_Ring_4Chip[i] = new double*[NCHIP];
-	for(int j = 0; j < NCHIP; j++){
-	  mip_Ring_4Chip[i][j]           = new double[Nevents];
-	  XTalkCoupling_Ring_4Chip[i][j] = new double[Nevents];
-	}
-  }
   double **mip_Ring_1Chip = new double*[NRings];
   for(int i = 0; i < NRings; i++){
 	mip_Ring_1Chip[i] = new double[Nevents];
   }
-  double *XTalkCoupling_Average    = new double[NCHANNEL];
-  double *dac_ctrl                 = new double[Nevents];
-  double *hg_NoisyChannel          = new double[Nevents];
-  
   double **hg_SubPed = new double*[NSCA];
   double **lg_SubPed = new double*[NSCA];
   for(int i = 0; i < NSCA; i++){
@@ -120,6 +108,16 @@ void makePlots::PlotProducer(){
   for(int i = 0; i < NCH/2; i++){
 	hg_SubPedCM[i] = new double[NSCA];
 	lg_SubPedCM[i] = new double[NSCA];
+  }
+  double ***mip_Ring_4Chip           = new double**[NRings];
+  double ***XTalkCoupling_Ring_4Chip = new double**[NRings];
+  for(int i = 0; i < NRings; i++){
+	mip_Ring_4Chip[i]           = new double*[NCHIP];
+	XTalkCoupling_Ring_4Chip[i] = new double*[NCHIP];
+	for(int j = 0; j < NCHIP; j++){
+	  mip_Ring_4Chip[i][j]           = new double[Nevents];
+	  XTalkCoupling_Ring_4Chip[i][j] = new double[Nevents];
+	}
   }
 
 
@@ -133,7 +131,7 @@ void makePlots::PlotProducer(){
   cdinjCh->cd();
 
   
-  // Define Histograms
+  // Declare Histograms
   TH1D *h_hgPedestal[NSCA][NCHANNEL/2];
   TH1D *h_lgPedestal[NSCA][NCHANNEL/2];
 
@@ -237,12 +235,14 @@ void makePlots::PlotProducer(){
 		  if ( maskCh_flag )
 			mip_Ring_1Chip[iring][event] += mip_allCh[ichannel][event];
 		  else
-			mip_Ring_4Chip[iring][chip][event] += mip_allCh[ichannel][event];
+			mip_Ring_4Chip[iring][ichip][event] += mip_allCh[ichannel][event];
 		}
 	  }
 
-	  for(int iring = 1; iring < NRings; iring++) {
-		XTalkCoupling_Ring_4Chip[iring][chip][event] = mip_Ring_4Chip[iring][chip][event] / mip_Ring_4Chip[0][chip][event];
+	  for(int ichip = 0; ichip < NCHIP; ichip++){
+		for(int iring = 1; iring < NRings; iring++) {
+		  XTalkCoupling_Ring_4Chip[iring][ichip][event] = mip_Ring_4Chip[iring][ichip][event] / mip_Ring_4Chip[0][ichip][event];
+		}
 	  }
 	}
 	
@@ -252,7 +252,6 @@ void makePlots::PlotProducer(){
   
   for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
 	XTalkCoupling_Average[ichannel] /= (AverageEvents/NCHANNEL);
-	cout << " ichannel = " << ichannel << " Xtalk average = " << XTalkCoupling_Average[ichannel] << endl;
   }
   
 
@@ -309,9 +308,8 @@ void makePlots::PlotProducer(){
 	multig_XTalkCoupling_ring->SetName(title);
 	multig_XTalkCoupling_ring->Draw("AP");
 	c->Update();
-	multig_XTalkCoupling_ring->GetYaxis()->SetRangeUser(-0.01,0.1);
+	multig_XTalkCoupling_ring->GetYaxis()->SetRangeUser(-0.01,0.5);
 	multig_XTalkCoupling_ring->Write();
-	
   }
 
 
@@ -321,7 +319,7 @@ void makePlots::PlotProducer(){
 
   TH2Poly *poly = new TH2Poly;
   InitTH2Poly(*poly);
-  poly->SetMinimum(-0.005);
+  poly->SetMinimum(-0.02);
   for(int ichannel = 0; ichannel < NCHANNEL; ichannel+=2){
 	float X, Y;
 	int forCH = ichannel / 2;
@@ -372,6 +370,9 @@ void makePlots::PlotProducer(){
 
   cdallCh->cd();
   for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
+	int ichip = ichannel / 64;
+	int inj_channel = (ichip*64) + injCh;
+	
 	TGraph* ginjCh_hg  = new TGraph( Nevents, dac_ctrl, hg_allCh[ichannel] );
 	sprintf(title,"hg");
 	ginjCh_hg->SetTitle(title);
@@ -401,6 +402,12 @@ void makePlots::PlotProducer(){
 	multig_InjCh_hltot->SetTitle(title);
 	multig_InjCh_hltot->SetName(title);
 	multig_InjCh_hltot->Write();
+
+	TGraph* gXTalkCoupling = new TGraph(Nevents, mip_allCh[inj_channel], XTalkCoupling[ichannel] );
+	sprintf(title,"xtalk_Ch%d", ichannel);
+	gXTalkCoupling->SetTitle(title);
+	gXTalkCoupling->SetName(title);
+	gXTalkCoupling->Write();
   }
 
 
@@ -449,15 +456,15 @@ void makePlots::cosmicAnalyzer(){
   sprintf(title,"cosmicAnalysis/plot_%s.root",outf.c_str());
   TFile *outfile = new TFile(title,"recreate");
   cout << "output file = " << title << endl;
-
   
-  // Define Parameters
+  // Declare Parameters
   int TotalEntries = Chain1->GetEntries();
   int Nevents = TotalEntries/NCHIP;
   cout << "Total Events = " << Nevents << endl;
   int MaxTS = 2;              //choose this time sample to be the peak
   int mipCount = 0;
 
+  double *dac_ctrl   = new double[Nevents];
   double **hg_allCh       = new double*[NCHANNEL];
   double **lg_allCh       = new double*[NCHANNEL];
   double **tot_allCh      = new double*[NCHANNEL];
@@ -468,8 +475,6 @@ void makePlots::cosmicAnalyzer(){
 	tot_allCh[i]     = new double[Nevents];
 	mip_allCh[i]     = new double[Nevents];
   }
-  double *dac_ctrl   = new double[Nevents];
-  
   double **hg_SubPed = new double*[NSCA];
   double **lg_SubPed = new double*[NSCA];
   for(int i = 0; i < NSCA; i++){
