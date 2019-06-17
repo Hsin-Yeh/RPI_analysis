@@ -57,7 +57,7 @@ void makePlots::PlotProducer(){
 
   char title[200];
 
-  // Set Output Root File
+  /// Set Output Root File
   int start = input_fileName.find_last_of("/");
   int end   = input_fileName.find(".root");
   string outf = input_fileName.substr(start+1,end-start-1);
@@ -67,7 +67,7 @@ void makePlots::PlotProducer(){
   cout << "output file = " << title << endl;
 
   
-  // Define Parameters
+  /// Define Parameters 
   int TotalEntries = Chain1->GetEntries();
   int Nevents = TotalEntries/NCHIP;
   cout << "Total Events = " << Nevents << endl;
@@ -82,12 +82,28 @@ void makePlots::PlotProducer(){
   double **tot_allCh      = new double*[NCHANNEL];
   double **mip_allCh      = new double*[NCHANNEL];
   double **XTalkCoupling  = new double*[NCHANNEL];
+  double **hgFitMean      = new double*[NCHANNEL];
+  double **lgFitMean      = new double*[NCHANNEL];
+  double **hgFitSigma     = new double*[NCHANNEL];
+  double **lgFitSigma     = new double*[NCHANNEL];
+  float **hgMean          = new float*[NCHANNEL];
+  float **lgMean          = new float*[NCHANNEL];
+  float **hgSigma         = new float*[NCHANNEL];
+  float **lgSigma         = new float*[NCHANNEL];
   for(int i = 0; i < NCHANNEL; i++){
 	hg_allCh[i]      = new double[Nevents];
 	lg_allCh[i]      = new double[Nevents];
 	tot_allCh[i]     = new double[Nevents];
 	mip_allCh[i]     = new double[Nevents];
 	XTalkCoupling[i] = new double[Nevents];
+	hgFitMean[i]     = new double[NSCA];
+	lgFitMean[i]     = new double[NSCA];
+	hgFitSigma[i]    = new double[NSCA];
+	lgFitSigma[i]    = new double[NSCA];
+	hgMean[i]        = new float[NSCA];
+	lgMean[i]        = new float[NSCA];
+	hgSigma[i]       = new float[NSCA];
+	lgSigma[i]       = new float[NSCA];
   }
   double **mip_Ring_1Chip = new double*[NRings];
   for(int i = 0; i < NRings; i++){
@@ -96,12 +112,12 @@ void makePlots::PlotProducer(){
   double **hg_SubPed = new double*[NSCA];
   double **lg_SubPed = new double*[NSCA];
   for(int i = 0; i < NSCA; i++){
-	hg_SubPed[i] = new double[NCH/2];
-	lg_SubPed[i] = new double[NCH/2];
+	hg_SubPed[i] = new double[NCH];
+	lg_SubPed[i] = new double[NCH];
   }
-  double **hg_SubPedCM = new double*[NCH/2];
-  double **lg_SubPedCM = new double*[NCH/2];
-  for(int i = 0; i < NCH/2; i++){
+  double **hg_SubPedCM = new double*[NCH];
+  double **lg_SubPedCM = new double*[NCH];
+  for(int i = 0; i < NCH; i++){
 	hg_SubPedCM[i] = new double[NSCA];
 	lg_SubPedCM[i] = new double[NSCA];
   }
@@ -116,39 +132,50 @@ void makePlots::PlotProducer(){
 	}
   }
 
-
-  // Declare directories
+  /// Declare TDirectories
   sprintf(title,"injCh%d",injCh);
   TDirectory *cdinjCh = outfile->mkdir(title);
   sprintf(title,"allCh");
   TDirectory *cdallCh = cdinjCh->mkdir(title);
   sprintf(title,"Pedestal");
   TDirectory *cdPedestal = cdinjCh->mkdir(title);
-  cdinjCh->cd();
-
+  sprintf(title,"hgPedestal");
+  TDirectory *cdhgPedestal = cdPedestal->mkdir(title);
+  sprintf(title,"lgPedestal");
+  TDirectory *cdlgPedestal = cdPedestal->mkdir(title);
+  sprintf(title,"hgNoise");
+  TDirectory *cdhgNoise = cdPedestal->mkdir(title);
+  sprintf(title,"lgNoise");
+  TDirectory *cdlgNoise = cdPedestal->mkdir(title);
   
-  // Declare Histograms
-  TH1D *h_hgPedestal[NSCA][NCHANNEL/2];
-  TH1D *h_lgPedestal[NSCA][NCHANNEL/2];
+  cdinjCh->cd();
+  
+  /// Declare Histograms
+  TH1D *h_hgPedestal[NSCA][NCHANNEL];
+  TH1D *h_lgPedestal[NSCA][NCHANNEL];
 
-  // Initialize
+  /// Initialize Parameters
   for(int ich = 0; ich < NCHANNEL; ich++){
 	XTalkCoupling_Average[ich] = 0;
   }
 
   for(int sca = 0; sca < NSCA; ++sca){
-	for(int ichannel = 0; ichannel < NCHANNEL/2; ichannel++){
+	for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
 	  char h_title[50];
 	  cdPedestal->cd();
-	  sprintf(h_title,"h_hgPedestal_Ch%d_SCA%d", ichannel*2, sca);
-	  h_hgPedestal[sca][ichannel] = new TH1D(h_title,h_title,100,-250,250);
-	  sprintf(h_title,"h_lgPedestal_Ch%d_SCA%d", ichannel*2, sca);
-	  h_lgPedestal[sca][ichannel] = new TH1D(h_title,h_title,100,-250,250);
+	  sprintf(h_title,"h_hgPedestal_Ch%d_SCA%d", ichannel, sca);
+	  h_hgPedestal[sca][ichannel] = new TH1D(h_title,h_title,200,-500,500);
+	  sprintf(h_title,"h_lgPedestal_Ch%d_SCA%d", ichannel, sca);
+	  h_lgPedestal[sca][ichannel] = new TH1D(h_title,h_title,200,-500,500);
+	  hgMean [ichannel][sca] = 0;
+	  lgMean [ichannel][sca] = 0;
+	  hgSigma[ichannel][sca] = 0;
+	  lgSigma[ichannel][sca] = 0;
 	}
   }
 
   
-  //==================== Loop over the events ==================== //
+  /// ==================== Start of Loop ==================== //
    
   for(int entry = 0; entry < TotalEntries ; ++entry){
     
@@ -165,27 +192,42 @@ void makePlots::PlotProducer(){
       if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
     }
 
-    // Pedestal histograms 
-	for(int ich = 0; ich < NCH; ich+=2 ){
+    /// Pedestal histograms 
+	for(int ich = 0; ich < NCH; ich++ ){
 	  for(int sca = 0; sca < NSCA; sca++ ){
-		hg_SubPed[sca][ich/2] = hg[sca][ich] - avg_HG[chip][ich][sca]; // Pedestal Subtraction
-		lg_SubPed[sca][ich/2] = lg[sca][ich] - avg_LG[chip][ich][sca];
+		hg_SubPed[sca][ich] = hg[sca][ich] - avg_HG[chip][ich][sca]; // Pedestal Subtraction
+		lg_SubPed[sca][ich] = lg[sca][ich] - avg_LG[chip][ich][sca];
 	  }
 	}
 	double hgCM = CMCalculator( hg_SubPed, TS ); // Calculate CM for the chip
 	double lgCM = CMCalculator( lg_SubPed, TS );
-		
-	for(int ich = 0; ich < NCH/2; ich++){
-	  for (int sca = 0; sca < NSCA; sca++){
-		hg_SubPedCM[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
-		lg_SubPedCM[ich][sca] = lg_SubPed[sca][ich] - lgCM;
+	double *hgCM_sca, *lgCM_sca;
+	hgCM_sca = CMCalculator_v2( hg_SubPed );
+	lgCM_sca = CMCalculator_v2( lg_SubPed );
 
-		h_hgPedestal[sca][ich]->Fill( hg_SubPedCM[ich][sca] );
-		h_lgPedestal[sca][ich]->Fill( lg_SubPedCM[ich][sca] );
+	
+	for (int ich = 0; ich < NCH; ich++){
+	  for (int sca = 0; sca < NSCA; sca++){
+		if(subPed_flag){
+		  hg_SubPedCM[ich][sca] = hg_SubPed[sca][ich] - hgCM_sca[sca]; // CM subtraction 
+		  lg_SubPedCM[ich][sca] = lg_SubPed[sca][ich] - lgCM_sca[sca];
+		}
+		else{
+		  hg_SubPedCM[ich][sca] = hg[sca][ich];
+		  lg_SubPedCM[ich][sca] = lg[sca][ich];
+		}
+		
+		int ichannel = chip*64 + ich;
+		h_hgPedestal[sca][ichannel]->Fill( hg_SubPedCM[ich][sca] );
+		h_lgPedestal[sca][ichannel]->Fill( lg_SubPedCM[ich][sca] );
+		hgMean [ichannel][sca] += hg_SubPedCM[ich][sca];
+		lgMean [ichannel][sca] += lg_SubPedCM[ich][sca];
+		hgSigma[ichannel][sca] += ( hg_SubPedCM[ich][sca] * hg_SubPedCM[ich][sca] );
+		lgSigma[ichannel][sca] += ( lg_SubPedCM[ich][sca] * lg_SubPedCM[ich][sca] );
 	  }
 	}
 	
-    // -------------------- Injection & Cross Talk Analysis -------------------- //
+    /// Injection & Cross Talk Analysis
     for(int ich = 0; ich < NCH; ich++){
 	  int channel      = ich + chip*64;
 	  double hg_sig, lg_sig;
@@ -203,14 +245,14 @@ void makePlots::PlotProducer(){
       lg_allCh[channel][event]  = lg_sig;
 	  tot_allCh[channel][event] = tot;
 
-	  // mip conversion
+	  /// mip conversion
 	  double energy_mip = mipConverter( hg_sig, lg_sig, tot, channel);
 	  mip_allCh[channel][event] = energy_mip;
     }
 
 	if ( chip == 3 ) {
 	  for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
-		// Injection XTalk calculation
+		/// Injection XTalk calculation
 		int ichip = ichannel / NCH;
 		int inj_channel;
 		if ( maskCh_flag )
@@ -244,14 +286,37 @@ void makePlots::PlotProducer(){
 	
   }
 
-  //... ==================== End of Loop ==================== ...
-  
+  /// ==================== End of Loop ==================== //
+
   for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
 	XTalkCoupling_Average[ichannel] /= (AverageEvents/NCHANNEL);
+	for (int sca = 0; sca < NSCA; sca++){
+	  if (ichannel%2 == 1) continue;
+	  h_hgPedestal[sca][ichannel]->Fit("gaus","Q");
+	  hgFitMean [ichannel][sca] = h_hgPedestal[sca][ichannel]->GetFunction("gaus")->GetParameter(1);
+	  hgFitSigma[ichannel][sca] = h_hgPedestal[sca][ichannel]->GetFunction("gaus")->GetParameter(2);
+	  if ( hgFitMean[ichannel][sca] > 200 ) 
+		cout << " ichannel " << ichannel << " sca " << sca << " Mean " << hgFitMean[ichannel][sca] << " Sigma " << hgFitSigma[ichannel][sca] << endl;
+	  h_lgPedestal[sca][ichannel]->Fit("gaus","Q");
+	  lgFitMean [ichannel][sca] = h_lgPedestal[sca][ichannel]->GetFunction("gaus")->GetParameter(1);
+	  lgFitSigma[ichannel][sca] = h_lgPedestal[sca][ichannel]->GetFunction("gaus")->GetParameter(2);
+	  
+	  hgMean [ichannel][sca] /= Nevents;
+	  lgMean [ichannel][sca] /= Nevents;
+	}
   }
-  
+  for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
+	for(int sca = 0; sca < NSCA; sca++){
+	  hgSigma[ichannel][sca] /= Nevents;
+	  lgSigma[ichannel][sca] /= Nevents;
+	  hgSigma[ichannel][sca] -= ( hgMean[ichannel][sca] * hgMean[ichannel][sca] );
+	  lgSigma[ichannel][sca] -= ( lgMean[ichannel][sca] * lgMean[ichannel][sca] );
+	  hgSigma[ichannel][sca] = sqrt( hgSigma[ichannel][sca] );
+	  lgSigma[ichannel][sca] = sqrt( hgSigma[ichannel][sca] );
+	}
+  }
 
-  // Plots!!!!!
+  /// Plots!!!!!
   cdinjCh->cd();
   for(int ichip = 0; ichip < NCHIP; ichip++){
 	int inj_channel = (ichip*64) + injCh;
@@ -287,7 +352,7 @@ void makePlots::PlotProducer(){
 	multig_InjCh_hltot->Write();
 
 
-	// ------------------------------ Xtalk vs dac_ctrl ------------------------------ //	
+	/// ------------------------------ Xtalk vs dac_ctrl ------------------------------ //	
 	TMultiGraph *multig_XTalkCoupling_ring = new TMultiGraph();
 	for(int iring = 1; iring < NRings; iring++){
 	  TGraph* gXTalkCoupling = new TGraph(Nevents, mip_allCh[inj_channel], XTalkCoupling_Ring_4Chip[iring][ichip] );
@@ -309,7 +374,9 @@ void makePlots::PlotProducer(){
   }
 
 
-  // ------------------------------ 2D Average Xtalk ------------------------------ //	  
+  
+
+  /// ------------------------------ 2D Average Xtalk ------------------------------ //	  
   int NNoisy = 8;
   int NoisyChannel[8] = {248,186,214,120,126,42,254,190};
 
@@ -337,7 +404,72 @@ void makePlots::PlotProducer(){
   poly->SetName(title);
   poly->Write();
 
-  // ------------------------------ 1D Average Xtalk ------------------------------ //	  
+  /// ------------------------------ 2D Pedestal after CM ------------------------------ //
+  cdPedestal->cd();
+  TH2Poly *polyhgPed[NSCA];
+  TH2Poly *polylgPed[NSCA];
+  TH2Poly *polyhgErr[NSCA];
+  TH2Poly *polylgErr[NSCA];
+  for (int sca = 0; sca < NSCA; sca++){
+	cdhgPedestal->cd();
+	polyhgPed[sca] = new TH2Poly();
+	InitTH2Poly(*polyhgPed[sca]);
+	sprintf(title,"hgPedestal_SCA%d",sca);
+	polyhgPed[sca]->SetTitle(title);
+	polyhgPed[sca]->SetName(title);
+	polyhgPed[sca]->SetMarkerSize(1);
+
+	cdhgNoise->cd();
+	polyhgErr[sca] = new TH2Poly();
+	InitTH2Poly(*polyhgErr[sca]);
+	sprintf(title,"hgSigma_SCA%d",sca);
+	polyhgErr[sca]->SetTitle(title);
+	polyhgErr[sca]->SetName(title);
+	polyhgErr[sca]->SetMarkerSize(1);
+	
+	cdlgPedestal->cd();
+	polylgPed[sca] = new TH2Poly();
+	InitTH2Poly(*polylgPed[sca]);
+	sprintf(title,"lgPedestal_SCA%d",sca);
+	polylgPed[sca]->SetTitle(title);
+	polylgPed[sca]->SetName(title);
+	polylgPed[sca]->SetMarkerSize(1);
+
+	cdlgNoise->cd();
+	polylgErr[sca] = new TH2Poly();
+	InitTH2Poly(*polylgErr[sca]);
+	sprintf(title,"lgSigma_SCA%d",sca);
+	polylgErr[sca]->SetTitle(title);
+	polylgErr[sca]->SetName(title);
+	polylgErr[sca]->SetMarkerSize(1);
+  }
+
+  for(int sca = 0; sca < NSCA; sca++){
+	for(int ichannel = 0; ichannel < NCHANNEL; ichannel+=2){
+	  float X, Y;
+	  int forCH = ichannel / 2;
+	  X = CHmap[forCH].first;
+	  Y = CHmap[forCH].second;
+	  polyhgPed[sca]->Fill( X, Y, hgFitMean [ichannel][sca]);
+	  polyhgErr[sca]->Fill( X, Y, hgFitSigma[ichannel][sca]);
+	  polylgPed[sca]->Fill( X, Y, lgFitMean [ichannel][sca]);
+	  polylgErr[sca]->Fill( X, Y, lgFitSigma[ichannel][sca]);
+	  //polyhgPed[sca]->Fill( X, Y, hgMean [ichannel][sca]);
+	  //polyhgErr[sca]->Fill( X, Y, hgSigma[ichannel][sca]);
+	  //polylgPed[sca]->Fill( X, Y, lgMean [ichannel][sca]);
+	  //polylgErr[sca]->Fill( X, Y, lgSigma[ichannel][sca]);
+	}
+	cdhgPedestal->cd();
+	polyhgPed[sca]->Write();
+	cdlgPedestal->cd();
+	polylgPed[sca]->Write();
+	cdhgNoise->cd();
+	polyhgErr[sca]->Write();
+	cdlgNoise->cd();
+	polylgErr[sca]->Write();
+  }
+  
+  /// ------------------------------ 1D Average Xtalk ------------------------------ //	  
   // Unconnect channels
 
   double labelCnct[NCHANNEL/2], labelUnCnct[NCHANNEL/2];
@@ -411,7 +543,7 @@ void makePlots::PlotProducer(){
   outfile->Close();
 
 
-  // deallocate 
+  /// deallocate 
   for (int i = 0; i < NRings; i++){
 	for (int j = 0; j < NCHIP; j++) {
 	  delete[] mip_Ring_4Chip[i][j];
@@ -606,14 +738,18 @@ void makePlots::Pulse_display( int displayChannel, int pulseDisplay_type, int lo
 	}
 	double hgCM = CMCalculator( hg_SubPed, TS ); // Calculate CM for the chip
 	double lgCM = CMCalculator( lg_SubPed, TS );
+	double *hgCM_sca, *lgCM_sca;
+	hgCM_sca = CMCalculator_v2( hg_SubPed );
+	lgCM_sca = CMCalculator_v2( lg_SubPed );
+
 		
 	for (int sca = 0; sca < NSCA; sca++){
 	  for(int ich = 0; ich < 64; ich++){
 		if ( subPed_flag ){
 		  //hg_transpose[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
 		  //lg_transpose[ich][sca] = lg_SubPed[sca][ich] - lgCM;
-		  hg_transpose[ich][sca] = hg_SubPed[sca][ich]; 
-		  lg_transpose[ich][sca] = lg_SubPed[sca][ich]; 
+		  hg_transpose[ich][sca] = hg_SubPed[sca][ich] - hgCM_sca[sca]; 
+		  lg_transpose[ich][sca] = lg_SubPed[sca][ich] - lgCM_sca[sca]; 
 		}
 		else {
 		  hg_transpose[ich][sca] = hg[sca][ich];
@@ -807,18 +943,39 @@ double pulseShape_fcn_v2(double t, double tmax, double amp, double amp0 = 0., do
 */
   
 
+double* makePlots::CMCalculator_v2 ( double **sig_subPed ) {
+  // Calculate CM for each TS
+  static double meanChipPedestal[NSCA];
+  int scaCount[NSCA];
+  for (int sca = 0; sca <NSCA; sca++) {
+	meanChipPedestal[sca] = 0;
+	scaCount[sca] = 0;
+  }
+
+  for (int ich = 0; ich < NCH; ich+=2) {
+	//if (ich == 18 ) continue;
+	for (int sca = 0; sca < NSCA; sca++) {
+	  meanChipPedestal[sca] += sig_subPed[sca][ich];
+	  scaCount[sca]++;
+	}
+  }
+
+  for (int sca = 0; sca < NSCA; sca++) {
+	meanChipPedestal[sca] /= scaCount[sca];
+  }
+  return meanChipPedestal;
+}
 
 
 double makePlots::CMCalculator( double **sig_subPed, int *TS ) {
   // Common mode calculation, per event, per chip
   // Assume common mode is identical for all time samples
   // Pick 5-9 TS for CM
-
   int scaCount = 0;
   double meanChipPedestal = 0;
   
-  for(int ich = 0; ich < NCH/2; ich++){
-	for( int timesample = 0; timesample <= 10; timesample++){
+  for(int ich = 0; ich < NCH; ich+=2){
+	for( int timesample = 0; timesample <= 9; timesample++){
 	  int sca = 0;
 	  while(true){
 		if ( TS[sca] == timesample ) break;
