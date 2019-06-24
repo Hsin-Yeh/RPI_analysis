@@ -58,6 +58,7 @@ class makePlots{
   int     ringPositionFinder( int inj_channel, int channel);
   double  CMCalculator( double **sig_SubPed, int *TS );
   double* CMCalculator_v2(double **sig_SubPed);
+  double* Pedestal_CM_Subtractor( double **sig, bool isHG );
   bool    mipSigCheck( double *sig, int *TS );
   void    pulsePlotter( double *sig, int *TS, int ev, int ichip, int ich, int lowerR, int upperR );
   void    Gain_factor_producer();

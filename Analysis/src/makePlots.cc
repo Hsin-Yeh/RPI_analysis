@@ -52,7 +52,7 @@ void makePlots::Init( string pedfile, string gainfile ){
   cout << "Init complete " << endl << endl;
 }
 
-
+/// ==================== PlotProducer ==================== ///
 void makePlots::PlotProducer(){
 
   char title[200];
@@ -175,7 +175,7 @@ void makePlots::PlotProducer(){
   }
 
   
-  /// ==================== Start of Loop ==================== //
+  /// -------------------- Start of Loop -------------------- //
    
   for(int entry = 0; entry < TotalEntries ; ++entry){
     
@@ -192,7 +192,8 @@ void makePlots::PlotProducer(){
       if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
     }
 
-    /// Pedestal histograms 
+    /// Pedestal histograms
+
 	for(int ich = 0; ich < NCH; ich++ ){
 	  for(int sca = 0; sca < NSCA; sca++ ){
 		hg_SubPed[sca][ich] = hg[sca][ich] - avg_HG[chip][ich][sca]; // Pedestal Subtraction
@@ -286,7 +287,7 @@ void makePlots::PlotProducer(){
 	
   }
 
-  /// ==================== End of Loop ==================== //
+  /// -------------------- End of Loop -------------------- //
 
   for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
 	XTalkCoupling_Average[ichannel] /= (AverageEvents/NCHANNEL);
@@ -352,7 +353,7 @@ void makePlots::PlotProducer(){
 	multig_InjCh_hltot->Write();
 
 
-	/// ------------------------------ Xtalk vs dac_ctrl ------------------------------ //	
+	/// Xtalk vs dac_ctrl
 	TMultiGraph *multig_XTalkCoupling_ring = new TMultiGraph();
 	for(int iring = 1; iring < NRings; iring++){
 	  TGraph* gXTalkCoupling = new TGraph(Nevents, mip_allCh[inj_channel], XTalkCoupling_Ring_4Chip[iring][ichip] );
@@ -375,8 +376,7 @@ void makePlots::PlotProducer(){
 
 
   
-
-  /// ------------------------------ 2D Average Xtalk ------------------------------ //	  
+  /// 2D Average Xtalk 
   int NNoisy = 8;
   int NoisyChannel[8] = {248,186,214,120,126,42,254,190};
 
@@ -404,7 +404,8 @@ void makePlots::PlotProducer(){
   poly->SetName(title);
   poly->Write();
 
-  /// ------------------------------ 2D Pedestal after CM ------------------------------ //
+  
+  /// 2D Pedestal after CM
   cdPedestal->cd();
   TH2Poly *polyhgPed[NSCA];
   TH2Poly *polylgPed[NSCA];
@@ -450,10 +451,10 @@ void makePlots::PlotProducer(){
 	  int forCH = ichannel / 2;
 	  X = CHmap[forCH].first;
 	  Y = CHmap[forCH].second;
-	  polyhgPed[sca]->Fill( X, Y, hgFitMean [ichannel][sca]);
-	  polyhgErr[sca]->Fill( X, Y, hgFitSigma[ichannel][sca]);
-	  polylgPed[sca]->Fill( X, Y, lgFitMean [ichannel][sca]);
-	  polylgErr[sca]->Fill( X, Y, lgFitSigma[ichannel][sca]);
+	  polyhgPed[sca]->Fill( X, Y, (int)hgFitMean [ichannel][sca]);
+	  polyhgErr[sca]->Fill( X, Y, (int)hgFitSigma[ichannel][sca]);
+	  polylgPed[sca]->Fill( X, Y, (int)lgFitMean [ichannel][sca]);
+	  polylgErr[sca]->Fill( X, Y, (int)lgFitSigma[ichannel][sca]);
 	  //polyhgPed[sca]->Fill( X, Y, hgMean [ichannel][sca]);
 	  //polyhgErr[sca]->Fill( X, Y, hgSigma[ichannel][sca]);
 	  //polylgPed[sca]->Fill( X, Y, lgMean [ichannel][sca]);
@@ -469,7 +470,7 @@ void makePlots::PlotProducer(){
 	polylgErr[sca]->Write();
   }
   
-  /// ------------------------------ 1D Average Xtalk ------------------------------ //	  
+  /// 1D Average Xtalk
   // Unconnect channels
 
   double labelCnct[NCHANNEL/2], labelUnCnct[NCHANNEL/2];
@@ -574,7 +575,7 @@ void makePlots::PlotProducer(){
 }
 
 void makePlots::cosmicAnalyzer(){
-    char title[200];
+  char title[200];
 
   // Set Output Root File
   int start = input_fileName.find_last_of("/");
@@ -703,6 +704,141 @@ void makePlots::cosmicAnalyzer(){
   
 }
 
+/*
+///
+///==================== LEDAnalyzer ====================///
+///
+void makePlots::LEDAnalyzer(){
+  char title[200];
+
+  /// Set Output Root File
+  int start = input_fileName.find_last_of("/");
+  int end   = input_fileName.find(".root");
+  string outf = input_fileName.substr(start+1,end-start-1);
+
+  sprintf(title,"cosmicAnalysis/plot_%s.root",outf.c_str());
+  TFile *outfile = new TFile(title,"recreate");
+  cout << "output file = " << title << endl;
+  
+  /// Declare Parameters
+  int TotalEntries = Chain1->GetEntries();
+  int Nevents = TotalEntries/NCHIP;
+  cout << "Total Events = " << Nevents << endl;
+  int MaxTS = 2;              //choose this time sample to be the peak
+  int mipCount = 0;
+
+  double *dac_ctrl   = new double[Nevents];
+  double **hg_allCh       = new double*[NCHANNEL];
+  double **lg_allCh       = new double*[NCHANNEL];
+  double **tot_allCh      = new double*[NCHANNEL];
+  double **mip_allCh      = new double*[NCHANNEL];
+  for(int i = 0; i < NCHANNEL; i++){
+	hg_allCh[i]      = new double[Nevents];
+	lg_allCh[i]      = new double[Nevents];
+	tot_allCh[i]     = new double[Nevents];
+	mip_allCh[i]     = new double[Nevents];
+  }
+  double **hg_SubPed = new double*[NSCA];
+  double **lg_SubPed = new double*[NSCA];
+  for(int i = 0; i < NSCA; i++){
+	hg_SubPed[i] = new double[NCH];
+	lg_SubPed[i] = new double[NCH];
+  }
+  double **hg_sig = new double*[NCH];
+  double **lg_sig = new double*[NCH];
+  for(int i = 0; i < NCH; i++){
+	hg_sig[i] = new double[NSCA];
+	lg_sig[i] = new double[NSCA];
+  }
+  
+  /// Declare directories
+  
+  /// Define Histograms
+  TH1D *h_mipAllCh = new TH1D("h_mipAllCh","",50,0,400);
+  
+  /// Initialize
+  
+  /// -------------------- Start of Loop -------------------- //
+   
+  for(int entry = 0; entry < TotalEntries ; ++entry){
+    
+    if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }
+    Chain1 -> GetEntry(entry);
+	dac_ctrl[event] = dacinj;
+
+	int TS[NSCA];
+    int TS0_sca, MaxTS_sca;
+    for(int sca = 0 ; sca < NSCA ; sca++) {
+      TS[sca] = timesamp[sca];
+      if (timesamp[sca] == 0) { TS0_sca = sca ; }
+      if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
+    }
+
+	for(int ich = 0; ich < NCH; ich++ ){
+	  for(int sca = 0; sca < NSCA; sca++ ){
+		hg_SubPed[sca][ich] = hg[sca][ich] - avg_HG[chip][ich][sca]; // Pedestal Subtraction
+		lg_SubPed[sca][ich] = lg[sca][ich] - avg_LG[chip][ich][sca];
+	  }
+	}
+	double hgCM = CMCalculator( hg_SubPed, TS ); // Calculate CM for the chip
+	double lgCM = CMCalculator( lg_SubPed, TS );
+		
+	int hit = 0;
+	for(int ich = 0; ich < NCH; ich++){
+	  for (int sca = 0; sca < NSCA; sca++){
+		if ( subPed_flag ){
+		  hg_sig[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
+		  lg_sig[ich][sca] = lg_SubPed[sca][ich] - lgCM;
+		}
+		else {
+		  hg_sig[ich][sca] = hg[sca][ich];
+		  lg_sig[ich][sca] = lg[sca][ich];
+		}
+	  }
+	  if ( mipSigCheck(hg_sig[ich], TS ) ) hit++;
+	}
+
+	for (int ich = 0; ich < NCH; ich+=2) {
+	  if ( ich + chip*NCH == 44 ) continue;
+	  if ( mipSigCheck(hg_sig[ich], TS ) && hit < 2) {
+		h_mipAllCh->Fill( hg_sig[ich][MaxTS_sca] );
+		pulsePlotter( hg_sig[ich], TS , event, chip, ich, -1, -1);
+		mipCount++;
+	  }
+	}
+
+	// mip conversion
+	//double energy_mip = mipConverter( hg_sig, lg_sig, tot, channel);
+	//mip_allCh[channel][event] = energy_mip;
+  }
+
+  /// -------------------- End of Loop -------------------- //
+
+  cout << endl << "totalEvent# = " << Nevents << " signal# = " << mipCount << endl;
+  cout << "efficiency = " << (float)mipCount / Nevents << endl;
+ 
+  // Plots!!!!!
+
+  outfile->Write();
+  outfile->Close();
+
+
+  // deallocate 
+  for (int i = 0; i < NCHANNEL; i++){
+	delete[] hg_allCh[i];       
+	delete[] lg_allCh[i];       
+	delete[] tot_allCh[i];      
+	delete[] mip_allCh[i];      
+  }
+  delete[] hg_allCh;       
+  delete[] lg_allCh;       
+  delete[] tot_allCh;      
+  delete[] mip_allCh;      
+  delete[] dac_ctrl;                
+
+  
+}
+*/
 void makePlots::Pulse_display( int displayChannel, int pulseDisplay_type, int lowerR, int upperR ){
 
   int Nevents = Chain1->GetEntries();
@@ -841,8 +977,6 @@ int makePlots::ringPositionFinder( int inj_channel, int ichannel){
   return ring;
 }
 
-
-  
 void makePlots::yamlReader(){
 
   int start = input_fileName.find_last_of("/");
@@ -871,9 +1005,18 @@ void makePlots::yamlReader(){
 	  if ( line.find("channelIds:") != -1 ){
 		string tmp;
 		yamlFile >> tmp >> searchstr;
+		//start = line.find("[");
+		//end = line.find("]");
+		//searchstr = line.substr(start+1,end-start+1);
 		injCh = atoi(searchstr.c_str());
 		cout << "InjCh = " << injCh << endl;
 	  }
+	  if ( line.find("acquisitionType") != -1 ){
+		string tmp;
+		start = line.find(":");
+		searchstr = line.substr(start+1);
+	  }
+		
 	  else if ( maskCh_flag == true && line.find("channelIdsToMask:") != -1 ) {
 		getline(yamlFile, line);
 		int count = 3; 
@@ -941,13 +1084,37 @@ double pulseShape_fcn_v2(double t, double tmax, double amp, double amp0 = 0., do
 
 }
 */
+/*
+double* makePlots::Pedestal_CM_Subtractor( double **sig, bool isHG ){
   
+  static double sigSubPedCM[NCH][NSCA];
+  double *sig_CM;
+  
+  for (int ich = 0; ich < NCH; ich++){
+	for (int sca = 0; sca < NSCA; sca++){
+	  if ( isHG )
+		sigSubPedCM[ich][sca] = sig[ich][sca] - avg_HG[ich][sca];  // Pedestal Subtraction
+	  else
+		sigSubPedCM[ich][sca] = sig[ich][sca] - avg_LG[ich][sca];
+	}
+  }
+
+  sig_CM = CMCalculator_v2( sigSubPedCM );  // Calculate CM 
+  
+  for (int ich = 0; ich < NCH; ich++){
+	for (int sca = 0; sca < NSCA; sca++){
+	  sigSubPedCM[ich][sca] -= sig_CM[sca]; // CM subtraction 
+	}
+  }
+  return sigSubPedCM;
+}
+*/
 
 double* makePlots::CMCalculator_v2 ( double **sig_subPed ) {
   // Calculate CM for each TS
   static double meanChipPedestal[NSCA];
   int scaCount[NSCA];
-  for (int sca = 0; sca <NSCA; sca++) {
+  for (int sca = 0; sca < NSCA; sca++) {
 	meanChipPedestal[sca] = 0;
 	scaCount[sca] = 0;
   }
