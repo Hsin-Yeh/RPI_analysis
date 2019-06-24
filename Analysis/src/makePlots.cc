@@ -610,6 +610,12 @@ void makePlots::cosmicAnalyzer(){
 	hg_SubPed[i] = new double[NCH];
 	lg_SubPed[i] = new double[NCH];
   }
+  double **hg_SubPedCM = new double*[NCH];
+  double **lg_SubPedCM = new double*[NCH];
+  for(int i = 0; i < NCH; i++){
+	hg_SubPedCM[i] = new double[NSCA];
+	lg_SubPedCM[i] = new double[NSCA];
+  }
   double **hg_sig = new double*[NCH];
   double **lg_sig = new double*[NCH];
   for(int i = 0; i < NCH; i++){
@@ -648,19 +654,22 @@ void makePlots::cosmicAnalyzer(){
 	}
 	double hgCM = CMCalculator( hg_SubPed, TS ); // Calculate CM for the chip
 	double lgCM = CMCalculator( lg_SubPed, TS );
-		
+	double *hgCM_sca, *lgCM_sca;
+	hgCM_sca = CMCalculator_v2( hg_SubPed );
+	lgCM_sca = CMCalculator_v2( lg_SubPed );
+
 	int hit = 0;
 	for(int ich = 0; ich < NCH; ich++){
 	  for (int sca = 0; sca < NSCA; sca++){
-		if ( subPed_flag ){
-		  hg_sig[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
-		  lg_sig[ich][sca] = lg_SubPed[sca][ich] - lgCM;
+		if(subPed_flag){
+		  hg_SubPedCM[ich][sca] = hg_SubPed[sca][ich] - hgCM_sca[sca]; // CM subtraction 
+		  lg_SubPedCM[ich][sca] = lg_SubPed[sca][ich] - lgCM_sca[sca];
 		}
 		else {
 		  hg_sig[ich][sca] = hg[sca][ich];
 		  lg_sig[ich][sca] = lg[sca][ich];
 		}
-	  }
+	  }		
 	  if ( mipSigCheck(hg_sig[ich], TS ) ) hit++;
 	}
 
