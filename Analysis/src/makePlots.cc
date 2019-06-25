@@ -869,7 +869,7 @@ void makePlots::Pulse_display( int displayChannel, int pulseDisplay_type, int lo
 	
   // Loop Over Events
   for(int ev = 0; ev < Nevents ; ++ev){
-	//if(ev % 30 != 0) continue;
+	if(ev % 57 != 0) continue;
     Chain1 -> GetEntry(ev);
 	int TS[NSCA];
     for(int i = 0 ; i < NSCA ; ++i)  TS[i] = timesamp[i];
