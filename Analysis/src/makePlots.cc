@@ -296,8 +296,8 @@ void makePlots::PlotProducer(){
 	  h_hgPedestal[sca][ichannel]->Fit("gaus","Q");
 	  hgFitMean [ichannel][sca] = h_hgPedestal[sca][ichannel]->GetFunction("gaus")->GetParameter(1);
 	  hgFitSigma[ichannel][sca] = h_hgPedestal[sca][ichannel]->GetFunction("gaus")->GetParameter(2);
-	  if ( hgFitMean[ichannel][sca] > 200 ) 
-		cout << " ichannel " << ichannel << " sca " << sca << " Mean " << hgFitMean[ichannel][sca] << " Sigma " << hgFitSigma[ichannel][sca] << endl;
+	  //if ( hgFitMean[ichannel][sca] > 200 ) 
+		//cout << " ichannel " << ichannel << " sca " << sca << " Mean " << hgFitMean[ichannel][sca] << " Sigma " << hgFitSigma[ichannel][sca] << endl;
 	  h_lgPedestal[sca][ichannel]->Fit("gaus","Q");
 	  lgFitMean [ichannel][sca] = h_lgPedestal[sca][ichannel]->GetFunction("gaus")->GetParameter(1);
 	  lgFitSigma[ichannel][sca] = h_lgPedestal[sca][ichannel]->GetFunction("gaus")->GetParameter(2);
@@ -675,11 +675,11 @@ void makePlots::cosmicAnalyzer(){
 
 	for (int ich = 0; ich < NCH; ich+=2) {
 	  if ( ich + chip*NCH == 44 ) continue;
-	  if ( mipSigCheck(hg_sig[ich], TS ) && hit < 2) {
+	  //if ( mipSigCheck(hg_sig[ich], TS ) && hit < 2) {
 		h_mipAllCh->Fill( hg_sig[ich][MaxTS_sca] );
 		pulsePlotter( hg_sig[ich], TS , event, chip, ich, -1, -1);
 		mipCount++;
-	  }
+		//}
 	}
 
 	// mip conversion
@@ -1013,10 +1013,10 @@ void makePlots::yamlReader(){
 	  
 	  if ( line.find("channelIds:") != -1 ){
 		string tmp;
-		yamlFile >> tmp >> searchstr;
-		//start = line.find("[");
-		//end = line.find("]");
-		//searchstr = line.substr(start+1,end-start+1);
+		//yamlFile >> tmp >> searchstr;
+		start = line.find("[");
+		end = line.find("]");
+		searchstr = line.substr(start+1,end-start+1);
 		injCh = atoi(searchstr.c_str());
 		cout << "InjCh = " << injCh << endl;
 	  }
