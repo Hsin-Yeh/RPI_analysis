@@ -675,7 +675,7 @@ void makePlots::cosmicAnalyzer(){
 
 	for (int ich = 0; ich < NCH; ich+=2) {
 	  if ( ich + chip*NCH == 44 ) continue;
-	  if ( mipSigCheck(hg_sig[ich], TS ) ) {
+	  if ( mipSigCheck(hg_sig[ich], TS ) && hit == 1 ) {
 		h_mipAllCh->Fill( hg_sig[ich][MaxTS_sca] );
 		pulsePlotter( hg_sig[ich], TS , event, chip, ich, -1, -1);
 		mipCount++;
