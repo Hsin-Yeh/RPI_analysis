@@ -20,14 +20,15 @@ int  pulseDisplay_type = 0;
 int  lowerR = -1, upperR = -1;
 bool subPed_flag = true;
 bool maskCh_flag = false;
+bool makePlots_flag = true;
 int  anaType = 0;
 
 
 int main(int argc, char** argv){
   
-
   string arg_string;
   vector<string> arg_list;
+  
   for(int i = 0 ; i < argc ; ++i){
 	arg_string = argv[i];
 	arg_list.push_back(arg_string);
@@ -73,9 +74,11 @@ int main(int argc, char** argv){
 	}
 	else {
 	  std::cout << "Unknown option... print usage" << std::endl;
+	  makePlots_flag = true;
+	  break;
 	}
   }
-  main_makePlots();
+  if ( makePlots_flag ) { main_makePlots(); }
   
   return (0);
 }
