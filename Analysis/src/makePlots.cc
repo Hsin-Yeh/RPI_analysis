@@ -662,8 +662,8 @@ void makePlots::cosmicAnalyzer(){
 	for(int ich = 0; ich < NCH; ich++){
 	  for (int sca = 0; sca < NSCA; sca++){
 		if(subPed_flag){
-		  hg_SubPedCM[ich][sca] = hg_SubPed[sca][ich] - hgCM_sca[sca]; // CM subtraction 
-		  lg_SubPedCM[ich][sca] = lg_SubPed[sca][ich] - lgCM_sca[sca];
+		  hg_sig[ich][sca] = hg_SubPed[sca][ich] - hgCM_sca[sca]; // CM subtraction 
+		  lg_sig[ich][sca] = lg_SubPed[sca][ich] - lgCM_sca[sca];
 		}
 		else {
 		  hg_sig[ich][sca] = hg[sca][ich];

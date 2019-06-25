@@ -107,7 +107,7 @@ void main_makePlots() {
 	cout << "Processing Pulse Displayer  " << endl << endl;
 	M.Pulse_display( displayChannel, pulseDisplay_type, lowerR, upperR );
   }
-  else{
+  else if ( anaType == 2 ) {
 	cout << "Processing Cosmic Analyzer   " << endl << endl;
 	M.cosmicAnalyzer();
   }
