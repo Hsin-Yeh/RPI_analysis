@@ -19,6 +19,7 @@ make
 
 * How to Use
 ** Example 
+*** General plots
 This is an example if one wants to do some general checks and output some plots. The output plots will store in a root file in the "root_plot" directory 
 #+BEGIN_SRC sh
 inputFile="moduleExample/ana_output/ModuleExample_"
@@ -27,18 +28,23 @@ ls ${inputFile} > data_input.txt
 ./makePlots
 root root_plot/${outputFile} -l
 #+END_SRC
+*** High gain pulse display
+If one wants to quickly have a display of the pulse shape of data 
+#+BEGIN_SRC sh
+./makePlots -p 82 
+#+END_SRC
+
 ** Usage help 
 One could check the usage and arguments settings by typing : 
 #+BEGIN_SRC sh
 ./makePlots -h 
 #+END_SRC
-** Data Format 
+** Data Directories
 One should create a tree directories containing the raw, yaml, and decoded root file
 #+BEGIN_SRC sh
 mkdir -p module${Name}/raw module${Name}/yaml module${Name}/ana_output module${Name}/pedFile
 #+END_SRC
-
-
+** Input data format 
 
 * Ideas and TODOs
 **** Add decode.cc 
