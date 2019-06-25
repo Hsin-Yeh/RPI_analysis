@@ -1,11 +1,11 @@
 This branch is for analyzing rpi test data after decoding 
 
 * Study topics 
-**** pedestal & noise 
-**** injection 
-**** LED 
-**** Cosmic 
-**** More..
+1. pedestal & noise 
+2. injection 
+3. LED 
+4. Cosmic 
+5. More..
 
 
 * Setup 
@@ -16,4 +16,12 @@ git pull
 git checkout injection_analysis_CMSSW 
 make 
 #+END_SRC
-* 
+
+* How to Use
+** Example 
+#+BEGIN_SRC sh
+inputFile="moduleExample/ana_output/ModuleExample_"
+ls ${inputFile} > data_input.txt
+./makePlots
+root root_plot/${outputFile} -l
+#+END_SRC
