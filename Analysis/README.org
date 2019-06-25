@@ -1,12 +1,11 @@
 This branch is for analyzing rpi test data after decoding 
 
 * Study topics 
-** pedestal & noise 
-** injection 
-** LED 
-** Cosmic 
-** More..
-
+**** pedestal & noise 
+**** injection 
+**** LED 
+**** Cosmic 
+**** More..
 
 
 * Setup 
