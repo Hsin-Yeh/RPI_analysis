@@ -601,7 +601,6 @@ void makePlots::cosmicAnalyzer(){
 	//==================== Loop over the events ====================
    
 	for(int entry = 0; entry < TotalEntries ; ++entry){
-    
 		if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }
 		Chain1 -> GetEntry(entry);
 
@@ -632,17 +631,13 @@ void makePlots::cosmicAnalyzer(){
 
 		for (int ich = 0; ich < NCH; ich+=2) {
 			if ( ich + chip*NCH == 44 ) continue;
-			if ( ich != 18 ) continue;
+			//if ( ich != 18 ) continue;
 			if ( mipSigCheck(hg_sig[ich], TS ) && hit == 1 ) {
 				h_mipAllCh->Fill( hg_sig[ich][MaxTS_sca] );
 				pulsePlotter( hg_sig[ich], TS , event, chip, ich, -1, -1);
 				mipCount++;
 			}
 		}
-
-		// mip conversion
-		//double energy_mip = mipConverter( hg_sig, lg_sig, tot, channel);
-		//mip_allCh[channel][event] = energy_mip;
 	}
 
 	//... ==================== End of Loop ==================== ...
