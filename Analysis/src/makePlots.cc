@@ -787,14 +787,14 @@ delete[] dac_ctrl;
 ///
 /// ==================== Pulse_display ==================== ///
 ///
-void makePlots::Pulse_display( int displayChannel, int pulseDisplay_type, int lowerR, int upperR ){
+void makePlots::Pulse_display( int displayChannel, int pulseDisplay_type, int lowerR, int upperR, int startEv ){
 
 	int Nevents = Chain1->GetEntries();
 	cout << "Total Events = " << Nevents << endl;
 
 	/// --------------- Loop Over Events --------------- ///
 	for(int ev = 0; ev < Nevents ; ++ev){
-		//if(ev % 57 != 0) continue;
+		if( ev < startEv ) continue;
 		Chain1 -> GetEntry(ev);
 		int TS[NSCA];
 		for(int i = 0 ; i < NSCA ; ++i)  TS[i] = timesamp[i];

@@ -21,6 +21,7 @@ int  displayChannel = -1;
 int  anaType = 0;
 int  pulseDisplay_type = 0;
 int  lowerR = -1, upperR = -1;
+int  startEv = 0;
 bool subPed_flag = true;
 bool maskCh_flag = false;
 bool makePlots_flag = true;
@@ -81,6 +82,10 @@ int main(int argc, char** argv){
 			anaType = 2;
 			iarg++;
 		}
+		else if ( arg == "-e" || arg == "-event" ) {
+			startEv = atoi(arg_list[iarg+1].c_str());
+			iarg++;
+		}
 		else if ( arg == "-h" || arg == "-help" ) {
 			help_flag = true;
 			makePlots_flag = false;
@@ -122,7 +127,7 @@ void main_makePlots() {
 	}
 	else if ( anaType == 1 ) {
 		cout << "Processing Pulse Displayer  " << endl << endl;
-		M.Pulse_display( displayChannel, pulseDisplay_type, lowerR, upperR );
+		M.Pulse_display( displayChannel, pulseDisplay_type, lowerR, upperR, startEv );
 	}
 	else if ( anaType == 2 ) {
 		cout << "Processing Cosmic Analyzer   " << endl << endl;
