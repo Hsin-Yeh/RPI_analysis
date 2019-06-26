@@ -680,18 +680,18 @@ void makePlots::Pulse_display( int displayChannel, int pulseDisplay_type, int lo
 		/// Loop Over every Channel
 		if ( pulseDisplay_type == 0 && displayChannel == -1) { 
 			for( int ich =0; ich < 64; ich+=2){
-				pulsePlotter( hg_sig[ich], TS, ev, chip, ich, lowerR, upperR);
+				pulsePlotter( hg_sig[ich], TS, event, chip, ich, lowerR, upperR);
 			}
 		}
 		/// injCh display
 		else if ( pulseDisplay_type == 1 ) { 
-			pulsePlotter( lg_sig[injCh], TS, ev, chip, injCh, lowerR, upperR);
+			pulsePlotter( lg_sig[injCh], TS, event, chip, injCh, lowerR, upperR);
 		}
 		/// find signal and display 
 		else if ( pulseDisplay_type == 2 ) {  
 			for( int ich =0; ich < 64; ich+=2){
 				if ( mipSigCheck( hg_sig[ich], TS ) ) {
-					pulsePlotter( hg_sig[ich], TS, ev, chip, ich, lowerR, upperR );
+					pulsePlotter( hg_sig[ich], TS, event, chip, ich, lowerR, upperR );
 				}
 			}
 		}
@@ -700,7 +700,7 @@ void makePlots::Pulse_display( int displayChannel, int pulseDisplay_type, int lo
 			int ichip = displayChannel / 64;
 			int ich   = displayChannel % 64;
 			if ( chip != ichip ) continue;
-			pulsePlotter( hg_sig[ich], TS, ev, ichip, ich, lowerR, upperR);
+			pulsePlotter( hg_sig[ich], TS, event, ichip, ich, lowerR, upperR);
 		}
 	}
 
