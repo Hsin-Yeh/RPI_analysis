@@ -8,8 +8,9 @@ using namespace std;
 /// default setup
 string main_outpath = "./";
 string main_datainput = "./data_input.txt";
-string pedfile  = "./pedestal";
-string gainfile = "./src_txtfile/TPro_fittingoutput.txt";
+string pedfile   = "./pedestal";
+string gainfile  = "./src_txtfile/TPro_fittingoutput.txt";
+string noisyfile = "./src_txtfile/noisyChannels.txt";
 
 /// utility
 void main_makePlots();
@@ -121,7 +122,7 @@ void main_makePlots() {
 	M.input_fileName = filename;
 	M.maskCh_flag = maskCh_flag;
 	M.subPed_flag = subPed_flag;
-	M.Init( pedfile, gainfile );
+	M.Init( pedfile, gainfile, noisyfile );
 	if ( anaType == 0 ) {
 		cout << "Processing PlotProducer " << endl << endl;
 		M.PlotProducer();

@@ -34,7 +34,7 @@ class makePlots{
 	~makePlots();
 
 	//public function
-	void Init( string pedfile, string gainfile );
+	void Init( string pedfile, string gainfile, string noisyfile );
 	void PlotProducer();
 	void cosmicAnalyzer();
 	void Pulse_display( int displayChannel = -1 , int acq_type = 0, int lowerR = -1, int upperR = -1 , int startEv = 0 );
@@ -51,22 +51,25 @@ class makePlots{
   
  private:
 
-	//private function
-	void    yamlReader();
-	void    GainFactorReader( string gainfile );
+	// private function
 	double  mipConverter( double hg_SubPed, double lg_SubPed, double tot , int channel);
 	int     ringPositionFinder( int inj_channel, int channel);
 	double  CMCalculator( double **sig_SubPed, int *TS );
-	double* CMCalculator_v2(double **sig_SubPed );
+	double* CMCalculator_v2(double **sig_SubPed, int chip );
 	void    Pedestal_CM_Subtractor( int chip );
 	bool    mipSigCheck( double *sig, int *TS );
 	void    pulsePlotter( double *sig, int *TS, int ev, int ichip, int ich, int lowerR, int upperR );
 	void    Crosstalk(Int_t ch);
-	void    read_P_and_N(string ped_file);
-	void    readmap();
-	void    InitTH2Poly(TH2Poly& poly); //Give frame to TH2Poly
+	void    InitTH2Poly(TH2Poly& poly);  //Give frame to TH2Poly
 	void    Gain_factor_producer();
 	int     Cut(Long64_t entry, Long64_t sigma);
+
+	// src_txtfile reader 
+	void    yamlReader();
+	void    GainFactorReader( string gainfile );
+	void    noisyChannelReader( string noisyFileName );
+	void    read_P_and_N(string ped_file);
+	void    readmap();
 
 	//private parameter
 	TApplication   *app;
@@ -97,6 +100,9 @@ class makePlots{
 	double TOTOffSet[NCHIP][NCH];
 	double ADC2MIP = 0.0227;
 	double LGTP_default = 900;
+
+	//noisy parameter
+	vector<int> noisyChannel;
 
 
   

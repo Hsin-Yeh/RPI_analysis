@@ -30,13 +30,14 @@ makePlots::~makePlots()
 	cout << "Destructor of makePlot ... " << endl;
 }
 
-void makePlots::Init( string pedfile, string gainfile ){
+void makePlots::Init( string pedfile, string gainfile, string noisyfile ){
 
 	// read init files and initialize
 	yamlReader();
-	read_P_and_N( pedfile );
 	GainFactorReader( gainfile );
-	Crosstalk(injCh);
+	noisyChannelReader( noisyfile );
+	read_P_and_N( pedfile );
+	//Crosstalk(injCh);
 	P.root_logon();
 
 	// initialize root branch
@@ -857,10 +858,35 @@ void makePlots::GainFactorReader( string gainfile ){
 	cout << endl;
 }
 
+void makePlots::noisyChannelReader( string noisyFileName ) {
+	ifstream noisyFile( noisyFileName );
+	string line;
+	int ichip, ich;
+	if(!noisyFile.is_open()){
+		cout << "Did not find noisyChannelFile " << noisyFileName
+			 << ".\n not setting noisyChannels " << endl;
+	}
+	else{
+		cout << "noisyFile = " << noisyFileName << endl;
+		while(!noisyFile.eof()){
+			noisyFile >> ichip >> ich;
+			int ichannel = ichip*NCH + ich;
+			noisyChannel.push_back(ichannel);
+		}
+		noisyChannel.pop_back();
+	}
+	cout << "noisy channels = ";
+	for(int i = 0; i < noisyChannel.size(); i++){
+		cout << noisyChannel.at(i) << " " ;
+	}
+	cout << endl << endl;
+}
 
-double* makePlots::CMCalculator_v2 ( double **sig_subPed ) {
+
+double* makePlots::CMCalculator_v2 ( double **sig_subPed, int chip ) {
 	// Calculate CM for each TS
 	static double meanChipPedestal[NSCA];
+
 	int scaCount[NSCA];
 	for (int sca = 0; sca < NSCA; sca++) {
 		meanChipPedestal[sca] = 0;
@@ -868,6 +894,16 @@ double* makePlots::CMCalculator_v2 ( double **sig_subPed ) {
 	}
 
 	for (int ich = 0; ich < NCH; ich+=2) {
+		int ichannel = ich + chip*NCH;
+		bool noisy_flag = false;
+		
+		// Determine if the channel is a noisy channel
+		for(int i = 0; i < noisyChannel.size(); i++){
+			if ( ichannel == noisyChannel.at(i) ) { noisy_flag = true; }
+		}
+		if (noisy_flag) continue;
+
+		// Calculate mean pedestal for each sca 
 		for (int sca = 0; sca < NSCA; sca++) {
 			meanChipPedestal[sca] += sig_subPed[ich][sca];
 			scaCount[sca]++;
@@ -1256,8 +1292,8 @@ void makePlots::Pedestal_CM_Subtractor( int chip ){
 	}
 
 	double *hgCM_sca, *lgCM_sca;
-	hgCM_sca = CMCalculator_v2( hg_sig ); // Calculate CM for each sca
-	lgCM_sca = CMCalculator_v2( lg_sig );
+	hgCM_sca = CMCalculator_v2( hg_sig, chip ); // Calculate CM for each sca
+	lgCM_sca = CMCalculator_v2( lg_sig, chip );
 	
 
 	for (int ich = 0; ich < NCH; ich++){
