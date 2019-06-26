@@ -1,5 +1,4 @@
 This branch is for analyzing rpi test data 
-
 * Setup 
 #+BEGIN_SRC sh
 git clone https://github.com/Hsin-Yeh/RPI_analysis.git 
@@ -47,3 +46,4 @@ You can find the definitions in include/makePlots.h
 * Ideas and TODOs
 **** Add decoder for raw file decoding
 **** set up a standard main function, people could add plugins later on 
+**** implement Chia-Hung's gain factor code 
