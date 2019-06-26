@@ -26,6 +26,7 @@ If one wants to quickly have a display of the pulse shape of data
 ./makePlots -p 82 
 #+END_SRC
 
+
 *** Usage help 
 One could check the usage and arguments settings by typing : 
 #+BEGIN_SRC sh
