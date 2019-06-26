@@ -84,7 +84,7 @@ int main(int argc, char** argv){
 		}
 		else if ( arg == "-e" || arg == "-event" ) {
 			startEv = atoi(arg_list[iarg+1].c_str());
-			iarg++;
+			iarg+=2;
 		}
 		else if ( arg == "-h" || arg == "-help" ) {
 			help_flag = true;
@@ -94,6 +94,7 @@ int main(int argc, char** argv){
 		else {
 			std::cout << "Unknown option... print usage" << std::endl;
 			makePlots_flag = false;
+			help_flag = true;
 			break;
 		}
 	}
