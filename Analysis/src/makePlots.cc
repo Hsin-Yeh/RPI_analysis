@@ -59,6 +59,7 @@ void makePlots::Init( string pedfile, string gainfile ){
 		hg_sig[i] = new double[NSCA];
 		lg_sig[i] = new double[NSCA];
 	}
+
 	app = new TApplication("app",0,0);
 	c = new TCanvas();
 	cout << "Init complete " << endl << endl;
@@ -649,141 +650,6 @@ void makePlots::cosmicAnalyzer(){
 }
 
 
-/*
-///
-///==================== LEDAnalyzer ====================///
-///
-void makePlots::LEDAnalyzer(){
-char title[200];
-
-/// Set Output Root File
-int start = input_fileName.find_last_of("/");
-int end   = input_fileName.find(".root");
-string outf = input_fileName.substr(start+1,end-start-1);
-
-sprintf(title,"cosmicAnalysis/plot_%s.root",outf.c_str());
-TFile *outfile = new TFile(title,"recreate");
-cout << "output file = " << title << endl;
-  
-/// Declare Parameters
-int TotalEntries = Chain1->GetEntries();
-int Nevents = TotalEntries/NCHIP;
-cout << "Total Events = " << Nevents << endl;
-int MaxTS = 2;              //choose this time sample to be the peak
-int mipCount = 0;
-
-double *dac_ctrl   = new double[Nevents];
-double **hg_allCh       = new double*[NCHANNEL];
-double **lg_allCh       = new double*[NCHANNEL];
-double **tot_allCh      = new double*[NCHANNEL];
-double **mip_allCh      = new double*[NCHANNEL];
-for(int i = 0; i < NCHANNEL; i++){
-hg_allCh[i]      = new double[Nevents];
-lg_allCh[i]      = new double[Nevents];
-tot_allCh[i]     = new double[Nevents];
-mip_allCh[i]     = new double[Nevents];
-}
-double **hg_SubPed = new double*[NSCA];
-double **lg_SubPed = new double*[NSCA];
-for(int i = 0; i < NSCA; i++){
-hg_SubPed[i] = new double[NCH];
-lg_SubPed[i] = new double[NCH];
-}
-double **hg_sig = new double*[NCH];
-double **lg_sig = new double*[NCH];
-for(int i = 0; i < NCH; i++){
-hg_sig[i] = new double[NSCA];
-lg_sig[i] = new double[NSCA];
-}
-  
-/// Declare directories
-  
-/// Define Histograms
-TH1D *h_mipAllCh = new TH1D("h_mipAllCh","",50,0,400);
-  
-/// Initialize
-  
-/// --------------- Start of Loop -------------- ///
-   
-for(int entry = 0; entry < TotalEntries ; ++entry){
-    
-if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }
-Chain1 -> GetEntry(entry);
-dac_ctrl[event] = dacinj;
-
-int TS[NSCA];
-int TS0_sca, MaxTS_sca;
-for(int sca = 0 ; sca < NSCA ; sca++) {
-TS[sca] = timesamp[sca];
-if (timesamp[sca] == 0) { TS0_sca = sca ; }
-if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
-}
-
-for(int ich = 0; ich < NCH; ich++ ){
-for(int sca = 0; sca < NSCA; sca++ ){
-hg_SubPed[sca][ich] = hg[sca][ich] - avg_HG[chip][ich][sca]; // Pedestal Subtraction
-lg_SubPed[sca][ich] = lg[sca][ich] - avg_LG[chip][ich][sca];
-}
-}
-double hgCM = CMCalculator( hg_SubPed, TS ); // Calculate CM for the chip
-double lgCM = CMCalculator( lg_SubPed, TS );
-		
-int hit = 0;
-for(int ich = 0; ich < NCH; ich++){
-for (int sca = 0; sca < NSCA; sca++){
-if ( subPed_flag ){
-hg_sig[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
-lg_sig[ich][sca] = lg_SubPed[sca][ich] - lgCM;
-}
-else {
-hg_sig[ich][sca] = hg[sca][ich];
-lg_sig[ich][sca] = lg[sca][ich];
-}
-}
-if ( mipSigCheck(hg_sig[ich], TS ) ) hit++;
-}
-
-for (int ich = 0; ich < NCH; ich+=2) {
-if ( ich + chip*NCH == 44 ) continue;
-if ( mipSigCheck(hg_sig[ich], TS ) && hit < 2) {
-h_mipAllCh->Fill( hg_sig[ich][MaxTS_sca] );
-pulsePlotter( hg_sig[ich], TS , event, chip, ich, -1, -1);
-mipCount++;
-}
-}
-
-// mip conversion
-//double energy_mip = mipConverter( hg_sig, lg_sig, tot, channel);
-//mip_allCh[channel][event] = energy_mip;
-}
-
-/// --------------- End of Loop --------------- ///
-
-cout << endl << "totalEvent# = " << Nevents << " signal# = " << mipCount << endl;
-cout << "efficiency = " << (float)mipCount / Nevents << endl;
- 
-// Plots!!!!!
-
-outfile->Write();
-outfile->Close();
-
-
-// deallocate 
-for (int i = 0; i < NCHANNEL; i++){
-delete[] hg_allCh[i];       
-delete[] lg_allCh[i];       
-delete[] tot_allCh[i];      
-delete[] mip_allCh[i];      
-}
-delete[] hg_allCh;       
-delete[] lg_allCh;       
-delete[] tot_allCh;      
-delete[] mip_allCh;      
-delete[] dac_ctrl;                
-
-  
-}
-*/
 ///
 /// ==================== Pulse_display ==================== ///
 ///
@@ -1003,14 +869,13 @@ double* makePlots::CMCalculator_v2 ( double **sig_subPed ) {
 
 	for (int ich = 0; ich < NCH; ich+=2) {
 		for (int sca = 0; sca < NSCA; sca++) {
-			meanChipPedestal[sca] += sig_subPed[sca][ich];
+			meanChipPedestal[sca] += sig_subPed[ich][sca];
 			scaCount[sca]++;
 		}
 	}
 
 	for (int sca = 0; sca < NSCA; sca++) {
 		meanChipPedestal[sca] /= scaCount[sca];
-		//cout << sca << " " << meanChipPedestal[sca] << endl;
 	}
 	return meanChipPedestal;
 }
@@ -1381,6 +1246,31 @@ int makePlots::Cut(Long64_t entry, Long64_t sigma)
 	else return 1;
 }
 
+void makePlots::Pedestal_CM_Subtractor( int chip ){
+	
+  	for (int ich = 0; ich < NCH; ich++){
+		for (int sca = 0; sca < NSCA; sca++){
+			hg_sig[ich][sca] -= avg_HG[chip][ich][sca];  // Pedestal Subtraction
+			lg_sig[ich][sca] -= avg_LG[chip][ich][sca];
+		}
+	}
+
+	double *hgCM_sca, *lgCM_sca;
+	hgCM_sca = CMCalculator_v2( hg_sig ); // Calculate CM for each sca
+	lgCM_sca = CMCalculator_v2( lg_sig );
+	
+
+	for (int ich = 0; ich < NCH; ich++){
+		for (int sca = 0; sca < NSCA; sca++){
+			hg_sig[ich][sca] -= hgCM_sca[sca]; // CM subtraction
+			lg_sig[ich][sca] -= lgCM_sca[sca];
+			//cout << hg_sig[ich][sca] << endl;
+		}
+	}
+
+}
+
+
 /*
   double pulseShape_fcn_v2(double t, double tmax, double amp, double amp0 = 0., double tau = 22., int n_ord = 3){
 
@@ -1394,29 +1284,142 @@ int makePlots::Cut(Long64_t entry, Long64_t sigma)
   }
 */
 
-void makePlots::Pedestal_CM_Subtractor( int chip ){
-	
-  	for (int ich = 0; ich < NCH; ich++){
-		for (int sca = 0; sca < NSCA; sca++){
-			hg_sig[ich][sca] -= avg_HG[chip][ich][sca];  // Pedestal Subtraction
-			lg_sig[ich][sca] -= avg_LG[chip][ich][sca];
-		}
-	}
-	
-	double *hgCM_sca, *lgCM_sca;
-	hgCM_sca = CMCalculator_v2( hg_sig ); // Calculate CM for each sca
-	lgCM_sca = CMCalculator_v2( lg_sig );
-	
-	
-	for (int ich = 0; ich < NCH; ich++){
-		for (int sca = 0; sca < NSCA; sca++){
-			hg_sig[ich][sca] -= hgCM_sca[sca]; // CM subtraction
-			lg_sig[ich][sca] -= lgCM_sca[sca]; 
-		}
-	}
-	
+
+/*
+///
+///==================== LEDAnalyzer ====================///
+///
+void makePlots::LEDAnalyzer(){
+char title[200];
+
+/// Set Output Root File
+int start = input_fileName.find_last_of("/");
+int end   = input_fileName.find(".root");
+string outf = input_fileName.substr(start+1,end-start-1);
+
+sprintf(title,"cosmicAnalysis/plot_%s.root",outf.c_str());
+TFile *outfile = new TFile(title,"recreate");
+cout << "output file = " << title << endl;
+  
+/// Declare Parameters
+int TotalEntries = Chain1->GetEntries();
+int Nevents = TotalEntries/NCHIP;
+cout << "Total Events = " << Nevents << endl;
+int MaxTS = 2;              //choose this time sample to be the peak
+int mipCount = 0;
+
+double *dac_ctrl   = new double[Nevents];
+double **hg_allCh       = new double*[NCHANNEL];
+double **lg_allCh       = new double*[NCHANNEL];
+double **tot_allCh      = new double*[NCHANNEL];
+double **mip_allCh      = new double*[NCHANNEL];
+for(int i = 0; i < NCHANNEL; i++){
+hg_allCh[i]      = new double[Nevents];
+lg_allCh[i]      = new double[Nevents];
+tot_allCh[i]     = new double[Nevents];
+mip_allCh[i]     = new double[Nevents];
+}
+double **hg_SubPed = new double*[NSCA];
+double **lg_SubPed = new double*[NSCA];
+for(int i = 0; i < NSCA; i++){
+hg_SubPed[i] = new double[NCH];
+lg_SubPed[i] = new double[NCH];
+}
+double **hg_sig = new double*[NCH];
+double **lg_sig = new double*[NCH];
+for(int i = 0; i < NCH; i++){
+hg_sig[i] = new double[NSCA];
+lg_sig[i] = new double[NSCA];
+}
+  
+/// Declare directories
+  
+/// Define Histograms
+TH1D *h_mipAllCh = new TH1D("h_mipAllCh","",50,0,400);
+  
+/// Initialize
+  
+/// --------------- Start of Loop -------------- ///
+   
+for(int entry = 0; entry < TotalEntries ; ++entry){
+    
+if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }
+Chain1 -> GetEntry(entry);
+dac_ctrl[event] = dacinj;
+
+int TS[NSCA];
+int TS0_sca, MaxTS_sca;
+for(int sca = 0 ; sca < NSCA ; sca++) {
+TS[sca] = timesamp[sca];
+if (timesamp[sca] == 0) { TS0_sca = sca ; }
+if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
 }
 
+for(int ich = 0; ich < NCH; ich++ ){
+for(int sca = 0; sca < NSCA; sca++ ){
+hg_SubPed[sca][ich] = hg[sca][ich] - avg_HG[chip][ich][sca]; // Pedestal Subtraction
+lg_SubPed[sca][ich] = lg[sca][ich] - avg_LG[chip][ich][sca];
+}
+}
+double hgCM = CMCalculator( hg_SubPed, TS ); // Calculate CM for the chip
+double lgCM = CMCalculator( lg_SubPed, TS );
+		
+int hit = 0;
+for(int ich = 0; ich < NCH; ich++){
+for (int sca = 0; sca < NSCA; sca++){
+if ( subPed_flag ){
+hg_sig[ich][sca] = hg_SubPed[sca][ich] - hgCM; // CM subtraction 
+lg_sig[ich][sca] = lg_SubPed[sca][ich] - lgCM;
+}
+else {
+hg_sig[ich][sca] = hg[sca][ich];
+lg_sig[ich][sca] = lg[sca][ich];
+}
+}
+if ( mipSigCheck(hg_sig[ich], TS ) ) hit++;
+}
+
+for (int ich = 0; ich < NCH; ich+=2) {
+if ( ich + chip*NCH == 44 ) continue;
+if ( mipSigCheck(hg_sig[ich], TS ) && hit < 2) {
+h_mipAllCh->Fill( hg_sig[ich][MaxTS_sca] );
+pulsePlotter( hg_sig[ich], TS , event, chip, ich, -1, -1);
+mipCount++;
+}
+}
+
+// mip conversion
+//double energy_mip = mipConverter( hg_sig, lg_sig, tot, channel);
+//mip_allCh[channel][event] = energy_mip;
+}
+
+/// --------------- End of Loop --------------- ///
+
+cout << endl << "totalEvent# = " << Nevents << " signal# = " << mipCount << endl;
+cout << "efficiency = " << (float)mipCount / Nevents << endl;
+ 
+// Plots!!!!!
+
+outfile->Write();
+outfile->Close();
+
+
+// deallocate 
+for (int i = 0; i < NCHANNEL; i++){
+delete[] hg_allCh[i];       
+delete[] lg_allCh[i];       
+delete[] tot_allCh[i];      
+delete[] mip_allCh[i];      
+}
+delete[] hg_allCh;       
+delete[] lg_allCh;       
+delete[] tot_allCh;      
+delete[] mip_allCh;      
+delete[] dac_ctrl;                
+
+  
+}
+*/
 
 
 
