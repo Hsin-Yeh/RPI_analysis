@@ -77,7 +77,7 @@ void makePlots::PlotProducer(){
 
 	sprintf(title,"root_plot/plot_%s.root",outf.c_str());
 	TFile *outfile = new TFile(title,"recreate");
-	cout << "output file = " << title << endl;
+	cout << "output file = " << endl << title << endl << endl;
   
 	/// Define Parameters 
 	int TotalEntries = Chain1->GetEntries();
@@ -573,9 +573,9 @@ void makePlots::PlotProducer(){
 
 
 void makePlots::cosmicAnalyzer(){
+	
 	char title[200];
-
-	// Set Output Root File
+	/// Set Output Root File
 	int start = input_fileName.find_last_of("/");
 	int end   = input_fileName.find(".root");
 	string outf = input_fileName.substr(start+1,end-start-1);
@@ -584,19 +584,16 @@ void makePlots::cosmicAnalyzer(){
 	TFile *outfile = new TFile(title,"recreate");
 	cout << "output file = " << title << endl;
   
-	// Declare Parameters
+	/// Declare Parameters
 	int TotalEntries = Chain1->GetEntries();
 	int Nevents = TotalEntries/NCHIP;
 	cout << "Total Events = " << Nevents << endl;
 	int MaxTS = 2;              //choose this time sample to be the peak
 	int mipCount = 0;
 
-	// Declare directories
-  
-	// Define Histograms
+	/// Define Histograms
 	TH1D *h_mipAllCh = new TH1D("h_mipAllCh","",50,0,400);
   
-	// Initialize
   
 	//==================== Loop over the events ====================
    
@@ -613,7 +610,7 @@ void makePlots::cosmicAnalyzer(){
 			if (timesamp[sca] == MaxTS) { MaxTS_sca = sca ; }
 		}
 
-		/// hg, lg signal 
+		/// hg, lg signal passed to self defined parameters 
 		for (int ich = 0; ich < NCH; ich++){
 			for (int sca = 0; sca < NSCA; sca++){
 				hg_sig[ich][sca] = hg[sca][ich];
@@ -623,12 +620,13 @@ void makePlots::cosmicAnalyzer(){
 		if(subPed_flag) { Pedestal_CM_Subtractor( chip ); }  // Ped & CM Subtraction
 
 
-		/// 
+		/// Calculate hit per chip
 		int hit = 0;
 		for(int ich = 0; ich < NCH; ich++){
 			if ( mipSigCheck(hg_sig[ich], TS ) ) { hit++; }
 		}
 
+		/// Fill histogram
 		for (int ich = 0; ich < NCH; ich+=2) {
 			if ( ich + chip*NCH == 44 ) continue;
 			//if ( ich != 18 ) continue;
@@ -645,14 +643,9 @@ void makePlots::cosmicAnalyzer(){
 	cout << endl << "totalEvent# = " << Nevents << " signal# = " << mipCount << endl;
 	cout << "efficiency = " << (float)mipCount / Nevents << endl;
  
-	// Plots!!!!!
-
 	outfile->Write();
 	outfile->Close();
 
-
-	// deallocate 
-  
 }
 
 
@@ -957,6 +950,8 @@ void makePlots::yamlReader(){
 			}
 		}
 	}
+
+	cout << endl;
 }
 
 
@@ -1043,7 +1038,9 @@ double makePlots::CMCalculator( double **sig_subPed, int *TS ) {
 	return meanChipPedestal;
 }
 
-
+///
+/// ==================== mipSegCheck ==================== ///
+///
 bool makePlots::mipSigCheck( double *sig, int *TS ) {
 	int p_noisy_cut  = 2000;
 	int n_noisy_cut  = -1000;
@@ -1066,8 +1063,12 @@ bool makePlots::mipSigCheck( double *sig, int *TS ) {
 	return sig_flag;
 }
 
+///
+/// ==================== pulsePlotter ==================== ///
+///
 void makePlots::pulsePlotter( double *sig, int *TS, int ev, int ichip, int ich, int lowerR, int upperR ) {
-
+	
+	// This function plots the input 13 timesamples and show it on the screen 
 	double double_TS[NSCA];
 	for(int i = 0; i < NSCA; i++) double_TS[i] = (double)TS[i];
 	TGraph *gr = new TGraph(NSCA, double_TS, sig );
@@ -1138,7 +1139,7 @@ void makePlots::read_P_and_N(string ped_file){
 		}
 
     
-		cout << "Reading pedestal file done!" << endl;
+		cout << "Reading pedestal file done!" << endl << endl;
 		inHG.close();
 		inLG.close();
 	}  
