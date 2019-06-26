@@ -1,12 +1,4 @@
-This branch is for analyzing rpi test data after decoding the raw file
-
-* Study topics 
-1. pedestal & noise 
-2. injection 
-3. LED 
-4. Cosmic 
-5. More..
-
+This branch is for analyzing rpi test data 
 
 * Setup 
 #+BEGIN_SRC sh
@@ -18,8 +10,8 @@ make
 #+END_SRC
 
 * How to Use
-** Example 
-*** General plots
+*** Example 
+***** General plots
 This is an example if one wants to do some general checks and output some plots. The output plots will store in a root file in the "root_plot" directory 
 #+BEGIN_SRC sh
 inputFile="moduleExample/ana_output/ModuleExample_"
@@ -28,24 +20,32 @@ ls ${inputFile} > data_input.txt
 ./makePlots
 root root_plot/${outputFile} -l
 #+END_SRC
-*** High gain pulse display
+***** High gain pulse display
 If one wants to quickly have a display of the pulse shape of data 
 #+BEGIN_SRC sh
 ./makePlots -p 82 
 #+END_SRC
 
-** Usage help 
+*** Usage help 
 One could check the usage and arguments settings by typing : 
 #+BEGIN_SRC sh
 ./makePlots -h 
 #+END_SRC
-** Data Directories
+*** Data Directories
 One should create a tree directories containing the raw, yaml, and decoded root file
 #+BEGIN_SRC sh
 mkdir -p module${Name}/raw module${Name}/yaml module${Name}/ana_output module${Name}/pedFile
 #+END_SRC
-** Input data format 
+*** Input root file leaf definition 
+You can find the definitions in include/makePlots.h
+
+* Study topics 
+1. pedestal & noise 
+2. injection 
+3. LED 
+4. Cosmic 
+5. More..
 
 * Ideas and TODOs
-**** Add decode.cc 
-**** 
+**** Add decoder for raw file decoding
+**** set up a standard main function, people could add plugins later on 

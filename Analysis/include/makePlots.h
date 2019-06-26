@@ -88,18 +88,18 @@ class makePlots{
   ///////////////////////////////
   // Declaration of leaf types //
   ///////////////////////////////
-
-  Int_t         event;
-  Int_t         chip;
-  Int_t         roll;
-  Int_t         dacinj;
-  Int_t         timesamp[13];
-  Int_t         hg[13][64];
-  Int_t         lg[13][64];
-  Int_t         tot_fast[64];
-  Int_t         tot_slow[64];
-  Int_t         toa_rise[64];
-  Int_t         toa_fall[64];
+  //one event consists of 4 entries, every entry consists of one chip
+  Int_t         event;          // event number, 
+  Int_t         chip;           // chip number 
+  Int_t         roll;           // rollposition
+  Int_t         dacinj;         // injection dac number 
+  Int_t         timesamp[13];   // Time sample [sca]
+  Int_t         hg[13][64];     // high gain [ sca ] [ CHANNEL ]
+  Int_t         lg[13][64];     // low  gain [ sca ] [ CHANNEL ]
+  Int_t         tot_fast[64];   // not used 
+  Int_t         tot_slow[64];   // usually use this to be the number for tot 
+  Int_t         toa_rise[64];   // Timing 
+  Int_t         toa_fall[64];   // Timing 
   
   // map < key = chip*32+ch/2 , pair <x, y> > 
   map<int,pair < double,double > > CHmap;
