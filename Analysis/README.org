@@ -13,8 +13,8 @@ This branch is for analyzing rpi test data
 This is an example if one wants to do some general checks and output some plots. The output plots will store in a root file in the "root_plot" directory 
 
    #+BEGIN_SRC sh
-   inputFile="moduleExample/ana_output/ModuleExample_"
-   outputFile="plot_Module"
+   inputFile="moduleExample/ana_output/ModuleExample_27-6-2019_19-50_pedestal.root"
+   outputFile="plot_ModuleExample_27-6-2019_19-50_pedestal.root"
    ls ${inputFile} > data_input.txt
    ./makePlots
    root root_plot/${outputFile} -l
@@ -24,7 +24,8 @@ This is an example if one wants to do some general checks and output some plots.
 If one wants to quickly have a display of the pulse shape of data 
 
    #+BEGIN_SRC sh
-   ./makePlots -p 82 
+   ls moduleExample/ana_output/ModuleExample_27-6-2019_20-13_pedestal.root > data_input.txt
+   ./makePlots -p 38
    #+END_SRC
    
 *** Usage help 
@@ -35,12 +36,15 @@ One could check the usage and arguments settings by typing :
    #+END_SRC
    
 *** Data Directories
-One should create a tree directories containing the raw, yaml, and decoded root file
+One should create a new tree directories to contain the raw, yaml, and decoded root file for a new moduleName 
 
    #+BEGIN_SRC sh
    mkdir -p module${Name}/raw module${Name}/yaml module${Name}/ana_output module${Name}/pedFile
    #+END_SRC
-   
+
+*** Example data 
+I have created a directory "moduleExample" containing two runs of rpi data. One is pedestal run and the other is charge injection run in channel 38. You could check the yaml files for more information.
+
 *** Input root file leaf definition 
 You can find the definitions in include/makePlots.h
 
