@@ -1,19 +1,13 @@
 #include "makePlots.h"
-#include "PlotSetting.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <math.h>
-#include "TApplication.h"
 #include "TFile.h"
-#include "TTree.h"
-#include "TCanvas.h"
 #include "TGraph.h"
 #include "TMultiGraph.h"
 #include "TSystem.h"
 #include "TImage.h"
-#include "TStyle.h"
-#include "TExec.h"
 
 //Constructor
 makePlots::makePlots(TChain* inchain):Chain1(inchain) 
@@ -30,8 +24,11 @@ makePlots::~makePlots()
 	cout << "Destructor of makePlot ... " << endl;
 }
 
+///
+/// ==================== Init ==================== ///
+///
 void makePlots::Init( string pedfile, string gainfile, string noisyfile ){
-
+	cout << "----------Init start----------" << endl;
 	// read init files and initialize
 	yamlReader();
 	GainFactorReader( gainfile );
@@ -63,7 +60,7 @@ void makePlots::Init( string pedfile, string gainfile, string noisyfile ){
 
 	app = new TApplication("app",0,0);
 	c = new TCanvas();
-	cout << "Init complete " << endl << endl;
+	cout << "----------Init complete----------" << endl << endl;
 }
 ///
 /// ==================== PlotProducer ==================== ///
@@ -79,7 +76,7 @@ void makePlots::PlotProducer(){
 
 	sprintf(title,"root_plot/plot_%s.root",outf.c_str());
 	TFile *outfile = new TFile(title,"recreate");
-	cout << "output file = " << endl << title << endl << endl;
+	cout << "output file = " <<  title << endl << endl;
   
 	/// Define Parameters 
 	int TotalEntries = Chain1->GetEntries();
@@ -188,7 +185,6 @@ void makePlots::PlotProducer(){
 
   
 	/// --------------- Start of Loop --------------- ///
-   
 	for(int entry = 0; entry < TotalEntries ; ++entry) {
     
 		if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }
@@ -284,7 +280,6 @@ void makePlots::PlotProducer(){
 		}
 	
 	}
-	cout << "End of Loop" << endl;
 
 	/// --------------- End of Loop --------------- ///
 
@@ -572,8 +567,9 @@ void makePlots::PlotProducer(){
 	delete[] hg_NoisyChannel;         
 
 }
-
-
+///
+/// ==================== cosmicAnalyzer ==================== ///
+///
 void makePlots::cosmicAnalyzer(){
 	
 	char title[200];
@@ -705,8 +701,9 @@ void makePlots::Pulse_display( int displayChannel, int pulseDisplay_type, int lo
 	}
 
 }
-
-
+///
+/// ==================== mipConverter ==================== ///
+///
 double makePlots::mipConverter( double hg_SubPed, double lg_SubPed, double tot , int channel){
   
 	double mip;
@@ -728,7 +725,9 @@ double makePlots::mipConverter( double hg_SubPed, double lg_SubPed, double tot ,
 	return mip;
 }
 
-
+///
+/// ==================== ringPositionFinder ==================== ///
+///
 int makePlots::ringPositionFinder( int inj_channel, int ichannel){
 
 	int formatCh = ichannel / 2;
@@ -762,6 +761,9 @@ int makePlots::ringPositionFinder( int inj_channel, int ichannel){
 	return ring;
 }
 
+///
+/// ==================== yamlReader ==================== ///
+///
 void makePlots::yamlReader(){
 
 	int start = input_fileName.find_last_of("/");
@@ -797,11 +799,11 @@ void makePlots::yamlReader(){
 				cout << "InjCh = " << injCh << endl;
 			}
 			if ( line.find("acquisitionType") != -1 ){
-				string tmp;
 				start = line.find(":");
-				searchstr = line.substr(start+1);
+				searchstr = line.erase(0, start+2);
+				acquisitionType = searchstr;
+				cout << "acquisitionType = " << acquisitionType << endl;
 			}
-		
 			else if ( maskCh_flag == true && line.find("channelIdsToMask:") != -1 ) {
 				getline(yamlFile, line);
 				int count = 3; 
@@ -821,8 +823,9 @@ void makePlots::yamlReader(){
 	cout << endl;
 }
 
-
-
+///
+/// ==================== GainFactorReader ==================== ///
+///
 void makePlots::GainFactorReader( string gainfile ){
 
 	string TB_GainFactors("src_txtfile/TPro_fittingoutput.txt");
@@ -847,7 +850,7 @@ void makePlots::GainFactorReader( string gainfile ){
 	}
   
 	if(GainFile.is_open()){
-		cout << "GainFileName = " << gainfile << endl;
+		cout << "gainFile = " << gainfile << endl;
 		getline(GainFile,line);
 		while(!GainFile.eof()){
 			GainFile >> tmp >> tmp >> ichip >> ich >> tmp;
@@ -857,7 +860,9 @@ void makePlots::GainFactorReader( string gainfile ){
 	}
 	cout << endl;
 }
-
+///
+/// ==================== noisyChannelReader ==================== ///
+///
 void makePlots::noisyChannelReader( string noisyFileName ) {
 	ifstream noisyFile( noisyFileName );
 	string line;
@@ -883,6 +888,36 @@ void makePlots::noisyChannelReader( string noisyFileName ) {
 }
 
 
+///
+/// ==================== Pedestal_CM_Subtractor ==================== ///
+///
+void makePlots::Pedestal_CM_Subtractor( int chip ){
+	
+  	for (int ich = 0; ich < NCH; ich++){
+		for (int sca = 0; sca < NSCA; sca++){
+			hg_sig[ich][sca] -= avg_HG[chip][ich][sca];  // Pedestal Subtraction
+			lg_sig[ich][sca] -= avg_LG[chip][ich][sca];
+		}
+	}
+
+	double *hgCM_sca, *lgCM_sca;
+	hgCM_sca = CMCalculator_v2( hg_sig, chip ); // Calculate CM for each sca
+	lgCM_sca = CMCalculator_v2( lg_sig, chip );
+	
+
+	for (int ich = 0; ich < NCH; ich++){
+		for (int sca = 0; sca < NSCA; sca++){
+			hg_sig[ich][sca] -= hgCM_sca[sca]; // CM subtraction
+			lg_sig[ich][sca] -= lgCM_sca[sca];
+			//cout << hg_sig[ich][sca] << endl;
+		}
+	}
+
+}
+
+///
+/// ==================== CMCalculator_v2 ==================== ///
+///
 double* makePlots::CMCalculator_v2 ( double **sig_subPed, int chip ) {
 	// Calculate CM for each TS
 	static double meanChipPedestal[NSCA];
@@ -916,7 +951,9 @@ double* makePlots::CMCalculator_v2 ( double **sig_subPed, int chip ) {
 	return meanChipPedestal;
 }
 
-
+///
+/// ==================== CMCalculator ==================== ///
+///
 double makePlots::CMCalculator( double **sig_subPed, int *TS ) {
 	// Common mode calculation, per event, per chip
 	// Assume common mode is identical for all time samples
@@ -988,7 +1025,9 @@ void makePlots::pulsePlotter( double *sig, int *TS, int ev, int ichip, int ich, 
   
 }
 
-
+///
+/// ==================== read_P_and_N ==================== ///
+///
 void makePlots::read_P_and_N(string ped_file){
 
 	int end = input_fileName.find("ana_output");
@@ -1006,7 +1045,7 @@ void makePlots::read_P_and_N(string ped_file){
 			 << " exist!" << endl;
 		return;}
 	else{
-		cout << "Input ped file is :" << endl;
+		cout << "pedFile = " << endl;
 		cout << "1. " << HG_name << "\n" << "2. "<< LG_name << endl;
 		string line;
 		int ichip,ich;
@@ -1046,7 +1085,9 @@ void makePlots::read_P_and_N(string ped_file){
 	}  
 }
 
-
+///
+/// ==================== readmap ==================== ///
+///
 void makePlots::readmap(){
 	ifstream file("./src_txtfile/CH_map.txt");
 	string line;
@@ -1064,7 +1105,9 @@ void makePlots::readmap(){
 
 }
 
-
+///
+/// ==================== InitTH2Poly ==================== ///
+///
 void makePlots::InitTH2Poly(TH2Poly& poly)
 {
 	int MAXVERTICES = 6;
@@ -1091,7 +1134,9 @@ void makePlots::InitTH2Poly(TH2Poly& poly)
 
 
 
-
+///
+/// ==================== Gain_factor_producer ==================== ///
+///
 void makePlots::Gain_factor_producer(){
   
 	//-------------------- Define Parameters --------------------
@@ -1206,6 +1251,9 @@ void makePlots::Gain_factor_producer(){
 	}
 }
 
+///
+/// ==================== Crosstalk ==================== ///
+///
 void makePlots::Crosstalk(Int_t CH){
 
 	TCanvas* c1 = new TCanvas();
@@ -1271,6 +1319,9 @@ void makePlots::Crosstalk(Int_t CH){
   
 }
 
+///
+/// ==================== Cut ==================== ///
+///
 int makePlots::Cut(Long64_t entry, Long64_t sigma)
 {
 	// This function may be called from Loop.
@@ -1282,29 +1333,6 @@ int makePlots::Cut(Long64_t entry, Long64_t sigma)
 	else return 1;
 }
 
-void makePlots::Pedestal_CM_Subtractor( int chip ){
-	
-  	for (int ich = 0; ich < NCH; ich++){
-		for (int sca = 0; sca < NSCA; sca++){
-			hg_sig[ich][sca] -= avg_HG[chip][ich][sca];  // Pedestal Subtraction
-			lg_sig[ich][sca] -= avg_LG[chip][ich][sca];
-		}
-	}
-
-	double *hgCM_sca, *lgCM_sca;
-	hgCM_sca = CMCalculator_v2( hg_sig, chip ); // Calculate CM for each sca
-	lgCM_sca = CMCalculator_v2( lg_sig, chip );
-	
-
-	for (int ich = 0; ich < NCH; ich++){
-		for (int sca = 0; sca < NSCA; sca++){
-			hg_sig[ich][sca] -= hgCM_sca[sca]; // CM subtraction
-			lg_sig[ich][sca] -= lgCM_sca[sca];
-			//cout << hg_sig[ich][sca] << endl;
-		}
-	}
-
-}
 
 
 /*

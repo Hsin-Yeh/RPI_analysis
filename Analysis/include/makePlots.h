@@ -1,18 +1,18 @@
 // Arthor: Hsin-Yeh Wu
 // Email : thankyouyou06@gmail.com
+//
+// This class is the main class for analyzing the rpi data 
 
 
 #ifndef makePlots_h
 #define makePlots_h
 
 #include "TChain.h"
-#include "TFile.h"
-#include "TROOT.h"
 #include "TH2Poly.h"
-#include "TLegend.h"
 #include "TApplication.h"
-#include "TExec.h"
+#include "TCanvas.h"
 #include "TStyle.h"
+#include "TTree.h"
 #include "PlotSetting.h"
 #include <string>
 #include <utility> //std::pair
@@ -88,7 +88,6 @@ class makePlots{
 	//yaml parameter
 	int injCh;
 	string acquisitionType;
-	//int* channelEdsToMask; 
 	string ModuleNumber;
 	int injChip;
 
