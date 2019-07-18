@@ -21,7 +21,7 @@ This is an example if one wants to do some general checks and output some plots.
    #+END_SRC
      
 *** High gain pulse display
-If one wants to quickly have a display of the pulse shape of data 
+If one wants to display the data pulse shape 
 
    #+BEGIN_SRC sh
    ls moduleExample/ana_output/ModuleExample_27-6-2019_20-13_pedestal.root > data_input.txt

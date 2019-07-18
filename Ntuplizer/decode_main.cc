@@ -79,7 +79,8 @@ int main(){
       continue;}    
     
     cout << "input file: " << fileName << endl;
-    int rawT = raw_type(fileName);
+    //int rawT = raw_type(fileName);
+	int rawT = 0;
     if(rawT == 3) continue;
 
     ifstream fileinj;
@@ -314,6 +315,7 @@ int format_channels(){
         for (ch = 0; ch < 128; ch = ch +1 ){
             for (hit = 0 ; hit <totSCA ; hit = hit +1){
                 dati[chip][ch][hit] = ev[chip][hit*128+ch] & 0x0FFF;
+				cout << dati[chip][ch][hit] << " ";
             }
         }
     }
