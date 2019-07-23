@@ -257,7 +257,7 @@ void makePlots::PlotProducer(){
 					inj_channel = ( ichip * NCH ) + injCh;
 
 				XTalkCoupling[ichannel][event] = mip_allCh[ichannel][event] / mip_allCh[inj_channel][event];
-				// cout << " event = " << event << " channel = " << ichannel << " energy = " << mip_allCh[ichannel][event] << " Xtalk = " << XTalkCoupling[ichannel][event] << endl;
+				 cout << " event = " << event << " channel = " << ichannel << " energy = " << mip_allCh[ichannel][event] << " Xtalk = " << XTalkCoupling[ichannel][event] << endl;
 				if( event>50 && event<=700 ){
 					XTalkCoupling_Average[ichannel] += XTalkCoupling[ichannel][event];
 					AverageEvents++;
@@ -370,6 +370,7 @@ void makePlots::PlotProducer(){
 			multig_XTalkCoupling_ring->Write();
 		}
 	}
+	/// One channel injection
 	else if ( maskCh_flag ){
 		int inj_channel = injCh + (injChip * NCH);
 		TGraph* ginjCh_hg  = new TGraph( Nevents, dac_ctrl, hg_allCh[inj_channel] );
@@ -387,6 +388,15 @@ void makePlots::PlotProducer(){
 		ginjCh_tot->SetTitle(title);
 		ginjCh_tot->SetName(title);
 		ginjCh_tot->SetMarkerColor(P.Color(2));
+		TMultiGraph *multig_InjCh_hltot = new TMultiGraph();
+		multig_InjCh_hltot->Add(ginjCh_hg);
+		multig_InjCh_hltot->Add(ginjCh_lg);
+		multig_InjCh_hltot->Add(ginjCh_tot);
+		sprintf(title,"hglgtot_InjCh%d_chip%d", injCh, injChip);
+		multig_InjCh_hltot->SetTitle(title);
+		multig_InjCh_hltot->SetName(title);
+		multig_InjCh_hltot->Write();
+
 		TGraph* ginjCh_mip = new TGraph( Nevents, dac_ctrl, mip_allCh[inj_channel] );
 		sprintf(title,"mip_InjCh%d_chip%d", injCh, injChip);
 		ginjCh_mip->SetTitle(title);
@@ -408,6 +418,7 @@ void makePlots::PlotProducer(){
 		multig_XTalkCoupling_ring->SetTitle(title);
 		multig_XTalkCoupling_ring->SetName(title);
 		multig_XTalkCoupling_ring->Draw("AP");
+		multig_XTalkCoupling_ring->Write();
 	}
   
 	/// 2D Average Xtalk 
@@ -416,7 +427,7 @@ void makePlots::PlotProducer(){
 
 	TH2Poly *poly = new TH2Poly;
 	InitTH2Poly(*poly);
-	poly->SetMinimum(-0.02);
+	poly->SetMinimum(-0.1);
 	for(int ichannel = 0; ichannel < NCHANNEL; ichannel+=2){
 		int ichip = ichannel / NCH;
 		float X, Y;
