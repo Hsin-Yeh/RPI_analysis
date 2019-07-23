@@ -388,14 +388,14 @@ void makePlots::PlotProducer(){
 		ginjCh_tot->SetName(title);
 		ginjCh_tot->SetMarkerColor(P.Color(2));
 		TGraph* ginjCh_mip = new TGraph( Nevents, dac_ctrl, mip_allCh[inj_channel] );
-		sprintf(title,"mip_InjCh%d_chip%d", injCh, ichip);
+		sprintf(title,"mip_InjCh%d_chip%d", injCh, injChip);
 		ginjCh_mip->SetTitle(title);
 		ginjCh_mip->SetName(title);
 		ginjCh_mip->Write();
 
 		TMultiGraph *multig_XTalkCoupling_ring = new TMultiGraph();
 		for(int iring = 1; iring < NRings; iring++){
-			TGraph* gXTalkCoupling = new TGraph(Nevents, mip_allCh[inj_channel], XTalkCoupling_Ring_4Chip[iring][ichip] );
+			TGraph* gXTalkCoupling = new TGraph(Nevents, mip_allCh[inj_channel], XTalkCoupling_Ring_4Chip[iring][injChip] );
 			sprintf(title,"ring %d", iring);
 			gXTalkCoupling->SetTitle(title);
 			gXTalkCoupling->SetName(title);
@@ -404,7 +404,7 @@ void makePlots::PlotProducer(){
 			gXTalkCoupling->SetFillColor(0);
 			multig_XTalkCoupling_ring->Add(gXTalkCoupling);
 		}
-		sprintf(title,"XtalkCoupling_InjCh%d_chip%d", injCh, ichip);
+		sprintf(title,"XtalkCoupling_InjCh%d_chip%d", injCh, injChip);
 		multig_XTalkCoupling_ring->SetTitle(title);
 		multig_XTalkCoupling_ring->SetName(title);
 		multig_XTalkCoupling_ring->Draw("AP");
