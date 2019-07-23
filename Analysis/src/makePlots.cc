@@ -24,6 +24,7 @@ makePlots::~makePlots()
 	cout << "Destructor of makePlot ... " << endl;
 }
 
+
 ///
 /// ==================== Init ==================== ///
 ///
@@ -313,9 +314,64 @@ void makePlots::PlotProducer(){
 
 	/// Plots!!!!!
 	cdinjCh->cd();
-	for(int ichip = 0; ichip < NCHIP; ichip++){
-		int inj_channel = (ichip*64) + injCh;
+	if(!maskCh_flag) {
+		for(int ichip = 0; ichip < NCHIP; ichip++){
+			int inj_channel = (ichip*64) + injCh;
 	
+			TGraph* ginjCh_hg  = new TGraph( Nevents, dac_ctrl, hg_allCh[inj_channel] );
+			sprintf(title,"hg");
+			ginjCh_hg->SetTitle(title);
+			ginjCh_hg->SetName(title);
+			ginjCh_hg->SetMarkerColor(P.Color(0));
+			TGraph* ginjCh_lg  = new TGraph( Nevents, dac_ctrl, lg_allCh[inj_channel] );
+			sprintf(title,"lg");
+			ginjCh_lg->SetTitle(title);
+			ginjCh_lg->SetName(title);
+			ginjCh_lg->SetMarkerColor(P.Color(1));
+			TGraph* ginjCh_tot = new TGraph( Nevents, dac_ctrl, tot_allCh[inj_channel] );
+			sprintf(title,"tot");
+			ginjCh_tot->SetTitle(title);
+			ginjCh_tot->SetName(title);
+			ginjCh_tot->SetMarkerColor(P.Color(2));
+			TGraph* ginjCh_mip = new TGraph( Nevents, dac_ctrl, mip_allCh[inj_channel] );
+			sprintf(title,"mip_InjCh%d_chip%d", injCh, ichip);
+			ginjCh_mip->SetTitle(title);
+			ginjCh_mip->SetName(title);
+			ginjCh_mip->Write();
+	
+			TMultiGraph *multig_InjCh_hltot = new TMultiGraph();
+			multig_InjCh_hltot->Add(ginjCh_hg);
+			multig_InjCh_hltot->Add(ginjCh_lg);
+			multig_InjCh_hltot->Add(ginjCh_tot);
+			sprintf(title,"hglgtot_InjCh%d_chip%d", injCh, ichip);
+			multig_InjCh_hltot->SetTitle(title);
+			multig_InjCh_hltot->SetName(title);
+			multig_InjCh_hltot->Write();
+
+
+			/// Xtalk vs dac_ctrl
+			TMultiGraph *multig_XTalkCoupling_ring = new TMultiGraph();
+			for(int iring = 1; iring < NRings; iring++){
+				TGraph* gXTalkCoupling = new TGraph(Nevents, mip_allCh[inj_channel], XTalkCoupling_Ring_4Chip[iring][ichip] );
+				sprintf(title,"ring %d", iring);
+				gXTalkCoupling->SetTitle(title);
+				gXTalkCoupling->SetName(title);
+				gXTalkCoupling->SetMarkerColor(P.Color(iring-1));
+				gXTalkCoupling->SetLineWidth(0);
+				gXTalkCoupling->SetFillColor(0);
+				multig_XTalkCoupling_ring->Add(gXTalkCoupling);
+			}
+			sprintf(title,"XtalkCoupling_InjCh%d_chip%d", injCh, ichip);
+			multig_XTalkCoupling_ring->SetTitle(title);
+			multig_XTalkCoupling_ring->SetName(title);
+			multig_XTalkCoupling_ring->Draw("AP");
+			c->Update();
+			multig_XTalkCoupling_ring->GetYaxis()->SetRangeUser(-0.01,0.5);
+			multig_XTalkCoupling_ring->Write();
+		}
+	}
+	else if ( maskCh_flag ){
+		int inj_channel = injCh + (injChip * NCH);
 		TGraph* ginjCh_hg  = new TGraph( Nevents, dac_ctrl, hg_allCh[inj_channel] );
 		sprintf(title,"hg");
 		ginjCh_hg->SetTitle(title);
@@ -336,18 +392,7 @@ void makePlots::PlotProducer(){
 		ginjCh_mip->SetTitle(title);
 		ginjCh_mip->SetName(title);
 		ginjCh_mip->Write();
-	
-		TMultiGraph *multig_InjCh_hltot = new TMultiGraph();
-		multig_InjCh_hltot->Add(ginjCh_hg);
-		multig_InjCh_hltot->Add(ginjCh_lg);
-		multig_InjCh_hltot->Add(ginjCh_tot);
-		sprintf(title,"hglgtot_InjCh%d_chip%d", injCh, ichip);
-		multig_InjCh_hltot->SetTitle(title);
-		multig_InjCh_hltot->SetName(title);
-		multig_InjCh_hltot->Write();
 
-
-		/// Xtalk vs dac_ctrl
 		TMultiGraph *multig_XTalkCoupling_ring = new TMultiGraph();
 		for(int iring = 1; iring < NRings; iring++){
 			TGraph* gXTalkCoupling = new TGraph(Nevents, mip_allCh[inj_channel], XTalkCoupling_Ring_4Chip[iring][ichip] );
@@ -363,12 +408,7 @@ void makePlots::PlotProducer(){
 		multig_XTalkCoupling_ring->SetTitle(title);
 		multig_XTalkCoupling_ring->SetName(title);
 		multig_XTalkCoupling_ring->Draw("AP");
-		c->Update();
-		multig_XTalkCoupling_ring->GetYaxis()->SetRangeUser(-0.01,0.5);
-		multig_XTalkCoupling_ring->Write();
 	}
-
-
   
 	/// 2D Average Xtalk 
 	int NNoisy = 8;
@@ -378,13 +418,16 @@ void makePlots::PlotProducer(){
 	InitTH2Poly(*poly);
 	poly->SetMinimum(-0.02);
 	for(int ichannel = 0; ichannel < NCHANNEL; ichannel+=2){
+		int ichip = ichannel / NCH;
 		float X, Y;
 		int forCH = ichannel / 2;
 		bool NoisyBool = false;
 		X = CHmap[forCH].first;
 		Y = CHmap[forCH].second;
 		if(ichannel%64 == injCh){
-			poly->Fill(X,Y,-2);
+			if(maskCh_flag==true && ichip==injChip) { poly->Fill(X,Y,-2); }
+			else if (maskCh_flag==true && ichip!=injChip) { poly->Fill(X,Y,XTalkCoupling_Average[ichannel]); }
+			else { poly->Fill(X,Y,-2); }
 		}
 		else {
 			if(!NoisyBool){
