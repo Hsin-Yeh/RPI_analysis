@@ -30,7 +30,7 @@ const int NRings = 5;
 class makePlots{
  public:
 
-	makePlots (TChain* inchain);
+	makePlots (TChain* chain1, TChain* chain2);
 	~makePlots();
 
 	//public function
@@ -75,6 +75,7 @@ class makePlots{
 	TApplication   *app;
 	TCanvas        *c;
 	TTree          *Chain1;
+	TTree          *Chain2;
 	int            cross_ch_FirstRing[NCHIP][6];
 	double         **hg_sig;
 	double         **lg_sig;
@@ -120,7 +121,63 @@ class makePlots{
 	Int_t         tot_fast[64];   // not used 
 	Int_t         tot_slow[64];   // usually use this to be the number for tot 
 	Int_t         toa_rise[64];   // Timing 
-	Int_t         toa_fall[64];   // Timing 
+	Int_t         toa_fall[64];   // Timing
+
+
+	// Declaration of leaf types
+	Int_t           eventID;
+	vector<int>     *skirocID;
+	vector<int>     *boardID;
+	vector<int>     *channelID;
+	vector<float>   *HighGainTS3_CM0;
+	vector<float>   *HighGainTS3_CM3;
+	vector<float>   *HighGainADC;
+	vector<float>   *HighGainTmax;
+	vector<float>   *HighGainChi2;
+	vector<float>   *HighGainErrorADC;
+	vector<float>   *HighGainErrorTmax;
+	vector<int>     *HighGainStatus;
+	vector<int>     *HighGainNCalls;
+	vector<float>   *LowGainTS3_CM0;
+	vector<float>   *LowGainTS3_CM3;
+	vector<float>   *LowGainADC;
+	vector<float>   *LowGainTmax;
+	vector<float>   *LowGainChi2;
+	vector<float>   *LowGainErrorADC;
+	vector<float>   *LowGainErrorTmax;
+	vector<int>     *LowGainStatus;
+	vector<int>     *LowGainNCalls;
+	vector<int>     *TotSlow;
+	vector<int>     *ToaRise;
+	vector<int>     *ToaFall;
+
+	// List of branches
+	TBranch        *b_eventID;   //!
+	TBranch        *b_skirocID;   //!
+	TBranch        *b_boardID;   //!
+	TBranch        *b_channelID;   //!
+	TBranch        *b_HighGainTS3_CM0;   //!
+	TBranch        *b_HighGainTS3_CM3;   //!
+	TBranch        *b_HighGainADC;   //!
+	TBranch        *b_HighGainTmax;   //!
+	TBranch        *b_HighGainChi2;   //!
+	TBranch        *b_HighGainErrorADC;   //!
+	TBranch        *b_HighGainErrorTmax;   //!
+	TBranch        *b_HighGainStatus;   //!
+	TBranch        *b_HighGainNCalls;   //!
+	TBranch        *b_LowGainTS3_CM0;   //!
+	TBranch        *b_LowGainTS3_CM3;   //!
+	TBranch        *b_LowGainADC;   //!
+	TBranch        *b_LowGainTmax;   //!
+	TBranch        *b_LowGainChi2;   //!
+	TBranch        *b_LowGainErrorADC;   //!
+	TBranch        *b_LowGainErrorTmax;   //!
+	TBranch        *b_LowGainStatus;   //!
+	TBranch        *b_LowGainNCalls;   //!
+	TBranch        *b_TotSlow;   //!
+	TBranch        *b_ToaRise;   //!
+	TBranch        *b_ToaFall;   //!
+
   
 	// map < key = chip*32+ch/2 , pair <x, y> > 
 	map<int,pair < double,double > > CHmap;

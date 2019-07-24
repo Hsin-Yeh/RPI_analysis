@@ -10,7 +10,7 @@
 #include "TImage.h"
 
 //Constructor
-makePlots::makePlots(TChain* inchain):Chain1(inchain) 
+makePlots::makePlots(TChain* chain1, TChain* chain2):Chain1(chain1),Chain2(chain2)
 {
 	readmap();
 	cout << "Constructor of makePlot ... \n\n" << endl;
@@ -50,7 +50,60 @@ void makePlots::Init( string pedfile, string gainfile, string noisyfile ){
 	Chain1->SetBranchAddress("tot_slow",&tot_slow);
 	Chain1->SetBranchAddress("toa_rise",&toa_rise);
 	Chain1->SetBranchAddress("toa_fall",&toa_fall);
-	
+
+
+	// Set object pointer
+	skirocID = 0;
+	boardID = 0;
+	channelID = 0;
+	HighGainTS3_CM0 = 0;
+	HighGainTS3_CM3 = 0;
+	HighGainADC = 0;
+	HighGainTmax = 0;
+	HighGainChi2 = 0;
+	HighGainErrorADC = 0;
+	HighGainErrorTmax = 0;
+	HighGainStatus = 0;
+	HighGainNCalls = 0;
+	LowGainTS3_CM0 = 0;
+	LowGainTS3_CM3 = 0;
+	LowGainADC = 0;
+	LowGainTmax = 0;
+	LowGainChi2 = 0;
+	LowGainErrorADC = 0;
+	LowGainErrorTmax = 0;
+	LowGainStatus = 0;
+	LowGainNCalls = 0;
+	TotSlow = 0;
+	ToaRise = 0;
+	ToaFall = 0;
+
+	Chain2->SetBranchAddress("eventID", &eventID, &b_eventID);
+	Chain2->SetBranchAddress("skirocID", &skirocID, &b_skirocID);
+	Chain2->SetBranchAddress("boardID", &boardID, &b_boardID);
+	Chain2->SetBranchAddress("channelID", &channelID, &b_channelID);
+	Chain2->SetBranchAddress("HighGainTS3_CM0", &HighGainTS3_CM0, &b_HighGainTS3_CM0);
+	Chain2->SetBranchAddress("HighGainTS3_CM3", &HighGainTS3_CM3, &b_HighGainTS3_CM3);
+	Chain2->SetBranchAddress("HighGainADC", &HighGainADC, &b_HighGainADC);
+	Chain2->SetBranchAddress("HighGainTmax", &HighGainTmax, &b_HighGainTmax);
+	Chain2->SetBranchAddress("HighGainChi2", &HighGainChi2, &b_HighGainChi2);
+	Chain2->SetBranchAddress("HighGainErrorADC", &HighGainErrorADC, &b_HighGainErrorADC);
+	Chain2->SetBranchAddress("HighGainErrorTmax", &HighGainErrorTmax, &b_HighGainErrorTmax);
+	Chain2->SetBranchAddress("HighGainStatus", &HighGainStatus, &b_HighGainStatus);
+	Chain2->SetBranchAddress("HighGainNCalls", &HighGainNCalls, &b_HighGainNCalls);
+	Chain2->SetBranchAddress("LowGainTS3_CM0", &LowGainTS3_CM0, &b_LowGainTS3_CM0);
+	Chain2->SetBranchAddress("LowGainTS3_CM3", &LowGainTS3_CM3, &b_LowGainTS3_CM3);
+	Chain2->SetBranchAddress("LowGainADC", &LowGainADC, &b_LowGainADC);
+	Chain2->SetBranchAddress("LowGainTmax", &LowGainTmax, &b_LowGainTmax);
+	Chain2->SetBranchAddress("LowGainChi2", &LowGainChi2, &b_LowGainChi2);
+	Chain2->SetBranchAddress("LowGainErrorADC", &LowGainErrorADC, &b_LowGainErrorADC);
+	Chain2->SetBranchAddress("LowGainErrorTmax", &LowGainErrorTmax, &b_LowGainErrorTmax);
+	Chain2->SetBranchAddress("LowGainStatus", &LowGainStatus, &b_LowGainStatus);
+	Chain2->SetBranchAddress("LowGainNCalls", &LowGainNCalls, &b_LowGainNCalls);
+	Chain2->SetBranchAddress("TotSlow", &TotSlow, &b_TotSlow);
+	Chain2->SetBranchAddress("ToaRise", &ToaRise, &b_ToaRise);
+	Chain2->SetBranchAddress("ToaFall", &ToaFall, &b_ToaFall);
+
 	// initialize global parameters 
 	hg_sig = new double*[NCH];
 	lg_sig = new double*[NCH];
@@ -183,14 +236,16 @@ void makePlots::PlotProducer(){
 			lgSigma[ichannel][sca] = 0;
 		}
 	}
-
+   
   
 	/// --------------- Start of Loop --------------- ///
 	for(int entry = 0; entry < TotalEntries ; ++entry) {
     
 		if(entry%1000==0){ cout << "Now Processing entry = " << entry << endl; }
 		Chain1 -> GetEntry(entry);
+		Chain2 -> GetEntry(entry);
 		dac_ctrl[event] = dacinj;
+
 
 		// Timesample 
 		int TS[NSCA];
@@ -257,7 +312,7 @@ void makePlots::PlotProducer(){
 					inj_channel = ( ichip * NCH ) + injCh;
 
 				XTalkCoupling[ichannel][event] = mip_allCh[ichannel][event] / mip_allCh[inj_channel][event];
-				 cout << " event = " << event << " channel = " << ichannel << " energy = " << mip_allCh[ichannel][event] << " Xtalk = " << XTalkCoupling[ichannel][event] << endl;
+				//cout << " event = " << event << " channel = " << ichannel << " energy = " << mip_allCh[ichannel][event] << " Xtalk = " << XTalkCoupling[ichannel][event] << endl;
 				if( event>50 && event<=700 ){
 					XTalkCoupling_Average[ichannel] += XTalkCoupling[ichannel][event];
 					AverageEvents++;
@@ -284,6 +339,16 @@ void makePlots::PlotProducer(){
 
 	/// --------------- End of Loop --------------- ///
 
+	/// --------------- Start of Loop --------------- ///
+	for(int entry = 0; entry < Chain2->GetEntries(); entry++){
+		Chain2->GetEntry(entry);
+		
+		for (int ihit = 0; ihit < channelID->size(); ihit++){
+		}
+		
+	}
+
+	
 	for(int ichannel = 0; ichannel < NCHANNEL; ichannel++){
 		XTalkCoupling_Average[ichannel] /= (AverageEvents/NCHANNEL);
 		for (int sca = 0; sca < NSCA; sca++){

@@ -107,18 +107,21 @@ int main(int argc, char** argv){
 
 /// -------------------- main_makePlots -------------------- ///
 void main_makePlots() {
-	TChain *chain = new TChain("treeproducer/sk2cms");
+	TChain *chain1 = new TChain("treeproducer/sk2cms");
+	TChain *chain2 = new TChain("pulseshapeplotter/tree");
 	string filename;
 	ifstream infile("data_input.txt");
 	infile >> filename;
 	infile.close();
 	if( filename.length() > 2){
 		cout << "inputFile = " << filename << endl << endl;
-		chain->Add(filename.c_str());}
+		chain1->Add(filename.c_str());
+		chain2->Add(filename.c_str());
+	}
 	else
 		cout << "There is no input root file written in the input.txt!" << endl;
   
-	makePlots M(chain);
+	makePlots M(chain1, chain2);
 	M.input_fileName = filename;
 	M.maskCh_flag = maskCh_flag;
 	M.subPed_flag = subPed_flag;
