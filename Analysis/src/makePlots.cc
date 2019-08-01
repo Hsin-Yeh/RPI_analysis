@@ -116,6 +116,7 @@ void makePlots::Init( string pedfile, string gainfile, string noisyfile ){
 	c = new TCanvas();
 	cout << "----------Init complete----------" << endl << endl;
 }
+
 ///
 /// ==================== PlotProducer ==================== ///
 ///
@@ -306,7 +307,7 @@ void makePlots::PlotProducer(){
 				/// Injection XTalk calculation
 				int ichip = ichannel / NCH;
 				int inj_channel;
-				if ( maskCh_flag )
+				if ( oneChannelInjection_flag )
 					inj_channel = ( injChip * NCH ) + injCh;
 				else
 					inj_channel = ( ichip * NCH ) + injCh;
@@ -321,7 +322,7 @@ void makePlots::PlotProducer(){
 				int iring;
 				iring = ringPositionFinder( inj_channel, ichannel );
 				if( iring > -1 ) {
-					if ( maskCh_flag )
+					if ( oneChannelInjection_flag )
 						mip_Ring_1Chip[iring][event] += mip_allCh[ichannel][event];
 					else
 						mip_Ring_4Chip[iring][ichip][event] += mip_allCh[ichannel][event];
@@ -344,6 +345,8 @@ void makePlots::PlotProducer(){
 		Chain2->GetEntry(entry);
 		
 		for (int ihit = 0; ihit < channelID->size(); ihit++){
+			//cout << "" << endl;
+			
 		}
 		
 	}
@@ -379,7 +382,7 @@ void makePlots::PlotProducer(){
 
 	/// Plots!!!!!
 	cdinjCh->cd();
-	if(!maskCh_flag) {
+	if(!oneChannelInjection_flag) {
 		for(int ichip = 0; ichip < NCHIP; ichip++){
 			int inj_channel = (ichip*64) + injCh;
 	
@@ -436,7 +439,7 @@ void makePlots::PlotProducer(){
 		}
 	}
 	/// One channel injection
-	else if ( maskCh_flag ){
+	else if ( oneChannelInjection_flag ){
 		int inj_channel = injCh + (injChip * NCH);
 		TGraph* ginjCh_hg  = new TGraph( Nevents, dac_ctrl, hg_allCh[inj_channel] );
 		sprintf(title,"hg");
@@ -501,8 +504,8 @@ void makePlots::PlotProducer(){
 		X = CHmap[forCH].first;
 		Y = CHmap[forCH].second;
 		if(ichannel%64 == injCh){
-			if(maskCh_flag==true && ichip==injChip) { poly->Fill(X,Y,-2); }
-			else if (maskCh_flag==true && ichip!=injChip) { poly->Fill(X,Y,XTalkCoupling_Average[ichannel]); }
+			if(oneChannelInjection_flag==true && ichip==injChip) { poly->Fill(X,Y,-2); }
+			else if (oneChannelInjection_flag==true && ichip!=injChip) { poly->Fill(X,Y,XTalkCoupling_Average[ichannel]); }
 			else { poly->Fill(X,Y,-2); }
 		}
 		else {
@@ -908,12 +911,16 @@ void makePlots::yamlReader(){
 			if ( yamlFile.eof() ) break;
 			getline (yamlFile, line);
 	  
-			if ( line.find("channelIds:") != -1 ){
-				string tmp;
-				yamlFile >> tmp >> searchstr;
+			if ( oneChannelInjection_flag == false && line.find("channelIds:") != -1 ){
+				//string tmp;
+				//yamlFile >> tmp >> searchstr;
 				//start = line.find("[");
 				//end = line.find("]");
 				//searchstr = line.substr(start+1,end-start+1);
+				//injCh = atoi(searchstr.c_str());
+				getline(yamlFile, line);
+				start = line.find_last_of("-");
+				searchstr = line.erase(0,start+2);
 				injCh = atoi(searchstr.c_str());
 				cout << "InjCh = " << injCh << endl;
 			}
@@ -923,16 +930,20 @@ void makePlots::yamlReader(){
 				acquisitionType = searchstr;
 				cout << "acquisitionType = " << acquisitionType << endl;
 			}
-			else if ( maskCh_flag == true && line.find("channelIdsToMask:") != -1 ) {
+			else if ( oneChannelInjection_flag == true && line.find("channelIds:") != -1 ) {
 				getline(yamlFile, line);
 				int count = 3; 
-				while ( line.find("[]") == -1) {
+				while ( line.find("[]") != -1) {
 					getline(yamlFile, line);
 					count--;
 					if ( count < 0 ) break;
 				}
 				if ( count > -1 ) {
 					injChip = count;
+					start = line.find_last_of("-");
+					searchstr = line.erase(0,start+2);
+					injCh = atoi(searchstr.c_str());
+					cout << "InjCh = " << injCh << endl;
 					cout << "1 channel injection = " << injChip << endl;
 				}
 			}

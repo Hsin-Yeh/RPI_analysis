@@ -42,7 +42,7 @@ class makePlots{
 	//public parameter
 	string input_fileName;
 	bool subPed_flag;
-	bool maskCh_flag;
+	bool oneChannelInjection_flag;
 
   
 	//PlotSetting class 

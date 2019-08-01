@@ -24,7 +24,7 @@ int  pulseDisplay_type = 0;
 int  lowerR = -1, upperR = -1;
 int  startEv = 0;
 bool subPed_flag = true;
-bool maskCh_flag = false;
+bool oneChannelInjection_flag = false;
 bool makePlots_flag = true;
 bool help_flag = false;
 
@@ -76,7 +76,7 @@ int main(int argc, char** argv){
 		}
 		else if ( arg == "-m" || arg == "-mask" ) {
 			cout << "mask channel" << endl;
-			maskCh_flag = true;
+			oneChannelInjection_flag = true;
 			iarg++;
 		}
 		else if ( arg == "-c" || arg == "-cosmic" ) {
@@ -123,7 +123,7 @@ void main_makePlots() {
   
 	makePlots M(chain1, chain2);
 	M.input_fileName = filename;
-	M.maskCh_flag = maskCh_flag;
+	M.oneChannelInjection_flag = oneChannelInjection_flag;
 	M.subPed_flag = subPed_flag;
 	M.Init( pedfile, gainfile, noisyfile );
 	if ( anaType == 0 ) {
